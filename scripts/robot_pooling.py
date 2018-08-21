@@ -3,7 +3,7 @@
 import numpy as np
 import sys
 import re
-#from opentrons import containers, instruments
+from opentrons import containers, instruments
 
 # alter the ratio of the following samples:
 custom={
@@ -35,18 +35,22 @@ rc_floor = 50 # treat all samples as though they have this many reads
 manual_min = 2.5 # minimum amount we would manually pipet
 
 # read the count data
-count_table = np.genfromtxt(sys.argv[1],skip_header=1,dtype=str)
+count_file = open(sys.argv[1])
+count_table = {}
+for line in count_file:
+    ll = line.rstrip().split()
+    count_table[ll[0]]=int(ll[1])
+
 
 # convert names to plate codes
 well_counts = {}
-for s_row in range(count_table.shape[0]):
-    sample = count_table[s_row,0]
+for sample in count_table:
     rrr = re.search('plate_(\d+)_(\w)(\d+)', sample)
     plate = rrr.group(1)
     row = rrr.group(2)
     col = rrr.group(3)
     code = str(plate)+row+str(col)
-    well_counts[code]=max(rc_floor,int(count_table[s_row,1]))
+    well_counts[code]=max(rc_floor,count_table[sample])
     if code in custom:
         well_counts[code] /= custom[code]
 
