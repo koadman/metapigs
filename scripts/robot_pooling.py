@@ -79,7 +79,7 @@ for count, well in sorted((value, key) for (key,value) in well_counts.items()):
         pool_sample_count[cur_pool] = 0
         pool_read_count[cur_pool] = 0
         pool_minmax[cur_pool] = [count,0]
-        pool_samples = {cur_pool:[]}
+        pool_samples[cur_pool]=[]
     if well in blacklist:
         if count > 0:
             print("# WARNING: blacklisted well ID "+well+" has read count "+str(count))
@@ -136,6 +136,7 @@ for pool in pool_samples:
         rrr = re.search('(\d+)(\w\d+)',sample)
         plate = rrr.group(1)
         well = rrr.group(2)
+#        print("sample "+sample+" working on  plate "+plate+" well "+well+"\n")
         pool_from.append( lib_plates[ plate ].well(well).bottom() )
     pool_dest_well = row_letters[cur_row]+str(cur_col)
     pool_dest = pool_plate.well(pool_dest_well).bottom()
