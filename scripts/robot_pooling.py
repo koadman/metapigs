@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import numpy as np
 import sys
 import re
 from opentrons import containers, instruments
