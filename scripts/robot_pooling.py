@@ -163,6 +163,10 @@ for pool in pool_samples:
         cur_col = 1
         cur_row += 1
 
+    # ignore this pool if empty
+    if len(pool_from) == 0:
+        continue
+
     #pick up new tip first
     tip_well = row_letters[tip_row]+str(tip_col)
     tip_col += 1
