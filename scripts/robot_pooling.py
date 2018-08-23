@@ -34,8 +34,11 @@ samples_per_pool = max_pool_vol / aliquot_vol
 rc_floor = 50 # treat all samples as though they have this many reads
 manual_min = 2.5 # minimum amount we would manually pipet
 
+
+#replaced count_file = open(sys.argv[1]) with count_file = open('/Users/12705859/metapigs/source_data/plate_counts.tsv')
+
 # read the count data
-count_file = open(sys.argv[1])
+count_file = open('/Users/12705859/metapigs/source_data/plate_counts.tsv')
 count_table = {}
 for line in count_file:
     ll = line.rstrip().split()
