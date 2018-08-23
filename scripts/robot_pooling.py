@@ -108,8 +108,21 @@ for pool in pool_sample_count:
 
 # robot instructions start here
 
+#p10 = containers.load('tiprack-10ul', 'B2', 'p10rack') changed into: 
 
-p10 = containers.load('tiprack-10ul', 'B2', 'p10rack')
+p10rack = containers.load('tiprack-10ul', 'B2', 'p10rack')
+
+trash_container = containers.load('trash-box', 'E1', 'trash')
+
+#added this description of pipette
+p10 = instruments.Pipette(
+    axis='b',
+    name='p10',
+    max_volume=10,
+    min_volume=0.5,
+    channels=1,
+    trash_container=trash_container,
+    tip_racks=[p10rack])
 
 # look here for dimensions https://docs.opentrons.com/ot1/containers.html
 lib_plates = {
@@ -126,7 +139,6 @@ lib_plates = {
 }
 
 pool_plate = containers.load('96-PCR-flat', 'C2', 'pool_plate')
-trash = containers.load('trash-box', 'E1', 'trash')
 
 #changed this pool_from.append( lib_plates[ plate ].well(well).bottom() ) 
 #into pool_from.append( lib_plates[int(plate)].well(well).bottom() )
@@ -158,7 +170,7 @@ for pool in pool_samples:
         tip_col = 1
         tip_row += 1
 
-    pipette.pick_up_tip(p10rack.wells(tip_well))
+    p10.pick_up_tip(p10rack.wells(tip_well))
     p10.transfer(
         10,
         pool_from,
@@ -169,6 +181,7 @@ for pool in pool_samples:
         touch_tip=True,
         blow_out=True,
         new_tip='never')
+        
 
-    pipette.drop_tip(trash)
-    robot.home()
+    p10.drop_tip(trash_container)
+   
