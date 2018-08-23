@@ -130,11 +130,11 @@ lib_plates = {
 	3:containers.load('96-PCR-tall', 'B3', 'lib_plate_3'),
 	4:containers.load('96-PCR-tall', 'C3', 'lib_plate_4'),
 	5:containers.load('96-PCR-tall', 'D3', 'lib_plate_5'),
-	6:containers.load('96-PCR-tall', 'B1', 'lib_plate_6'),
-	7:containers.load('96-PCR-tall', 'B2', 'lib_plate_7'),
-	8:containers.load('96-PCR-tall', 'B3', 'lib_plate_8'),
-	9:containers.load('96-PCR-tall', 'C3', 'lib_plate_9'),
-	10:containers.load('96-PCR-tall', 'D3', 'lib_plate_10')
+#	6:containers.load('96-PCR-tall', 'B1', 'lib_plate_6'),
+#	7:containers.load('96-PCR-tall', 'B2', 'lib_plate_7'),
+#	8:containers.load('96-PCR-tall', 'B3', 'lib_plate_8'),
+#	9:containers.load('96-PCR-tall', 'C3', 'lib_plate_9'),
+#	10:containers.load('96-PCR-tall', 'D3', 'lib_plate_10')
 }
 
 pool_plate = containers.load('96-PCR-flat', 'C2', 'pool_plate')
@@ -148,17 +148,13 @@ cur_col=1
 tip_col=1
 tip_row=1
 
-#change below batches[0] to batches [1] after you have replaced the lib plates
-
-batches=[{1,2,3,4,5},{6,7,8,9,10}]
-batch = batches[0]
 for pool in pool_samples:
     pool_from = []
     for sample in pool_samples[pool]:
         rrr = re.search('(\d+)(\w\d+)',sample)
         plate = rrr.group(1)
         well = rrr.group(2)
-        if plate in batch:
+        if plate in lib_plates:
             pool_from.append( lib_plates[ int (plate) ].well(well).bottom() )
     pool_dest_well = row_letters[cur_row]+str(cur_col)
     pool_dest = pool_plate.well(pool_dest_well).bottom()
