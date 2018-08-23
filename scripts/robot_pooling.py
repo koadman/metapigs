@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import numpy as np
 import sys
 import re
 from opentrons import containers, instruments
@@ -108,7 +107,7 @@ for pool in pool_sample_count:
 
 # robot instructions start here
 
-#p10 = containers.load('tiprack-10ul', 'B2', 'p10rack') changed into: 
+#p10 = containers.load('tiprack-10ul', 'B2', 'p10rack') changed into:
 
 p10rack = containers.load('tiprack-10ul', 'B2', 'p10rack')
 
@@ -140,7 +139,7 @@ lib_plates = {
 
 pool_plate = containers.load('96-PCR-flat', 'C2', 'pool_plate')
 
-#changed this pool_from.append( lib_plates[ plate ].well(well).bottom() ) 
+#changed this pool_from.append( lib_plates[ plate ].well(well).bottom() )
 #into pool_from.append( lib_plates[int(plate)].well(well).bottom() )
 
 cur_row=1
@@ -148,14 +147,17 @@ row_letters={1:'A',2:'B',3:'C',4:'D',5:'E',6:'F',7:'G',8:'H'}
 cur_col=1
 tip_col=1
 tip_row=1
+
+batches=[{1,2,3,4,5},{6,7,8,9,10}]
+batch = batches[0]
 for pool in pool_samples:
     pool_from = []
     for sample in pool_samples[pool]:
         rrr = re.search('(\d+)(\w\d+)',sample)
         plate = rrr.group(1)
         well = rrr.group(2)
-#        print("sample "+sample+" working on  plate "+plate+" well "+well+"\n")
-        pool_from.append( lib_plates[ int (plate) ].well(well).bottom() )
+        if plate in batch:
+            pool_from.append( lib_plates[ int (plate) ].well(well).bottom() )
     pool_dest_well = row_letters[cur_row]+str(cur_col)
     pool_dest = pool_plate.well(pool_dest_well).bottom()
     cur_col += 1
@@ -181,7 +183,6 @@ for pool in pool_samples:
         touch_tip=True,
         blow_out=True,
         new_tip='never')
-        
+
 
     p10.drop_tip(trash_container)
-   
