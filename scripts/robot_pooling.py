@@ -108,7 +108,6 @@ for pool in pool_sample_count:
 # robot instructions start here
 
 #p10 = containers.load('tiprack-10ul', 'B2', 'p10rack') changed into:
-
 p10rack = containers.load('tiprack-10ul', 'D2', 'p10rack')
 
 trash_container = containers.load('trash-box', 'E1', 'trash')
@@ -152,10 +151,10 @@ for pool in pool_samples:
     pool_from = []
     for sample in pool_samples[pool]:
         rrr = re.search('(\d+)(\w\d+)',sample)
-        plate = rrr.group(1)
+        plate = int(rrr.group(1))
         well = rrr.group(2)
         if plate in lib_plates:
-            pool_from.append( lib_plates[ int (plate) ].well(well) )
+            pool_from.append( lib_plates[ plate ].well(well) )
     pool_dest_well = row_letters[cur_row]+str(cur_col)
     pool_dest = pool_plate.well(pool_dest_well)
     cur_col += 1
