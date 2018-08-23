@@ -109,7 +109,7 @@ for pool in pool_sample_count:
 
 #p10 = containers.load('tiprack-10ul', 'B2', 'p10rack') changed into:
 
-p10rack = containers.load('tiprack-10ul', 'B2', 'p10rack')
+p10rack = containers.load('tiprack-10ul', 'D2', 'p10rack')
 
 trash_container = containers.load('trash-box', 'E1', 'trash')
 
@@ -125,15 +125,15 @@ p10 = instruments.Pipette(
 
 # look here for dimensions https://docs.opentrons.com/ot1/containers.html
 lib_plates = {
-	1:containers.load('96-PCR-tall', 'A1', 'lib_plate_1'),
-	2:containers.load('96-PCR-tall', 'A2', 'lib_plate_2'),
-	3:containers.load('96-PCR-tall', 'A3', 'lib_plate_3'),
-	4:containers.load('96-PCR-tall', 'B1', 'lib_plate_4'),
-	5:containers.load('96-PCR-tall', 'B3', 'lib_plate_5'),
-	6:containers.load('96-PCR-tall', 'C1', 'lib_plate_6'),
-	7:containers.load('96-PCR-tall', 'C3', 'lib_plate_7'),
-	8:containers.load('96-PCR-tall', 'D1', 'lib_plate_8'),
-	9:containers.load('96-PCR-tall', 'D2', 'lib_plate_9'),
+	1:containers.load('96-PCR-tall', 'B1', 'lib_plate_1'),
+	2:containers.load('96-PCR-tall', 'B2', 'lib_plate_2'),
+	3:containers.load('96-PCR-tall', 'B3', 'lib_plate_3'),
+	4:containers.load('96-PCR-tall', 'C3', 'lib_plate_4'),
+	5:containers.load('96-PCR-tall', 'D3', 'lib_plate_5'),
+	6:containers.load('96-PCR-tall', 'B1', 'lib_plate_6'),
+	7:containers.load('96-PCR-tall', 'B2', 'lib_plate_7'),
+	8:containers.load('96-PCR-tall', 'B3', 'lib_plate_8'),
+	9:containers.load('96-PCR-tall', 'C3', 'lib_plate_9'),
 	10:containers.load('96-PCR-tall', 'D3', 'lib_plate_10')
 }
 
@@ -147,6 +147,8 @@ row_letters={1:'A',2:'B',3:'C',4:'D',5:'E',6:'F',7:'G',8:'H'}
 cur_col=1
 tip_col=1
 tip_row=1
+
+#change below batches[0] to batches [1] after you have replaced the lib plates
 
 batches=[{1,2,3,4,5},{6,7,8,9,10}]
 batch = batches[0]
