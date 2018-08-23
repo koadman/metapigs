@@ -155,9 +155,9 @@ for pool in pool_samples:
         plate = rrr.group(1)
         well = rrr.group(2)
         if plate in lib_plates:
-            pool_from.append( lib_plates[ int (plate) ].well(well).bottom() )
+            pool_from.append( lib_plates[ int (plate) ].well(well) )
     pool_dest_well = row_letters[cur_row]+str(cur_col)
-    pool_dest = pool_plate.well(pool_dest_well).bottom()
+    pool_dest = pool_plate.well(pool_dest_well)
     cur_col += 1
     if cur_col > 12:
         cur_col = 1
