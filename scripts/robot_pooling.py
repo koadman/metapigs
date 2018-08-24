@@ -13,16 +13,21 @@ custom={
 
 # configure the unused well blacklist
 blacklist={}
-for col in range(1,12):
+for col in range(1,13):
     blacklist['2D'+str(col)]=1
 
-for col in range(9,12):
+for col in range(9,13):
     blacklist['2H'+str(col)]=1
 
 for plate in [9,10]:
     for col in [11,12]:
         for row in ['A','B','C','D','E','F','G','H']:
             blacklist[str(plate)+row+str(col)]=1
+
+
+# samples which lack data for normalisation go to a separate pool
+
+awol_pool={'1A1','2A1','2B1','2C1','6A7','4F10','8E11'}
 
 
 # some parameters for pipetting
@@ -52,7 +57,11 @@ for sample in count_table:
     row = rrr.group(2)
     col = rrr.group(3)
     code = str(plate)+row+str(col)
-    well_counts[code]=max(rc_floor,count_table[sample])
+    if code not in blacklist:
+        well_counts[code]=max(rc_floor,count_table[sample])
+    else:
+        well_counts[code]=count_table[sample]
+
     if code in custom:
         well_counts[code] /= custom[code]
 
@@ -62,7 +71,9 @@ for plate in range(1,10):
         for col in range(1,12):
             code = str(plate)+row+str(col)
             if not code in well_counts:
-                well_counts[code]=rc_floor
+                if not code in blacklist:
+                    print("sample "+code+" was missing a read count")
+                    well_counts[code]=rc_floor
 
 cur_pool = 0
 sample_count = 0
@@ -82,16 +93,20 @@ for count, well in sorted((value, key) for (key,value) in well_counts.items()):
         pool_read_count[cur_pool] = 0
         pool_minmax[cur_pool] = [count,0]
         pool_samples[cur_pool]=[]
-    if well in blacklist:
-        if count > 0:
-            print("# WARNING: blacklisted well ID "+well+" has read count "+str(count))
-    else:
+    if (well not in blacklist) and (well not in awol_pool):
         # add a sample to the pool
         pool_sample_count[cur_pool] += 1
         pool_read_count[cur_pool] += count
         pool_minmax[cur_pool][1] = count
         pool_samples[cur_pool].append(well)
         print("well ID "+well+" read count "+str(count)+" into pool "+str(cur_pool))
+
+# make the awol pool
+cur_pool += 1
+pool_samples[cur_pool] = list(awol_pool)
+pool_sample_count[cur_pool] = len(list(awol_pool))
+pool_read_count[cur_pool] = 3000 * pool_sample_count[cur_pool]
+pool_minmax[cur_pool] = [3000,3000]
 
 # pool 0 is least concentrated - use all of this one and less of others
 pool_0_ul = pool_sample_count[0]*aliquot_vol
@@ -138,15 +153,41 @@ lib_plates = {
 
 pool_plate = containers.load('96-PCR-flat', 'C2', 'pool_plate')
 
-#changed this pool_from.append( lib_plates[ plate ].well(well).bottom() )
-#into pool_from.append( lib_plates[int(plate)].well(well).bottom() )
+water = containers.load('trough-12row', 'C1')
+water_well = water.wells('A1')
 
+# preload some wells with water before the first batch of plates is processed
+# so that all wells achieve 250uL
 cur_row=1
-row_letters={1:'A',2:'B',3:'C',4:'D',5:'E',6:'F',7:'G',8:'H'}
 cur_col=1
-tip_col=1
-tip_row=1
+row_letters={1:'A',2:'B',3:'C',4:'D',5:'E',6:'F',7:'G',8:'H'}
+if 1 in lib_plates:
+    for pool in pool_samples:
+        pool_dest_well = row_letters[cur_row]+str(cur_col)
+        pool_dest = pool_plate.well(pool_dest_well)
+        # pipette 10uL of water for each sample less than the samples per pool
+        print("pipetting "+str(int(samples_per_pool - pool_sample_count[pool])*10)+"ul water for pool "+str(pool)+" well "+pool_dest_well)
+        for i in range(int(samples_per_pool - pool_sample_count[pool])):
+            p10.transfer(
+                10,
+                water_well,
+                pool_dest,
+                disposal_vol=0,
+                mix_before=(0),
+                mix_after=(0),
+                touch_tip=True,
+                blow_out=True,
+                new_tip='never')
 
+        # advance to next pool
+        cur_col += 1
+        if cur_col > 12:
+            cur_col = 1
+            cur_row += 1
+
+# start making the pools
+cur_row=1
+cur_col=1
 for pool in pool_samples:
     pool_from = []
     for sample in pool_samples[pool]:
@@ -166,14 +207,6 @@ for pool in pool_samples:
     if len(pool_from) == 0:
         continue
 
-    #pick up new tip first
-    tip_well = row_letters[tip_row]+str(tip_col)
-    tip_col += 1
-    if tip_col > 12:
-        tip_col = 1
-        tip_row += 1
-
-    p10.pick_up_tip(p10rack.wells(tip_well))
     p10.transfer(
         10,
         pool_from,
@@ -184,6 +217,3 @@ for pool in pool_samples:
         touch_tip=True,
         blow_out=True,
         new_tip='never')
-
-
-    p10.drop_tip(trash_container)
