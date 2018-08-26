@@ -110,18 +110,23 @@ pool_minmax[cur_pool] = [3000,3000]
 
 # pool 0 is least concentrated - use all of this one and less of others
 pool_0_ul = pool_sample_count[0]*aliquot_vol
-pool_0_avgconc = pool_read_count[0] / pool_sample_count[0]
+pool_0_avgreads = pool_read_count[0] / pool_sample_count[0]
+water_pools = {}
 for pool in pool_sample_count:
-    pool_avgconc = pool_read_count[pool] / pool_sample_count[pool]
-#    print(str(pool_0_avgconc)+"\t"+str(pool_minmax[pool][1]))
-    pool_relconc = pool_0_avgconc / pool_minmax[pool][1]
-    pool_ul = pool_0_ul * pool_relconc
-    print("Aliquot "+str(pool_ul)+"ul from pool "+str(pool)+" poolvol " + str(pool_sample_count[pool]*10) + " relrange "+
+    pool_avgreads = pool_read_count[pool] / pool_sample_count[pool]
+    pool_relconc = pool_0_avgreads / pool_avgreads
+    pool_ul = pool_sample_count[pool] * aliquot_vol * pool_relconc
+    # dilute with water if we would do a tiny aliquot and the well has room
+    if(pool_ul < 3 and pool_sample_count[pool] < samples_per_pool):
+        pool_ul = pool_sample_count[pool] * aliquot_vol * pool_0_avgreads / (pool_read_count[pool] / samples_per_pool)
+        water_pools[pool]='yes'
+
+    print("Aliquot "+str(pool_ul)+"ul from pool "+str(pool)+" samples " + str(pool_sample_count[pool]) + " avgreads " + str(pool_avgreads) + " relrange "+
         str(pool_minmax[pool][0]/pool_minmax[pool][1]))
 
-
+#
 # robot instructions start here
-
+#
 #p10 = containers.load('tiprack-10ul', 'B2', 'p10rack') changed into:
 p10rack = containers.load('tiprack-10ul', 'D2', 'p10rack')
 
@@ -157,27 +162,28 @@ water = containers.load('trough-12row', 'C1')
 water_well = water.wells('A1')
 
 # preload some wells with water before the first batch of plates is processed
-# so that all wells achieve 250uL
+# so that high concentration pools don't require tiny aliquots
 cur_row=1
 cur_col=1
 row_letters={1:'A',2:'B',3:'C',4:'D',5:'E',6:'F',7:'G',8:'H'}
 if 1 in lib_plates:
     for pool in pool_samples:
-        pool_dest_well = row_letters[cur_row]+str(cur_col)
-        pool_dest = pool_plate.well(pool_dest_well)
-        # pipette 10uL of water for each sample less than the samples per pool
-        print("pipetting "+str(int(samples_per_pool - pool_sample_count[pool])*10)+"ul water for pool "+str(pool)+" well "+pool_dest_well)
-        for i in range(int(samples_per_pool - pool_sample_count[pool])):
-            p10.transfer(
-                10,
-                water_well,
-                pool_dest,
-                disposal_vol=0,
-                mix_before=(0),
-                mix_after=(0),
-                touch_tip=True,
-                blow_out=True,
-                new_tip='never')
+        if pool in water_pools:
+            pool_dest_well = row_letters[cur_row]+str(cur_col)
+            pool_dest = pool_plate.well(pool_dest_well)
+            # pipette 10uL of water for each sample less than the samples per pool
+            print("pipetting "+str(int(samples_per_pool - pool_sample_count[pool])*10)+"ul water for pool "+str(pool)+" well "+pool_dest_well)
+            for i in range(int(samples_per_pool - pool_sample_count[pool])):
+                p10.transfer(
+                    10,
+                    water_well,
+                    pool_dest,
+                    disposal_vol=0,
+                    mix_before=(0),
+                    mix_after=(0),
+                    touch_tip=True,
+                    blow_out=True,
+                    new_tip='never')
 
         # advance to next pool
         cur_col += 1
