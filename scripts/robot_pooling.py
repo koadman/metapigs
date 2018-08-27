@@ -2,7 +2,7 @@
 
 import sys
 import re
-from opentrons import containers, instruments
+from opentrons import robot, containers, instruments
 
 # alter the ratio of the following samples:
 custom={
@@ -223,3 +223,6 @@ for pool in pool_samples:
         touch_tip=True,
         blow_out=True,
         new_tip='never')
+
+for c in robot.commands():
+    print(c)
