@@ -4,6 +4,8 @@ import sys
 import re
 from opentrons import robot, containers, instruments
 
+robot.get_warnings()
+
 # alter the ratio of the following samples:
 custom={
     "7D9":10,
@@ -47,7 +49,6 @@ count_table = {}
 for line in count_file:
     ll = line.rstrip().split()
     count_table[ll[0]]=int(ll[1])
-
 
 # convert names to plate codes
 well_counts = {}
@@ -130,11 +131,13 @@ for pool in pool_sample_count:
 #p10 = containers.load('tiprack-10ul', 'B2', 'p10rack') changed into:
 p10rack = containers.load('tiprack-10ul', 'D2', 'p10rack')
 
+
+
 trash_container = containers.load('trash-box', 'E1', 'trash')
 
 #added this description of pipette
 p10 = instruments.Pipette(
-    axis='b',
+    axis='a',
     name='p10',
     max_volume=10,
     min_volume=0.5,
@@ -145,10 +148,10 @@ p10 = instruments.Pipette(
 # look here for dimensions https://docs.opentrons.com/ot1/containers.html
 lib_plates = {
 	1:containers.load('96-PCR-tall', 'B1', 'lib_plate_1'),
-	2:containers.load('96-PCR-tall', 'B2', 'lib_plate_2'),
-	3:containers.load('96-PCR-tall', 'B3', 'lib_plate_3'),
-	4:containers.load('96-PCR-tall', 'C3', 'lib_plate_4'),
-	5:containers.load('96-PCR-tall', 'D3', 'lib_plate_5'),
+#	2:containers.load('96-PCR-tall', 'B2', 'lib_plate_2'),
+#	3:containers.load('96-PCR-tall', 'B3', 'lib_plate_3'),
+#	4:containers.load('96-PCR-tall', 'C3', 'lib_plate_4'),
+#	5:containers.load('96-PCR-tall', 'D3', 'lib_plate_5'),
 #	6:containers.load('96-PCR-tall', 'B1', 'lib_plate_6'),
 #	7:containers.load('96-PCR-tall', 'B2', 'lib_plate_7'),
 #	8:containers.load('96-PCR-tall', 'B3', 'lib_plate_8'),
@@ -184,7 +187,6 @@ if 1 in lib_plates:
                     touch_tip=True,
                     blow_out=True,
                     new_tip='never')
-
         # advance to next pool
         cur_col += 1
         if cur_col > 12:
@@ -208,17 +210,16 @@ for pool in pool_samples:
     if cur_col > 12:
         cur_col = 1
         cur_row += 1
-
     # ignore this pool if empty
     if len(pool_from) == 0:
         continue
-
+        
     p10.transfer(
         10,
         pool_from,
         pool_dest,
         disposal_vol=0,
-        mix_before=(3), # mix 3 times
+        mix_before=(2, 10), # mix 3 times
         mix_after=(3),  # mix 3 times
         touch_tip=True,
         blow_out=True,
@@ -226,3 +227,4 @@ for pool in pool_samples:
 
 for c in robot.commands():
     print(c)
+        
