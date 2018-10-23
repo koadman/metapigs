@@ -31,7 +31,7 @@ read_sets = Channel.fromPath(params.run_table)
 
 process CleanUp {
     cpus params.ncpu
-    publishDir params.out_dir, mode: 'copy', saveAs: {fn -> "${source_id}/${fn}" }
+    publishDir params.out_dir, mode: 'copy', saveAs: {fn -> "${source_id}/reads/${fn}" }
     
     input:
     set run_id, r1, r2, source_id from read_sets
@@ -39,30 +39,34 @@ process CleanUp {
     each file(phix) from Channel.fromPath(params.phix)
     
     output:
-    set source_id, run_id, file('cleaned_*r1.fq.gz'), file('cleaned_*r2.fq.gz'), file('*matched.fq.gz'), file('*.stats') into cleaned_reads
+    set source_id, run_id, file("${run_id}_cleaned_paired.fq.gz"), file('*matched.fq.gz'), file('*_stats.txt') into cleaned_reads
     
     """
     bbduk.sh t=${task.cpus} k=23 hdist=1 tpe tbo mink=11 ktrim=r ref=$adapters \
-        in=$r1 in2=$r2 out=stdout.fq outm=${r1.name}_adapter_matched.fq.gz stats=${r1.name}_adapter.stats | \
+        in=$r1 in2=$r2 out=stdout.fq outm=${run_id}_adapter_matched.fq.gz stats=${run_id}_adapter_stats.txt | \
     bbduk.sh t=${task.cpus} ftm=0 qtrim=r trimq=10 \
-        in=stdin.fq out=stdout.fq stats=${r1.name}_quality.stats |
+        in=stdin.fq out=stdout.fq stats=${run_id}.quality_stats.txt |
     bbduk.sh t=${task.cpus} k=31 hdist=1 ref=$phix \
-        in=stdin.fq out=cleaned_${r1.name} out2=cleaned_${r2.name} outm=${r1.name}_phix_matched.fq.gz stats=${r1.name}_phix.stats
+        in=stdin.fq out=${run_id}_cleaned_paired.fq.gz outm=${run_id}_phix_matched.fq.gz stats=${run_id}_phix_stats.txt
     """
 }
 
+cleaned_reads = cleaned_reads.map{it -> [it[0], it[1], it[2]]}.groupTuple() //.subscribe{println it}
 
-cleaned_reads.map{it -> [it[0], it[1..-1]]}.groupTuple().subscribe{println it}
-
-process Assemble {
-    input:
+process Assembly {
+    cpus params.ncpu
+    publishDir params.out_dir, mode: 'copy', saveAs: {fn -> "${source_id}/asm/${fn}" }
     
-    /*
-        prepare the r1 and r2 file listings and call megahit
-     */
+    input:
+    set source_id, run_id, reads from cleaned_reads
+
+    output:
+    set file("megahit_out/${source_id}.contigs.fa"), file("megahit_out/${source_id}.log"), file("megahit_out/opts.txt") into assembly
+    
+    """
+    megahit -t ${task.cpus} -o megahit_out --out-prefix $source_id --12 ${reads.join(",")}
+    """
 }
-
-
 
 /**
  A fine-grained version of clean-up, which probably costs too much in disk storage to be of value.
