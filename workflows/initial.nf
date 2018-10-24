@@ -20,11 +20,21 @@ params.raw_dir = '.'
  * Build up the read sets to munge from a CSV run_table
  * 
  **/
-read_sets = Channel.fromPath(params.run_table)
-                .splitCsv(header: true, sep: ',', strip: true)
-                .map{[it['run_id'],  file("${params.raw_dir}/${it['r1_filename']}"), file("${params.raw_dir}/${it['r2_filename']}"), it['source_id']]}
+Channel.fromPath(params.run_table)
+    .splitCsv(header: true, sep: ',', strip: true)
+    .map{[it['run_id'],  file("${params.raw_dir}/${it['r1_filename']}"), file("${params.raw_dir}/${it['r2_filename']}"), it['source_id']]}
+    .into{test_exists; read_sets}
 
+process TestExistence {
+        input:
+        set run_id, r1, r2, source_id from test_exists
+        
+        exec:
+        assert r1.exists(), "The file $r1 did not exist"
+        assert r2.exists(), "The file $r2 did not exist"
+}
 
+                
 /**
  * Clean up a readset using bbduk from BBTools
  * 
@@ -80,6 +90,6 @@ process Assembly {
     set file("megahit_out/${source_id}.contigs.fa"), file("megahit_out/${source_id}.log"), file("megahit_out/opts.txt") into assembly
     
     """
-    megahit -t ${task.cpus} -o megahit_out --out-prefix $source_id --12 ${reads.join(",")}
+    megahit -t ${task.cpus} -m 0.33 -o megahit_out --out-prefix $source_id --12 ${reads.join(",")}
     """
 }
