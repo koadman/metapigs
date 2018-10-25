@@ -29,6 +29,7 @@ process TestExistence {
 process phylosift {
     cpus params.ncpu
     time '20h'
+    memory '48 GB'
     publishDir params.out_dir, mode: 'copy'
 
     input:
