@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import pandas
+import sys
 
 parser = argparse.ArgumentParser(description='Adding extraction plates info to NCBI matrix')
 parser.add_argument('NCBI_table', help='Excel spreadsheet from NCBI')
@@ -15,9 +16,17 @@ extraction_table = pandas.read_excel(args.extraction_table,sheet_name=0,index_co
 #dictionary can also be written this way: dict() = {}
 sample_map=dict()
 for row in range (extraction_table.shape[0]):
-    sample_map[extraction_table.iat[row,6]]=(extraction_table.iat[row,0], extraction_table.iat[row,1])
+    if not extraction_table.iat[row,6] in sample_map:
+        sample_map[extraction_table.iat[row,6]]=[(extraction_table.iat[row,0], extraction_table.iat[row,1])]
+    else:
+        sys.stderr.write("WARNING: found extra DNA sample for poop "+extraction_table.iat[row,6]+"\n")
+        sample_map[extraction_table.iat[row,6]].append((extraction_table.iat[row,0], extraction_table.iat[row,1]))
 
 print('\t'.join(NCBI_table.columns))
 for row in range(NCBI_table.shape[0]):
-        print('\t'.join(map(str,NCBI_table.iloc[row,:]))+"\t".join(sample_map[NCBI_table.iat[row,0]]))
+        if not NCBI_table.iat[row,0] in sample_map:
+            sys.stderr.write("WARNING: DNA sample not found for poop "+NCBI_table.iat[row,0]+"\n")
+        else:
+            for tuple in sample_map[NCBI_table.iat[row,0]]:
+                print('\t'.join(map(str,NCBI_table.iloc[row,:]))+"\t".join(tuple))
 #        print("\t".join(sample_map[NCBI_table.iat[row,0]]))
