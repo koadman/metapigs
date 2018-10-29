@@ -22,11 +22,11 @@ for row in range (extraction_table.shape[0]):
         sys.stderr.write("WARNING: found extra DNA sample for poop "+extraction_table.iat[row,6]+"\n")
         sample_map[extraction_table.iat[row,6]].append((extraction_table.iat[row,0], extraction_table.iat[row,1]))
 
-print('\t'.join(NCBI_table.columns))
+print('\t'.join(NCBI_table.columns)+'\tDNA_plate\tDNA_well')
 for row in range(NCBI_table.shape[0]):
         if not NCBI_table.iat[row,0] in sample_map:
             sys.stderr.write("WARNING: DNA sample not found for poop "+NCBI_table.iat[row,0]+"\n")
         else:
             for tuple in sample_map[NCBI_table.iat[row,0]]:
-                print('\t'.join(map(str,NCBI_table.iloc[row,:]))+"\t".join(tuple))
+                print('\t'.join(map(str,NCBI_table.iloc[row,:]))+'\t'+"\t".join(tuple))
 #        print("\t".join(sample_map[NCBI_table.iat[row,0]]))
