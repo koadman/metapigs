@@ -27,6 +27,10 @@ for row in range(NCBI_table.shape[0]):
         if not NCBI_table.iat[row,0] in sample_map:
             sys.stderr.write("WARNING: DNA sample not found for poop "+NCBI_table.iat[row,0]+"\n")
         else:
-            for tuple in sample_map[NCBI_table.iat[row,0]]:
-                print('\t'.join(map(str,NCBI_table.iloc[row,:]))+'\t'+"\t".join(tuple))
+            for i in range(len(sample_map[NCBI_table.iat[row,0]])):
+                tuple = sample_map[NCBI_table.iat[row,0]][i]
+                ncbi_row = NCBI_table.iloc[row,:]
+                if i>0:
+                    ncbi_row[0]=ncbi_row[0]+'.'+str(i+1)
+                print('\t'.join(map(str,ncbi_row))+'\t'+"\t".join(tuple))
 #        print("\t".join(sample_map[NCBI_table.iat[row,0]]))
