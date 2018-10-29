@@ -1,4 +1,7 @@
 #!/usr/bin/env nextflow
+/**
+ * usage: phylosift.nf --run_table=table.tsv
+ **/
 params.ncpu = 2
 params.out_dir = 'out'
 params.raw_dir = '.'
@@ -39,6 +42,63 @@ process phylosift {
     file("PS_temp/*/*.jplace") into jplace
 
     """
-    ~/software/phylosift_v1.0.1/bin/phylosift all --disable_updates --chunks 1 --chunk_size 100000 --paired ${r1} ${r2}
+    phylosift all --disable_updates --chunks 1 --chunk_size 100000 --paired ${r1} ${r2}
     """
+}
+
+jplace_all = jplace.collect()
+(jplace_alpha, jplace_squash, jplace_beta) = jplace_all.into(3)
+
+/**
+ * compute per-sample alpha diversity with various metrics
+ **/
+process alpha_diversity {
+  publishDir params.out_dir, mode: 'copy'
+
+  input:
+  file("*.jplace") from jplace_alpha
+  file("metadata.tsv") from Channel.fromPath(params.run_table)
+
+  output:
+  file("*.alphadiv") into alphadiv
+
+  """
+  guppy fpd *.jplace > all.alphadiv
+  """
+}
+
+/**
+ * cluster the samples
+ **/
+process squash_clust {
+  publishDir params.out_dir, mode: 'copy'
+
+  input:
+  file("*.jplace") from jplace_squash
+  file("metadata.tsv") from Channel.fromPath(params.run_table)
+
+  output:
+  file("*.clust") into squash
+
+  """
+  guppy squash *.jplace > all.clust
+  """
+}
+
+/**
+ * edge PCA to explore variation in community composition among samples
+ **/
+process beta_diversity {
+  publishDir params.out_dir, mode: 'copy'
+
+  input:
+  file("*.jplace") from jplace_beta
+  file("metadata.tsv") from Channel.fromPath(params.run_table)
+
+  output:
+  file("pca*") into betadiv
+
+  """
+  guppy epca --prefix pca *.jplace
+  """
 }
