@@ -23,7 +23,9 @@ for row in range (extraction_table.shape[0]):
         sample_map[extraction_table.iat[row,6]].append((extraction_table.iat[row,0], extraction_table.iat[row,1]))
 
 print('\t'.join(NCBI_table.columns)+'\tDNA_plate\tDNA_well')
+used = {}
 for row in range(NCBI_table.shape[0]):
+        used[NCBI_table.iat[row,0]]=1
         if not NCBI_table.iat[row,0] in sample_map:
             sys.stderr.write("WARNING: DNA sample not found for poop "+NCBI_table.iat[row,0]+"\n")
         else:
@@ -34,3 +36,7 @@ for row in range(NCBI_table.shape[0]):
                     ncbi_row[0]=ncbi_row[0]+'.'+str(i+1)
                 print('\t'.join(map(str,ncbi_row))+'\t'+"\t".join(tuple))
 #        print("\t".join(sample_map[NCBI_table.iat[row,0]]))
+
+for s in sample_map.items():
+    if not s[0] in used:
+        sys.stderr.write("WARNING: DNA sample for poop "+s[0]+" is missing metadata\n")
