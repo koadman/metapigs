@@ -12,16 +12,16 @@
  **/
 
 params.debug = false
-params.ncpu = 1
+params.seed = 1234
 params.out_dir = 'out'
-params.raw_dir = '.'
 
 /**
  * Build up the read sets to munge from a CSV run_table
  **/
 test_exists = Channel.fromPath(params.run_table)
-    .splitCsv(header: true, sep: ',', strip: true)
-    .map{[it['run_id'],  file("${params.raw_dir}/${it['r1_filename']}"), file("${params.raw_dir}/${it['r2_filename']}"), it['source_id']]}
+    .splitCsv(header: true, sep: '\t', strip: true)
+    .map{[it['*sample_name'],  file(it['r1_filename']),
+          file(it['r2_filename']), it['isolation_source']]}
 
 /**
  * Test that each paired readset mentioned in the run table exists. The process will stop
@@ -32,19 +32,24 @@ test_exists = Channel.fromPath(params.run_table)
  * the existence of all readsets must be established before attempting any cleanups.
  */
 process TestExistence {
-        input:
-        set run_id, r1, r2, source_id from test_exists
 
-        output:
-        set run_id, r1, r2, source_id into valid_sets
+    // directives
+    cpus 1
+    conda false
 
-        exec:
-        if (params.debug) {
-            "everything is fine Dave and all my circuits are functioning perfectly"
-        }
-        else {
-            assert r1.exists(), "The file $r1 did not exist"
-            assert r2.exists(), "The file $r2 did not exist"
+    input:
+    set run_id, r1, r2, source_id from test_exists
+
+    output:
+    set run_id, r1, r2, source_id into valid_sets
+
+    exec:
+    if (params.debug) {
+        "everything is fine Dave and all my circuits are functioning perfectly"
+    }
+    else {
+        assert r1.exists(), "The file $r1 did not exist"
+        assert r2.exists(), "The file $r2 did not exist"
         }
 }
 
@@ -69,7 +74,10 @@ process TestExistence {
  **/
 
 process CleanUp {
-    cpus params.ncpu
+
+    // directives
+    scratch '$METAPIGS_TMP'
+    stageInMode 'copy'
     publishDir params.out_dir, mode: 'symlink', saveAs: {fn -> "${source_id}/reads/${fn}" }
 
     input:
@@ -95,11 +103,11 @@ process CleanUp {
     else {
         """
         bbduk.sh t=${task.cpus} k=23 hdist=1 tpe tbo mink=11 ktrim=r ref=$adapters \
-            in=$r1 in2=$r2 out=stdout.fq outm=${run_id}_adapter_matched.fq.gz stats=${run_id}_adapter_stats.txt | \
+            int=t in=$r1 in2=$r2 out=stdout.fq outm=${run_id}_adapter_matched.fq.gz stats=${run_id}_adapter_stats.txt | \
         bbduk.sh t=${task.cpus} ftm=0 qtrim=r trimq=10 \
-            in=stdin.fq out=stdout.fq stats=${run_id}_quality_stats.txt |
+            int=t in=stdin.fq out=stdout.fq stats=${run_id}_quality_stats.txt |
         bbduk.sh t=${task.cpus} k=31 hdist=1 ref=$phix \
-            in=stdin.fq out=${run_id}_cleaned_paired.fq.gz outm=${run_id}_phix_matched.fq.gz stats=${run_id}_phix_stats.txt
+            int=t in=stdin.fq out=${run_id}_cleaned_paired.fq.gz outm=${run_id}_phix_matched.fq.gz stats=${run_id}_phix_stats.txt
         """
     }
 }
@@ -119,8 +127,12 @@ asm_tasks = cleaned_reads.map{it -> [it[0], it[1], it[2]]}.groupTuple()
  **/
 
 process PooledAssembly {
-    label 'big_mem'
-    cpus params.ncpu
+
+    // directives
+    cpus 16
+    memory '50 GB'
+    scratch '$METAPIGS_TMP'
+    stageInMode 'copy'
     publishDir params.out_dir, mode: 'symlink', saveAs: {fn -> "${source_id}/asm/${fn}" }
 
     input:
@@ -140,7 +152,7 @@ process PooledAssembly {
     }
     else {
         """
-        megahit -t ${task.cpus} -m 0.33 -o megahit_out --out-prefix $source_id --12 ${reads.join(",")}
+        megahit -t ${task.cpus} --memory ${task.memory.size} --min-contig-len 5 --prune-level 3 --max-tip-len 280 -o megahit_out --out-prefix $source_id --12 ${reads.join(",")}
         """
     }
 }
@@ -149,6 +161,10 @@ process PooledAssembly {
 index_tasks = assemblies.map{it[0..1]}
 
 process CreateContigsIndexes {
+
+    cpus 1
+    scratch '$METAPIGS_TMP'
+    stageInMode 'copy'
     publishDir params.out_dir, mode: 'symlink', saveAs: {fn -> "${source_id}/asm/${fn}" }
 
     input:
@@ -176,17 +192,19 @@ process CreateContigsIndexes {
 
 // create a channel which combines each readset with the relevant pooled assembly
 // unwrap the lists and take only relevant variables
-map_tasks = indexed_assemblies.cross(cleaned_reads_copy).map{it[0][0..1] + it[1][1..2]}
+(map_tasks, map_tasks_copy) = indexed_assemblies.cross(cleaned_reads_copy).map{it[0][0..1] + it[1][1..2]}.into(2)
 
 process MapReadsToPooled {
-    cpus params.ncpu
+
+    scratch '$METAPIGS_TMP'
+    stageInMode 'copy'
     publishDir params.out_dir, mode: 'symlink', saveAs: {fn -> "${source_id}/mapped/${fn}" }
 
     input:
     set source_id, contigs, run_id, reads from map_tasks
 
     output:
-    set file("*.bam"), file("*.bam.bai") into bam_files
+    set source_id, contigs, file("*.bam"), file("*.bam.bai") into bam_files
 
     script:
     if (params.debug) {
@@ -199,6 +217,41 @@ process MapReadsToPooled {
         """
         bwa mem -p -t${task.cpus} $contigs $reads | samtools view -@${task.cpus} -uS | samtools sort -@${task.cpus} -o ${source_id}_${run_id}.bam -
         samtools index -@${task.cpus} ${source_id}_${run_id}.bam
+        """
+    }
+}
+
+timeseries_bams = bam_files.groupTuple().map{it ->
+    source_id = it[0]
+    contigs = it[1][0]
+    bams = it[2].toSorted{a, b -> a.name <=> b.name}
+    [source_id, contigs, bams]}
+
+process MetaBat2 {
+
+    cpus 16
+    memory '50 GB'
+    scratch '$METAPIGS_TMP'
+    stageInMode 'copy'
+    publishDir params.out_dir, mode: 'symlink', saveAs: {fn -> "${source_id}/metabat/${fn}" }
+
+    input:
+    set source_id, contigs, bams from timeseries_bams
+
+    output:
+    set source_id, file("depth.txt"), file("bins*")
+
+    script:
+    if (params.debug) {
+        """
+        echo "jgi_summarize_bam_contig_depths --outputDepth depth.txt ${bams.join(' ')}" > depth.txt
+        echo "metabat2 --seed $params.seed -t ${task.cpus} -i $contigs -a depth.txt -o metabat.bins --minContig 2500" > bins 
+        """
+    }
+    else {
+        """
+        jgi_summarize_bam_contig_depths --outputDepth depth.txt ${bams.join(' ')}
+        metabat2 --seed $params.seed -t ${task.cpus} -i $contigs -a depth.txt -o bins --minContig 2500 --saveCls
         """
     }
 }
