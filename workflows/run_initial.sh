@@ -59,7 +59,7 @@ export METAPIGS_TMP=/scratch/work/
 #   - conda cache dir
 #
 nextflow -C $METAPIGS_REPO/workflows/initial.config run $METAPIGS_REPO/workflows/initial.nf \
-        -profile cluster
+        -profile cluster \
         --run_table $RUN_TABLE \
         --adapters $METAPIGS_REPO/source_data/custom_adapters.fa \
         --phix $METAPIGS_REPO/source_data/phix174_ill.ref.fa.gz
