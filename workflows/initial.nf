@@ -20,7 +20,7 @@ params.out_dir = 'out'
  **/
 test_exists = Channel.fromPath(params.run_table)
     .splitCsv(header: true, sep: '\t', strip: true)
-    .map{[it['*sample_name'],  file(it['r1_filename']),
+    .map{[it['alt_sample_name'],  file(it['r1_filename']),
           file(it['r2_filename']), it['isolation_source']]}
 
 /**
