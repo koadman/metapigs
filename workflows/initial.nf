@@ -80,6 +80,10 @@ process CleanUp {
     stageInMode 'copy'
     publishDir params.out_dir, mode: 'symlink', saveAs: {fn -> "${source_id}/reads/${fn}" }
 
+    memory { 20.GB * task.attempt }
+    errorStrategy { task.exitStatus == 143 ? 'retry' : 'terminate' }
+    maxRetries 3
+
     input:
     set run_id, r1, r2, source_id from valid_sets
     each file(adapters) from Channel.fromPath(params.adapters)
@@ -102,11 +106,11 @@ process CleanUp {
     }
     else {
         """
-        bbduk.sh t=${task.cpus} k=23 hdist=1 tpe tbo mink=11 ktrim=r ref=$adapters \
+        bbduk.sh -Xmx28g t=1 k=23 hdist=1 tpe tbo mink=11 ktrim=r ref=$adapters \
             int=t in=$r1 in2=$r2 out=stdout.fq outm=${run_id}_adapter_matched.fq.gz stats=${run_id}_adapter_stats.txt | \
-        bbduk.sh t=${task.cpus} ftm=0 qtrim=r trimq=10 \
+        bbduk.sh -Xmx28g t=1 ftm=0 qtrim=r trimq=15 \
             int=t in=stdin.fq out=stdout.fq stats=${run_id}_quality_stats.txt |
-        bbduk.sh t=${task.cpus} k=31 hdist=1 ref=$phix \
+        bbduk.sh -Xmx28g t=2 k=31 hdist=1 ref=$phix \
             int=t in=stdin.fq out=${run_id}_cleaned_paired.fq.gz outm=${run_id}_phix_matched.fq.gz stats=${run_id}_phix_stats.txt
         """
     }
@@ -130,7 +134,10 @@ process PooledAssembly {
 
     // directives
     cpus 16
-    memory '50 GB'
+    memory { 50.GB * task.attempt }
+    errorStrategy { task.exitStatus == 143 ? 'retry' : 'terminate' }
+    maxRetries 3
+
     scratch '$METAPIGS_TMP'
     stageInMode 'copy'
     publishDir params.out_dir, mode: 'symlink', saveAs: {fn -> "${source_id}/asm/${fn}" }
@@ -196,6 +203,10 @@ process CreateContigsIndexes {
 
 process MapReadsToPooled {
 
+    memory { 8.GB * task.attempt }
+    errorStrategy { task.exitStatus == 143 ? 'retry' : 'terminate' }
+    maxRetries 3
+
     scratch '$METAPIGS_TMP'
     stageInMode 'copy'
     publishDir params.out_dir, mode: 'symlink', saveAs: {fn -> "${source_id}/mapped/${fn}" }
@@ -230,7 +241,10 @@ timeseries_bams = bam_files.groupTuple().map{it ->
 process MetaBat2 {
 
     cpus 16
-    memory '50 GB'
+    memory { 50.GB * task.attempt }
+    errorStrategy { task.exitStatus == 143 ? 'retry' : 'terminate' }
+    maxRetries 3
+
     scratch '$METAPIGS_TMP'
     stageInMode 'copy'
     publishDir params.out_dir, mode: 'symlink', saveAs: {fn -> "${source_id}/metabat/${fn}" }
