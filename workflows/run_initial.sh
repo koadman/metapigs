@@ -36,13 +36,6 @@ then
 fi
 
 #
-# Set scratch location for nextflow processes, though this shouldn't be necessary here
-#
-export METAPIGS_TMP=/scratch/work/
-export TMP=$METAPIGS_TMP
-export TMPDIR=$TMP
-
-#
 #  Run nextflow on an execution host.
 #
 #  It is possible to test run using "--debug" option.
@@ -61,6 +54,7 @@ export TMPDIR=$TMP
 #   - conda cache dir
 #
 nextflow -C $METAPIGS_REPO/workflows/initial.config run $METAPIGS_REPO/workflows/initial.nf \
+	-resume \
 	-with-report \
         -profile cluster \
         --run_table $RUN_TABLE \

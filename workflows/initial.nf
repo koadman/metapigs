@@ -76,11 +76,11 @@ process TestExistence {
 process CleanUp {
 
     // directives
-    scratch '$METAPIGS_TMP'
+    scratch '/scratch/work/'
     stageInMode 'copy'
     publishDir params.out_dir, mode: 'symlink', saveAs: {fn -> "${source_id}/reads/${fn}" }
 
-    memory { 20.GB * task.attempt }
+    memory { 30.GB * task.attempt }
     errorStrategy { task.exitStatus == 143 ? 'retry' : 'terminate' }
     maxRetries 3
 
@@ -106,11 +106,11 @@ process CleanUp {
     }
     else {
         """
-        bbduk.sh -Xmx28g t=1 k=23 hdist=1 tpe tbo mink=11 ktrim=r ref=$adapters \
+        bbduk.sh t=1 k=23 hdist=1 tpe tbo mink=11 ktrim=r ref=$adapters \
             int=t in=$r1 in2=$r2 out=stdout.fq outm=${run_id}_adapter_matched.fq.gz stats=${run_id}_adapter_stats.txt | \
-        bbduk.sh -Xmx28g t=1 ftm=0 qtrim=r trimq=15 \
+        bbduk.sh t=1 ftm=0 qtrim=r trimq=20 \
             int=t in=stdin.fq out=stdout.fq stats=${run_id}_quality_stats.txt |
-        bbduk.sh -Xmx28g t=2 k=31 hdist=1 ref=$phix \
+        bbduk.sh t=2 k=31 hdist=1 ref=$phix \
             int=t in=stdin.fq out=${run_id}_cleaned_paired.fq.gz outm=${run_id}_phix_matched.fq.gz stats=${run_id}_phix_stats.txt
         """
     }
@@ -138,7 +138,7 @@ process PooledAssembly {
     errorStrategy { task.exitStatus == 143 ? 'retry' : 'terminate' }
     maxRetries 3
 
-    scratch '$METAPIGS_TMP'
+    scratch '/scratch/work/'
     stageInMode 'copy'
     publishDir params.out_dir, mode: 'symlink', saveAs: {fn -> "${source_id}/asm/${fn}" }
 
@@ -170,7 +170,7 @@ index_tasks = assemblies.map{it[0..1]}
 process CreateContigsIndexes {
 
     cpus 1
-    scratch '$METAPIGS_TMP'
+    scratch '/scratch/work/'
     stageInMode 'copy'
     publishDir params.out_dir, mode: 'symlink', saveAs: {fn -> "${source_id}/asm/${fn}" }
 
@@ -207,7 +207,7 @@ process MapReadsToPooled {
     errorStrategy { task.exitStatus == 143 ? 'retry' : 'terminate' }
     maxRetries 3
 
-    scratch '$METAPIGS_TMP'
+    scratch '/scratch/work/'
     stageInMode 'copy'
     publishDir params.out_dir, mode: 'symlink', saveAs: {fn -> "${source_id}/mapped/${fn}" }
 
@@ -245,7 +245,7 @@ process MetaBat2 {
     errorStrategy { task.exitStatus == 143 ? 'retry' : 'terminate' }
     maxRetries 3
 
-    scratch '$METAPIGS_TMP'
+    scratch '/scratch/work/'
     stageInMode 'copy'
     publishDir params.out_dir, mode: 'symlink', saveAs: {fn -> "${source_id}/metabat/${fn}" }
 
