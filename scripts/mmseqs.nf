@@ -1,11 +1,12 @@
 #!/usr/bin/env nextflow
 
 /**
---targetDB = something
---out_dir = your/directory
-/shared/homes/12705859/nextflow mmseqs.nf 
---run_table = directory/to/run_table
-params.raw_dir = '.' = /shared/homes/s1/pig_microbiome/MON5838
+activate conda environment with mmseqs and nextflow
+nextflow run mmseqs.nf 
+--targetDB = aminoglycosideDB
+--out_dir = /shared/homes/12705859/mmseqs_nextflow
+--run_table = /shared/homes/12705859/mmseqs_nextflow/reads.tsv 
+params.raw_dir = /shared/homes/s1/pig_microbiome/MON5838
 **/
 
 
@@ -45,8 +46,8 @@ process TestExistence {
   set r1, r2 from read_sets
 
   output:
-  file("*.queryDB") into alphadiv
-  file("*resultDB.m8") into alphadiv
+  file("*.queryDB") 
+  file("*resultDB.m8") 
 
   """
   cat $r1 $r2 > both.fq.gz
