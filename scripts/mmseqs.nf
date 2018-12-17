@@ -50,10 +50,10 @@ process TestExistence {
   file("*resultDB.m8") 
 
   """
-  cat $r1 $r2 > both.fq.gz
+  cat ${r1} ${r2} > both.fq.gz
   mmseqs createDB both.fq.gz $r1.queryDB
-  mmseqs search $r1.queryDB ${params.targetDB} $r1.resultDB --threads 8 
-  mmseqs convertalis $r1.queryDB ${params.targetDB} $r1.resultDB $r1.resultDB.m8
+  mmseqs search ${r1}.queryDB ${params.targetDB} ${r1}.resultDB --threads 8 
+  mmseqs convertalis ${r1}.queryDB ${params.targetDB} ${r1}.resultDB ${r1}.resultDB.m8
   """
 }
 
