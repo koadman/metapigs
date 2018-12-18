@@ -6,7 +6,7 @@ nextflow run mmseqs.nf
 --targetDB = aminoglycosideDB
 --out_dir = /shared/homes/12705859/mmseqs_nextflow
 --run_table = /shared/homes/12705859/mmseqs_nextflow/reads.tsv 
-params.raw_dir = /shared/homes/s1/pig_microbiome/MON5838
+--raw_dir = /shared/homes/s1/pig_microbiome/MON5838
 **/
 
 
