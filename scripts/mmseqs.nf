@@ -16,7 +16,6 @@ nextflow run mmseqs.nf
 params.ncpu = 8
 params.out_dir = 'out'
 params.raw_dir = '.'
-BNAME='basename{r1}'
 
 /**
  *
@@ -40,20 +39,20 @@ process TestExistence {
 /**
  * compute mmseqs
  **/
- process mmseqs_create_query_search_convertalis {
-  publishDir params.out_dir, mode: 'copy'
+ process mmseqs {
+  publishDir params.out_dir, mode: 'copy' 
 
   input:
   set r1, r2 from read_sets
 
   output:
-  file("*.queryDB") 
-  file("*resultDB.m8") 
+  file('*.queryDB') 
+  file('*resultDB.m8') 
 
   """
   cat ${r1} ${r2} > both.fq.gz
-  mmseqs createdb both.fq.gz ${r1}.queryDB
-  mmseqs search $BNAME.queryDB ${params.targetDB} $BNAME.resultDB --threads 8 
-  mmseqs convertalis $BNAME.queryDB ${params.targetDB} $BNAME.resultDB $BNAME.resultDB.m8
+  mmseqs createdb both.fq.gz  ${r1.baseName}.queryDB
+  mmseqs search ${r1.baseName}.queryDB ${params.targetDB} ${r1.baseName}.resultDB . --threads 8 
+  mmseqs convertalis ${r1.baseName}.queryDB ${params.targetDB} ${r1.baseName}.resultDB ${r1.baseName}.resultDB.m8
   """
 }
