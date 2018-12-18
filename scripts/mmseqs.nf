@@ -16,6 +16,7 @@ nextflow run mmseqs.nf
 params.ncpu = 8
 params.out_dir = 'out'
 params.raw_dir = '.'
+BNAME='basename{r1}'
 
 /**
  *
@@ -52,8 +53,7 @@ process TestExistence {
   """
   cat ${r1} ${r2} > both.fq.gz
   mmseqs createdb both.fq.gz ${r1}.queryDB
-  mmseqs search ${r1}.queryDB ${params.targetDB} ${r1}.resultDB --threads 8 
-  mmseqs convertalis ${r1}.queryDB ${params.targetDB} ${r1}.resultDB ${r1}.resultDB.m8
+  mmseqs search $BNAME.queryDB ${params.targetDB} $BNAME.resultDB --threads 8 
+  mmseqs convertalis $BNAME.queryDB ${params.targetDB} $BNAME.resultDB $BNAME.resultDB.m8
   """
 }
-
