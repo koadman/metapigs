@@ -3,7 +3,7 @@
 /**
 activate conda environment with mmseqs and nextflow
 nextflow run mmseqs.nf 
---targetDB = aminoglycosideDB
+--targetDB = /shared/homes/12705859/mmseqs_nextflow/aminoglycosideDB
 --out_dir = /shared/homes/12705859/mmseqs_nextflow
 --run_table = /shared/homes/12705859/mmseqs_nextflow/reads.tsv 
 --raw_dir = /shared/homes/s1/pig_microbiome/MON5838
@@ -47,12 +47,17 @@ process TestExistence {
 
   output:
   file('*.queryDB') 
-  file('*resultDB.m8') 
+  file('*.dbtype') 
+  file('*.index')
+  file('*.lookup')
+  file('*.resultDB') 
+  file('*.resultDB.m8')
+   
 
   """
   cat ${r1} ${r2} > both.fq.gz
   mmseqs createdb both.fq.gz  ${r1.baseName}.queryDB
-  mmseqs search ${r1.baseName}.queryDB ${params.targetDB} ${r1.baseName}.resultDB . --threads 8 
+  mmseqs search ${r1.baseName}.queryDB ${params.targetDB} ${r1.baseName}.resultDB tmp.${r1.baseName} --threads 8 
   mmseqs convertalis ${r1.baseName}.queryDB ${params.targetDB} ${r1.baseName}.resultDB ${r1.baseName}.resultDB.m8
   """
 }
