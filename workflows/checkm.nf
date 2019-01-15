@@ -13,7 +13,7 @@ fnf = new FileNameFinder()
  *
  * Each non-empty line of the file is converted to a path object
  */
-genome_dirs = Channel.fromPath(params.todo)
+genome_dirs = Channel.fromPath(params.genomes)
         .splitText{it.trim()}       // remove leading and trailing whitespace/newline
         .filter{s -> !s.isEmpty()}  // remove empty strings
         .map{s -> file(s)}          // convert to file objects
