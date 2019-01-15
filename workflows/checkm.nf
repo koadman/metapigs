@@ -33,7 +33,7 @@ process CheckM {
     val dir from genome_dirs
 
     output:
-    file("checkm.out") into checkm_files
+    file 'checkm*.out' into checkm_files
 
     script:
     if (params.debug) {
@@ -43,7 +43,8 @@ process CheckM {
     }
     else {
         """
-        checkm lineage_wf -t 1 --tab_table --out_format 2 -f checkm.out $dir checkm_work
+        checkm lineage_wf -t 1 --tab_table --extension fa -f checkm.out $dir checkm_work
+	checkm qa -t 1 --tab_table --out_format 2 -f checkm_extended.out checkm_work/lineage.ms checkm_work
         """
     }
 
