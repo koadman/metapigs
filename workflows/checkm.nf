@@ -22,6 +22,7 @@ genome_dirs = Channel.fromPath(params.genomes)
             p.isDirectory() && numFasta > 0
         }
 
+
 process CheckM {
 
     scratch '/scratch/work/'
