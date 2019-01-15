@@ -22,28 +22,33 @@ genome_dirs = Channel.fromPath(params.genomes)
             p.isDirectory() && numFasta > 0
         }
 
-
 process CheckM {
 
     scratch '/scratch/work/'
     stageInMode 'copy'
-    publishDir params.out_dir, mode: 'copy', saveAs: {fn -> "${dir.name}/${fn}" }
+    publishDir params.out_dir, mode: 'copy', saveAs: {fn -> "${dir.parent.name}/${fn}" }
 
     input:
     val dir from genome_dirs
 
     output:
-    file("checkm.out") into checkm_files
+    set file('checkm_qa.tsv'), file('tree_qa.tsv') into checkm_files
 
     script:
     if (params.debug) {
         """
-        echo $dir > checkm.out  
+        echo $dir > tree_qa.tsv
+        echo $dir > checkm_qa.tsv
         """
     }
     else {
+        // the same as lineage_wf but with extended output
         """
-        checkm lineage_wf -t 1 --tab_table --out_format 2 -f checkm.out $dir checkm_work
+        checkm tree -t 2 --extension fa $dir checkm_work
+        checkm tree_qa --out_format 2 -f tree_qa.tsv --tab_table checkm_work
+        checkm lineage_set checkm_work checkm_work/lineage.ms
+        checkm analyze -t 2 --extension fa checkm_work/lineage.ms $dir checkm_work
+        checkm qa -t 2 --tab_table --out_format 2 -f checkm_qa.tsv checkm_work/lineage.ms checkm_work
         """
     }
 
