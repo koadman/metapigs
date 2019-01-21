@@ -4,7 +4,8 @@
 #
 # Usage: As a qsub submission with variables METAPIGS_REPO and RUN_TABLE
 #
-# > qsub -l select=1:mem=2g:ncpus=1 -v METAPIGS_REPO=$HOME/metapigs,READ_TABLE=reads.tsv
+# > qsub -l select=1:mem=2g:ncpus=1 \
+#       -v METAPIGS_REPO=$HOME/metapigs,READ_TABLE={path},TARGET_DB={path},OUT_DIR={path},RAW_DIR={path}
 #
 ##############################################################################################
 
@@ -41,10 +42,10 @@ fi
 #   - conda cache dir
 #
 nextflow -C $METAPIGS_REPO/workflows/mmseqs.config run $METAPIGS_REPO/workflows/mmseqs.nf \
-	-resume \
-	-with-report \
-        -profile cluster \
-        --targetDB $TARGET_DB \
-        --out_dir $OUT \
-        --read_table $READ_TABLE \
-	--raw_dir $RAWDIR
+    -resume \
+    -with-report \
+    -profile cluster \
+    --read_table $READ_TABLE \
+    --raw_dir $RAW_DIR \
+    --targetDB $TARGET_DB \
+    --out_dir $OUT_DIR
