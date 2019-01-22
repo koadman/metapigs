@@ -24,11 +24,11 @@ process mmseqs_all {
 	publishDir params.out_dir, mode: 'copy' 
 
 	input:
-        // the asterisk allows all the files pertaining to the DB to be staged without explicitly mentioning them all.
+    // the asterisk allows all the files pertaining to the DB to be staged without explicitly mentioning them all.
 	set file(r1), file(r2), file('*') from read_sets
 
 	output:
-	set file("*.resultdb*") into query_out
+    file("*.resultdb*") into query_out
 	
 	script:
 
@@ -43,4 +43,3 @@ process mmseqs_all {
 	mmseqs convertalis ${run}.querydb $db ${run}.resultdb ${run}.resultdb.m8 --threads ${task.cpus}
 	"""
 }
-
