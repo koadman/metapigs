@@ -5,19 +5,19 @@ import gzip
 import argparse
 
 parser = argparse.ArgumentParser(description='Process a BLAST m8 file to rpkm')
-parser.add_argument('query_file', type=str, nargs='+',
-                    help='query sequence file')
-parser.add_argument('m8_file', type=str, nargs='+',
+parser.add_argument('--db_file', type=str,
+                    help='DB sequence file')
+parser.add_argument('--m8_file', type=str,
                     help='DB hits in m8 format')
-parser.add_argument('evalue_threshold', type=float, nargs='+',
+parser.add_argument('--evalue_threshold', type=float,
                     help='significance threshold for inclusion of hit')
-parser.add_argument('fastq_file', type=str, nargs='+',
+parser.add_argument('--fastq_file', type=str,
                     help='Sequence reads FastQ file')
-parser.add_argument('sample_id', type=str, nargs='+',
+parser.add_argument('--sample_id', type=str,
                     help='Name to tag results with in tabular output')
 args = parser.parse_args()
 
-query_file = open(args.query_file, 'r')
+db_file = open(args.db_file, 'r')
 m8file = open(args.m8_file, 'r')
 eval_threshold = args.evalue_threshold
 fq_file = gzip.open(args.fastq_file)
