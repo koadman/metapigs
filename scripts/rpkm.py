@@ -24,14 +24,19 @@ eval_threshold = args.evalue_threshold
 fq_file = gzip.open(args.fastq_file)
 sample_id = args.sample_id
 
+#gene_kbp = {}
+#for record in SeqIO.parse(args.db_file, "fasta"):
+#    gene_kbp[record.id]=len(record)/1000
 
 gene_kbp = {}
 for record in SeqIO.parse(args.db_file, "fasta"):
-    gene_kbp[record.id]=len(record)/1000
+    gene_kbp[record.id]=len(record)*3/1000
 
 fq_lines = 0
 for line in fq_file:
     fq_lines += 1
+
+#d[0]d[1]d[10] refers to column (numbers) in m8 file
 
 prev_q = ""
 gene_hits = {}
