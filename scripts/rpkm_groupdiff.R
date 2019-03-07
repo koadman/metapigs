@@ -5,18 +5,6 @@
 # script to compute group differences in response to neomycin treatment from rpkm values
 #
 
-ttester <- function(gene) {
-    neo <- bobo$delta_rpkm[bobo$Cohort=="Neomycin" & bobo$gene_hit==gene]
-    control <- bobo$delta_rpkm[bobo$Cohort=="Control" & bobo$gene_hit==gene]
-    ttt <- 1
-    if(length(neo)>2&length(control)>2){
-        tttest<-t.test(neo, control)
-        ttt<-tttest$p.value
-    }
-    ttt
-}
-
-
 library(tidyr)
 library(readr)
 
@@ -43,6 +31,20 @@ df4 <- merge(df2, df3, by="plate_well")
 df4$X.collection_date2 = df4$X.collection_date
 
 df9 <- df4[, c(1, 2, 3, 22, 31, 35)]
+
+
+ttester <- function(gene) {
+  neo <- bobo$delta_rpkm[bobo$Cohort=="Neomycin" & bobo$gene_hit==gene]
+  control <- bobo$delta_rpkm[bobo$Cohort=="Control" & bobo$gene_hit==gene]
+  ttt <- 1
+  if(length(neo)>2&length(control)>2){
+    tttest<-t.test(neo, control)
+    ttt<-tttest$p.value
+  }
+  ttt
+}
+
+
 dodo_t0<-df9[df9$X.collection_date2=="2017-01-31 00:00:00",c(2,3,4,5)]
 dodo_t1<-df9[df9$X.collection_date2=="2017-02-07 00:00:00",c(2,3,4,5)]
 bobo <- merge(dodo_t0,dodo_t1, by=c("isolation_source","gene_hit","Cohort"))
