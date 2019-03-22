@@ -44,10 +44,11 @@ for line in m8file:
     d = line.rstrip().split('\t')
     if d[0] == prev_q:
         continue  # we've already seen this query and it can only be used once
+    prev_q = d[0]
     if float(d[10]) > eval_threshold:
         continue  # hit not strong enough
     if not d[1] in gene_hits:
-        gene_hits[d[1]] = 0  # hit a new DB sequence. initialize to 0
+        gene_hits[d[1]] = 0	# hit a new DB sequence. initialize to 0
     gene_hits[d[1]] += 1.0 / gene_kbp[d[1]]
 
 millions = fq_lines / 4000000
