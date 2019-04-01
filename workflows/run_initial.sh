@@ -23,7 +23,7 @@
 
 # Some directives to PBS
 #PBS -m bae
-#PBS -l walltime:100:00:00,select=1:ncpus=2:mem=50g
+#PBS -l walltime:100:00:00,select=1:ncpus=1:mem=32g
 
 #
 # Switch to working directory
