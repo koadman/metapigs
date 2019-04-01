@@ -21,6 +21,10 @@
 #
 ##############################################################################################
 
+# Some directives to PBS
+#PBS -m bae
+#PBS -l walltime:100:00:00,select=1:ncpus=2:mem=50g
+
 #
 # Switch to working directory
 #
@@ -55,7 +59,6 @@ fi
 #
 nextflow -C $METAPIGS_REPO/workflows/initial.config run $METAPIGS_REPO/workflows/initial.nf \
 	-resume \
-	-with-report \
         -profile cluster \
         --run_table $RUN_TABLE \
         --adapters $METAPIGS_REPO/source_data/custom_adapters.fa \

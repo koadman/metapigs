@@ -39,7 +39,7 @@ process mmseqs_all {
 	mkdir tmp
 	cat $r1 $r2 > both.fq.gz
 	mmseqs createdb both.fq.gz ${run}.querydb
-	mmseqs search ${run}.querydb $db ${run}.resultdb tmp --threads ${task.cpus}
-	mmseqs convertalis ${run}.querydb $db ${run}.resultdb ${run}.resultdb.m8 --threads ${task.cpus}
+	mmseqs search ${run}.querydb $db ${run}.resultdb tmp --threads 8
+	mmseqs convertalis ${run}.querydb $db ${run}.resultdb ${run}.resultdb.m8 --threads 8
 	"""
 }

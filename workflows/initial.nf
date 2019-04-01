@@ -95,13 +95,13 @@ process CleanUp {
     script:
     if (params.debug) {
         """
-        echo "$source_id $run_id" > ${run_id}_cleaned_paired.fq.gz 
-        echo "$source_id $run_id" > ${run_id}_cleaned_paired.fq.gz 
-        echo "$source_id $run_id" > ${run_id}_adapters_matched.fq.gz 
-        echo "$source_id $run_id" > ${run_id}_adapters_stats.txt 
-        echo "$source_id $run_id" > ${run_id}_phix_matched.fq.gz 
-        echo "$source_id $run_id" > ${run_id}_phix_stats.txt 
-        echo "$source_id $run_id" > ${run_id}_quality_stats.txt 
+        echo "$source_id $run_id" > ${run_id}_cleaned_paired.fq.gz
+        echo "$source_id $run_id" > ${run_id}_cleaned_paired.fq.gz
+        echo "$source_id $run_id" > ${run_id}_adapters_matched.fq.gz
+        echo "$source_id $run_id" > ${run_id}_adapters_stats.txt
+        echo "$source_id $run_id" > ${run_id}_phix_matched.fq.gz
+        echo "$source_id $run_id" > ${run_id}_phix_stats.txt
+        echo "$source_id $run_id" > ${run_id}_quality_stats.txt
         """
     }
     else {
@@ -134,7 +134,7 @@ process PooledAssembly {
 
     // directives
     cpus 16
-    memory { 50.GB * task.attempt }
+    memory { 80.GB * task.attempt }
     errorStrategy { task.exitStatus == 143 ? 'retry' : 'terminate' }
     maxRetries 3
 
@@ -241,7 +241,7 @@ timeseries_bams = bam_files.groupTuple().map{it ->
 process MetaBat2 {
 
     cpus 16
-    memory { 50.GB * task.attempt }
+    memory { 80.GB * task.attempt }
     errorStrategy { task.exitStatus == 143 ? 'retry' : 'terminate' }
     maxRetries 3
 
@@ -259,7 +259,7 @@ process MetaBat2 {
     if (params.debug) {
         """
         echo "jgi_summarize_bam_contig_depths --outputDepth depth.txt ${bams.join(' ')}" > depth.txt
-        echo "metabat2 --seed $params.seed -t ${task.cpus} -i $contigs -a depth.txt -o metabat.bins --minContig 2500" > bins 
+        echo "metabat2 --seed $params.seed -t ${task.cpus} -i $contigs -a depth.txt -o metabat.bins --minContig 2500" > bins
         """
     }
     else {
