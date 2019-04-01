@@ -39,6 +39,12 @@ then
     exit 1
 fi
 
+if [ -z $OUTDIR ]
+then
+    echo "No output folder specified"
+    exit 1
+fi
+
 #
 #  Run nextflow on an execution host.
 #
@@ -63,3 +69,4 @@ nextflow -C $METAPIGS_REPO/workflows/initial.config run $METAPIGS_REPO/workflows
         --run_table $RUN_TABLE \
         --adapters $METAPIGS_REPO/source_data/custom_adapters.fa \
         --phix $METAPIGS_REPO/source_data/phix174_ill.ref.fa
+        --out_dir=$OUTDIR

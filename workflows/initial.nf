@@ -13,7 +13,6 @@
 
 params.debug = false
 params.seed = 1234
-params.out_dir = 'out'
 
 /**
  * Build up the read sets to munge from a CSV run_table
