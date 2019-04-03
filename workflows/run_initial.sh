@@ -4,7 +4,7 @@
 #
 # Usage: As a qsub submission with variables METAPIGS_REPO and RUN_TABLE
 #
-# > qsub -l select=1:mem=2g:ncpus=1 -v METAPIGS_REPO=$HOME/metapigs,RUN_TABLE=mytable.csv
+# > qsub -l select=1:mem=2g:ncpus=1 -v METAPIGS_REPO=$HOME/metapigs,RUN_TABLE=mytable.csv,OUTDIR=myout
 #
 # The run table is expected to be tab delimited -- despite the suffix implying otherwise
 #
@@ -23,6 +23,7 @@
 
 # Some directives to PBS
 #PBS -m bae
+
 #PBS -l walltime:100:00:00,select=1:ncpus=1:mem=32g
 
 #
@@ -39,9 +40,15 @@ then
     exit 1
 fi
 
+if [ -z $RUN_TABLE ]
+then
+    echo "RUN_TABLE has not been set"
+    exit 1
+fi
+
 if [ -z $OUTDIR ]
 then
-    echo "No output folder specified"
+    echo "OUTDIR has not been set"
     exit 1
 fi
 
