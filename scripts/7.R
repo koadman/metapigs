@@ -44,10 +44,11 @@ colnames(df_total)[colnames(df_total)=="X170310.01.bam"] <- "3/10.1"
 library(dplyr)
 library(data.table)
 
+#merge cohorts
 df_total_2 <- merge.data.frame(df_total, cohorts, by.x="pig", by.y = "Animal ID")
 View(df_total_2)
 
-#move Animal ID column to first position of dataframe
+#move Cohort Name column to first position of dataframe
 df_total_3 <- df_total_2 %>% 
   select("Cohort Name", everything())
 #rename to eliminate space
@@ -90,36 +91,29 @@ fwrite(
 
 #DT2 <- DT[, .(number_of_distinct_clusters = length(unique(secondary_cluster))), by = secondary_cluster]
 #View(DT2)
-#in this case (above) we have 24 different clusters
+#when we keep only bins that occur 100 times (100 times the same cluster) we end up with 24 different clusters
+
 
 #let's try to plot one of them: 
 #for uniq secondary_cluster ID, make a plot: 
 #group_by: cohort
-
-
 newdata <- read.csv("newdata.csv")
 View(newdata)
-
 library(reshape)
 newdata_long <- melt(newdata, id=c("cohort", "pig", "bin", "secondary_cluster"))
 View(newdata_long)
 
 library(ggplot2)
-
 # Design a function
 gg_fun <- function(parameter, dt){
-  
   p <- ggplot(dt[dt$secondary_cluster == parameter, ], aes(x=variable, y=value))+
-    geom_point(aes(colour = factor(cohort)), size = 2)+
+    geom_point(aes(colour = factor(cohort)), size = 0.2)+
     #geom_line to connect the dots by pig
-    geom_line(aes(group = pig))
+    geom_line(aes(group = pig))+
     ggtitle(parameter)
-  
   return(p)
 }
-
 plot_list <- lapply(unique(newdata_long$secondary_cluster), gg_fun, dt = newdata_long)
-
 #save all plots into one pdf
 pdf("~/Desktop/bins_clustering_parsing_dataframes/plots_by_secondary_cluster.pdf")
 plot_list
@@ -129,8 +123,46 @@ dev.off()
 
 
 
+#improvement: 
+#split column "variable" using dot separator
+install.packages("splitstackshape")
+library(splitstackshape)
+NL2 <- cSplit(newdata_long, "variable", ".")
+# rename new columns
+colnames(NL2)[colnames(NL2)=="variable_1"] <- "date"
+colnames(NL2)[colnames(NL2)=="variable_2"] <- "replicate"
+View(NL2)
+
+#keep only rows that have values (exclude NA rows)
+all_but_NA <- NL2[complete.cases(NL2), ]
+View(all_but_NA)
+
+#return rows that have replicate==1, ==2, ==3, ==4
+NLrep1 <- all_but_NA[which(all_but_NA$replicate == 1), ]
+NLrep2 <- all_but_NA[which(all_but_NA$replicate == 2), ]
+NLrep3 <- all_but_NA[which(all_but_NA$replicate == 3), ]
+NLrep4 <- all_but_NA[which(all_but_NA$replicate == 4), ]
+View(NLrep1)
+View(NLrep2)
+View(NLrep3)
+View(NLrep4)
+
+#concatenate the above dataframes
+total <- rbind(NLrep1, NLrep2, NLrep3, NLrep4)
+View(total)
+
+#take mean out of the replicates (works right)
+library(dplyr)
+total_dereplicated <- total %>% group_by(pig, bin, secondary_cluster, cohort, date) %>% 
+  summarize(value.mean = mean(value))
+View(total_dereplicated)
+
+
+
+
+
+
+
+#improvement: 
 #possibly: join column dates together that have +-1 day difference
 #interactive plots? 
-
-
-
