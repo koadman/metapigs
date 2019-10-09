@@ -10,35 +10,35 @@ View(cohorts)
 df_total <- read.csv("~/Desktop/bins_clustering_parsing_dataframes/merged_all_clustered_wa_bins.csv")
 View(df_total)
 
-colnames(df_total)[colnames(df_total)=="X170130.01.bam"] <- "1/30.1"
-colnames(df_total)[colnames(df_total)=="X170131.01.bam"] <- "1/31.1"
-colnames(df_total)[colnames(df_total)=="X170131.02.bam"] <- "1/31.2"
-colnames(df_total)[colnames(df_total)=="X170131.03.bam"] <- "1/31.3"
-colnames(df_total)[colnames(df_total)=="X170201.01.bam"] <- "2/1.1"
-colnames(df_total)[colnames(df_total)=="X170201.02.bam"] <- "2/1.2"
-colnames(df_total)[colnames(df_total)=="X170203.01.bam"] <- "2/3.1"
-colnames(df_total)[colnames(df_total)=="X170206.01.bam"] <- "2/6.1"
-colnames(df_total)[colnames(df_total)=="X170206.02.bam"] <- "2/6.2"
-colnames(df_total)[colnames(df_total)=="X170207.01.bam"] <- "2/7.1"
-colnames(df_total)[colnames(df_total)=="X170207.02.bam"] <- "2/7.2"
-colnames(df_total)[colnames(df_total)=="X170208.01.bam"] <- "2/8.1"
-colnames(df_total)[colnames(df_total)=="X170210.01.bam"] <- "2/10.1"
-colnames(df_total)[colnames(df_total)=="X170214.01.bam"] <- "2/14.1"
-colnames(df_total)[colnames(df_total)=="X170214.02.bam"] <- "2/14.2"
-colnames(df_total)[colnames(df_total)=="X170214.03.bam"] <- "2/14.3"
-colnames(df_total)[colnames(df_total)=="X170216.01.bam"] <- "2/16.1"
-colnames(df_total)[colnames(df_total)=="X170216.02.bam"] <- "2/16.2"
-colnames(df_total)[colnames(df_total)=="X170217.01.bam"] <- "2/17.1"
-colnames(df_total)[colnames(df_total)=="X170221.01.bam"] <- "2/21.1"
-colnames(df_total)[colnames(df_total)=="X170207.01.bam"] <- "2/7.1"
-colnames(df_total)[colnames(df_total)=="X170224.01.bam"] <- "2/24.1"
-colnames(df_total)[colnames(df_total)=="X170228.01.bam"] <- "2/28.1"
-colnames(df_total)[colnames(df_total)=="X170303.01.bam"] <- "3/3.1"
-colnames(df_total)[colnames(df_total)=="X170306.01.bam"] <- "3/6.1"
-colnames(df_total)[colnames(df_total)=="X170307.01.bam"] <- "3/7.1"
-colnames(df_total)[colnames(df_total)=="X170308.01.bam"] <- "3/8.1"
-colnames(df_total)[colnames(df_total)=="X170309.01.bam"] <- "3/9.1"
-colnames(df_total)[colnames(df_total)=="X170310.01.bam"] <- "3/10.1"
+colnames(df_total)[colnames(df_total)=="X170130.01.bam"] <- "17-01-30.1"
+colnames(df_total)[colnames(df_total)=="X170131.01.bam"] <- "17-01-31.1"
+colnames(df_total)[colnames(df_total)=="X170131.02.bam"] <- "17-01-31.2"
+colnames(df_total)[colnames(df_total)=="X170131.03.bam"] <- "17-01-31.3"
+colnames(df_total)[colnames(df_total)=="X170201.01.bam"] <- "17-02-01.1"
+colnames(df_total)[colnames(df_total)=="X170201.02.bam"] <- "17-02-01.2"
+colnames(df_total)[colnames(df_total)=="X170203.01.bam"] <- "17-02-03.1"
+colnames(df_total)[colnames(df_total)=="X170206.01.bam"] <- "17-02-06.1"
+colnames(df_total)[colnames(df_total)=="X170206.02.bam"] <- "17-02-06.2"
+colnames(df_total)[colnames(df_total)=="X170207.01.bam"] <- "17-02-07.1"
+colnames(df_total)[colnames(df_total)=="X170207.02.bam"] <- "17-02-07.2"
+colnames(df_total)[colnames(df_total)=="X170208.01.bam"] <- "17-02-08.1"
+colnames(df_total)[colnames(df_total)=="X170210.01.bam"] <- "17-02-10.1"
+colnames(df_total)[colnames(df_total)=="X170214.01.bam"] <- "17-02-14.1"
+colnames(df_total)[colnames(df_total)=="X170214.02.bam"] <- "17-02-14.2"
+colnames(df_total)[colnames(df_total)=="X170214.03.bam"] <- "17-02-14.3"
+colnames(df_total)[colnames(df_total)=="X170216.01.bam"] <- "17-02-16.1"
+colnames(df_total)[colnames(df_total)=="X170216.02.bam"] <- "17-02-16.2"
+colnames(df_total)[colnames(df_total)=="X170217.01.bam"] <- "17-02-17.1"
+colnames(df_total)[colnames(df_total)=="X170221.01.bam"] <- "17-02-21.1"
+colnames(df_total)[colnames(df_total)=="X170207.01.bam"] <- "17-02-7.1"
+colnames(df_total)[colnames(df_total)=="X170224.01.bam"] <- "17-02-24.1"
+colnames(df_total)[colnames(df_total)=="X170228.01.bam"] <- "17-02-28.1"
+colnames(df_total)[colnames(df_total)=="X170303.01.bam"] <- "17-03-3.1"
+colnames(df_total)[colnames(df_total)=="X170306.01.bam"] <- "17-03-6.1"
+colnames(df_total)[colnames(df_total)=="X170307.01.bam"] <- "17-03-7.1"
+colnames(df_total)[colnames(df_total)=="X170308.01.bam"] <- "17-03-8.1"
+colnames(df_total)[colnames(df_total)=="X170309.01.bam"] <- "17-03-9.1"
+colnames(df_total)[colnames(df_total)=="X170310.01.bam"] <- "17-03-10.1"
 
 
 library(dplyr)
@@ -55,7 +55,7 @@ df_total_3 <- df_total_2 %>%
 colnames(df_total_3)[colnames(df_total_3)=="Cohort Name"] <- "cohort"
 View(df_total_3)
 
-#fill out empty cells with NA
+#fill out column "secondary_cluster" -empty cells with NA
 library(dplyr)
 df_total_4 <- mutate_all(df_total_3, funs(na_if(.,"")))
 View(df_total_4)
@@ -64,7 +64,9 @@ View(df_total_4)
 clustered_only<-subset(df_total_4, (!is.na(df_total_4[,4])))
 View(clustered_only)
 
+
 #subset based on number of occurrences of cluster IDs. 
+#which means: if the cluster contains >100 bins (i.e. bins appear in >100 samples) then bring forward with this subset (newdata)
 x <- 100 # number of occurrences
 y <- split(clustered_only,f=clustered_only$secondary_cluster)
 z <- y[unlist(lapply(y,nrow))>x]
@@ -74,56 +76,26 @@ for( k in z ) {
 }
 View(newdata)
 
-fwrite(
-  x = newdata,
-  file = file.path("~/Desktop/bins_clustering_parsing_dataframes/newdata.csv"),
-  row.names=FALSE
-)
-
-
 #these are to test if the subsetting to x number of occurrences is working fine
-#sum(clustered_only$secondary_cluster == "1076_1")
-#sum(newdata$secondary_cluster == "1076_1")
+#change the secondary_cluster ID to check which ones are broughtforward in the analysis
+#sum(clustered_only$secondary_cluster == "1000_1")
+#sum(newdata$secondary_cluster == "1000_1")
 
 #what's the number of uniq clusters we have now? 
 #library(data.table)
 #DT <- data.table(newdata)
 
+#when we keep only bins that occur 100 times (100 times the same cluster) we end up with 24 different clusters
 #DT2 <- DT[, .(number_of_distinct_clusters = length(unique(secondary_cluster))), by = secondary_cluster]
 #View(DT2)
-#when we keep only bins that occur 100 times (100 times the same cluster) we end up with 24 different clusters
 
 
-#let's try to plot one of them: 
-#for uniq secondary_cluster ID, make a plot: 
-#group_by: cohort
-newdata <- read.csv("newdata.csv")
-View(newdata)
+
+#make long (one value per row)
 library(reshape)
 newdata_long <- melt(newdata, id=c("cohort", "pig", "bin", "secondary_cluster"))
 View(newdata_long)
 
-library(ggplot2)
-# Design a function
-gg_fun <- function(parameter, dt){
-  p <- ggplot(dt[dt$secondary_cluster == parameter, ], aes(x=variable, y=value))+
-    geom_point(aes(colour = factor(cohort)), size = 0.2)+
-    #geom_line to connect the dots by pig
-    geom_line(aes(group = pig))+
-    ggtitle(parameter)
-  return(p)
-}
-plot_list <- lapply(unique(newdata_long$secondary_cluster), gg_fun, dt = newdata_long)
-#save all plots into one pdf
-pdf("~/Desktop/bins_clustering_parsing_dataframes/plots_by_secondary_cluster.pdf")
-plot_list
-dev.off()
-
-
-
-
-
-#improvement: 
 #split column "variable" using dot separator
 install.packages("splitstackshape")
 library(splitstackshape)
@@ -131,6 +103,11 @@ NL2 <- cSplit(newdata_long, "variable", ".")
 # rename new columns
 colnames(NL2)[colnames(NL2)=="variable_1"] <- "date"
 colnames(NL2)[colnames(NL2)=="variable_2"] <- "replicate"
+View(NL2)
+
+#reformat to be recognized as dates
+NL2$date <- as.Date(NL2$date, format = "%y-%m-%d")
+NL2$date <- format(NL2$date, "%y-%m-%d")
 View(NL2)
 
 #keep only rows that have values (exclude NA rows)
@@ -157,7 +134,48 @@ total_dereplicated <- total %>% group_by(pig, bin, secondary_cluster, cohort, da
   summarize(value.mean = mean(value))
 View(total_dereplicated)
 
+#you may need to change dates to actual dates because otherwise it may be plotted not in the right order
 
+
+
+#write out to play with it interactively
+fwrite(x = total_dereplicated, file = "~/Desktop/bins_clustering_parsing_dataframes/total_dereplicated.csv")
+
+#let's try to plot one of them: 
+#for uniq secondary_cluster ID, make a plot: 
+#group_by: cohort
+library(ggplot2)
+# Design a function
+gg_fun <- function(parameter, dt){
+  p <- ggplot(dt[dt$secondary_cluster == parameter, ], aes(x=date, y=value.mean))+
+    geom_point(aes(colour = factor(cohort)), size = 0.2)+
+    #geom_line to connect the dots by pig
+    geom_line(aes(group = pig))+
+    ggtitle(parameter)
+  return(p)
+}
+plot_list <- lapply(unique(total_dereplicated$secondary_cluster), gg_fun, dt = total_dereplicated)
+#save all plots into one pdf
+pdf("~/Desktop/bins_clustering_parsing_dataframes/plots_by_secondary_cluster.pdf")
+plot_list
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
+#improvement: 
+#plot each factor(cohort) in separate plots in the same page 
+for (var in unique(total_dereplicated$cohort)) {
+  dev.new()
+  print( ggplot(mydata[mydata$Variety==var,], aes(Var1, Var2)) + geom_point() )
+}
 
 
 
