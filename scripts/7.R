@@ -1,5 +1,4 @@
 
-
 #merge df_total.csv with cohorts.xlsx from metapigs/source_data
 
 library(readxl)
@@ -37,7 +36,6 @@ colnames(df_total)[colnames(df_total)=="X170307.01.bam"] <- "17-03-7.1"
 colnames(df_total)[colnames(df_total)=="X170308.01.bam"] <- "17-03-8.1"
 colnames(df_total)[colnames(df_total)=="X170309.01.bam"] <- "17-03-9.1"
 colnames(df_total)[colnames(df_total)=="X170310.01.bam"] <- "17-03-10.1"
-
 
 library(dplyr)
 library(data.table)
@@ -82,14 +80,12 @@ for( k in z ) {
 #DT2 <- DT[, .(number_of_distinct_clusters = length(unique(secondary_cluster))), by = secondary_cluster]
 #View(DT2)
 
-
-
 #make long (one value per row)
 library(reshape)
 newdata_long <- melt(newdata, id=c("cohort", "pig", "bin", "secondary_cluster"))
 
 #split column "variable" using dot separator
-install.packages("splitstackshape")
+#install.packages("splitstackshape")
 library(splitstackshape)
 NL2 <- cSplit(newdata_long, "variable", ".")
 # rename new columns
@@ -97,8 +93,7 @@ colnames(NL2)[colnames(NL2)=="variable_1"] <- "date"
 colnames(NL2)[colnames(NL2)=="variable_2"] <- "replicate"
 
 #reformat to be recognized as dates
-NL2$date <- as.Date(NL2$date, format = "%y-%m-%d")
-NL2$date <- format(NL2$date, "%y-%m-%d")
+#NL2$date <- as.Date(NL2$date, format = "%y-%m-%d")
 
 #keep only rows that have values (exclude NA rows)
 all_but_NA <- NL2[complete.cases(NL2), ]
@@ -111,7 +106,7 @@ NLrep4 <- all_but_NA[which(all_but_NA$replicate == 4), ]
 
 #concatenate the above dataframes
 total <- rbind(NLrep1, NLrep2, NLrep3, NLrep4)
-
+View(total)
 #take mean out of the replicates (works right)
 library(dplyr)
 total_dereplicated <- total %>% group_by(pig, bin, secondary_cluster, cohort, date) %>% 
@@ -121,12 +116,15 @@ View(total_dereplicated)
 #write out to play with it interactively
 fwrite(x = total_dereplicated, file = "~/Desktop/bins_clustering_parsing_dataframes/total_dereplicated.csv")
 
+#make sure column date is seen as Date
+# (it matters when geom_smooth)
+total_dereplicated$date <- as.Date(total_dereplicated$date, format='%y-%m-%d')
+class(total_dereplicated$date)
 
 
-
-#let's try to plot one of them: 
-#for uniq secondary_cluster ID, make a plot: 
-#group_by: cohort
+# for uniq secondary_cluster ID, make a single plot: 
+# all cohorts in one plot
+# works fine, but doesn't look good
 library(ggplot2)
 # Design a function
 gg_fun <- function(parameter, dt){
@@ -137,23 +135,39 @@ gg_fun <- function(parameter, dt){
     ggtitle(parameter)
   return(p)
 }
-
 plot_list <- lapply(unique(total_dereplicated$secondary_cluster), gg_fun, dt = total_dereplicated)
 #save all plots into one pdf
 pdf("~/Desktop/bins_clustering_parsing_dataframes/plots_by_secondary_cluster.pdf")
 plot_list
 dev.off()
 
+############################################################################################################
 
+# PLOTS: 
 
-#plot multiple plots (1 per cohort) in each page (1 page : 1 cluster) IT WORKS! 
+#plot multiple plots (1 per cohort) in each page (1 page : 1 cluster) 
+# IT WORKS! 
+# works as well with addition of smooth
+#loess is the stats method chosen if we first choose automatic
+# For method = "auto" the smoothing method is chosen based on the size of the largest group (across all panels).
+#better to set "loess" than "auto" in case it forces some clusters
+#to be done with a different method
 library(ggplot2)
 gg_fun <- function(parameter, dt){
-  p <- ggplot(dt[dt$secondary_cluster == parameter, ], aes(x=date, y=value.mean, colour = factor(cohort)))+
-    geom_point() + facet_wrap(~ cohort, ncol = 2, scales = "free") +
+  p <- ggplot(dt[dt$secondary_cluster == parameter, ], aes(x=date, y=value.mean, colour = cohort))+
+    annotate("rect", 
+             xmin = as.Date('2017-02-01'), 
+             ymin = -Inf,
+             xmax = as.Date('2017-02-05'), 
+             ymax = Inf,
+             fill = "palegreen") +
+    geom_point(stat='identity', position='identity', aes(colour=cohort),size=0.3) + 
+    geom_smooth(method='loess', 
+                formula = y ~ splines::bs(x, 3)) +
+    facet_wrap(~ cohort, ncol = 2, scales = "free_x") +
     guides(colour = "none") +
     #geom_line to connect the dots by pig
-    geom_line(aes(group = pig)) + 
+    #geom_line(aes(group = pig))
     theme(text = element_text(size=5), axis.text.x = element_text(angle = 45, hjust=1)) +
     ggtitle(parameter)
   return(p)
@@ -165,22 +179,86 @@ plot_list
 dev.off()
 
 
+############################################################################################################
+
+#ggplot playing with just one cluster:
+
+#subset whole dataset to one cluster only
+subset <- total_dereplicated[which(total_dereplicated$secondary_cluster == "34_1"),names(total_dereplicated) %in% 
+                       c("pig","bin","cohort", "date", "value.mean")]
+#subset one cluster one cohort
+subset2 <- subset[which(subset$cohort == "Control"),names(subset) %in% 
+                               c("pig","bin", "date", "value.mean")]
+View(subset2)
+
+#simple and works
+ggplot(subset2, aes(date, value.mean)) + 
+  geom_point() 
+
+#now do smooth: 
+gg2 <- ggplot(subset, aes(date, value.mean)) + 
+  annotate("rect", 
+           xmin = as.Date('2017-02-01'), 
+           ymin = -Inf,
+           xmax = as.Date('2017-02-05'), 
+           ymax = Inf,
+           fill = "palegreen") +
+  geom_point(stat='identity', position='identity',size=0.3) 
+gg3 <- gg2 + geom_smooth(method='loess', 
+              formula = y ~ splines::bs(x, 3))
+                        
+
+############################################################################################################
 
 
 #TO DOs improvements: 
-# y axis limit make it depend on secondary_cluster max value per secondary_cluster
-#reorder cohorts plots appeareance 
-#leave mothers out
+#make rectangles to cover the treatment periods. 
+# in plots where one plot : one cohort, you'll
+# need to have different rectangles in the same pdf page
+#reorder cohorts plots order of appeareance 
+#leave mothers out?
 
-
-
-
-
-
-
-
-
-
-#improvement: 
+#improvement ideas:
 #possibly: join column dates together that have +-1 day difference
 #interactive plots? 
+
+
+
+############################################################################################################
+
+
+
+
+
+# TEST HYPOTHESES: 
+
+# subset to dates: Jan31 and Fe7
+# subset to cohorts: control and neomycin
+
+#subset whole dataset to dates of interest
+b <- total_dereplicated %>% filter(
+  date == "2017-01-31" | date == "2017-02-07", 
+  cohort == "Neomycin" | cohort == "Control", 
+  secondary_cluster == "34_1"
+)
+View(b)
+
+#from long to wide (sooooo much better than pivot! this is fast and efficient!) # wasted lot of time to get this working
+# checked and it's correct
+csome <- cast(data = b, pig + bin + secondary_cluster + cohort
+     ~date, value = "value.mean")
+
+#but how many NA values? just to know...
+sum(is.na(csome))
+#198 of 916...not too bad...
+
+#calculate delta
+csome$diff <- (csome$`2017-01-31` - csome$`2017-02-07`)
+View(csome)
+
+res <- t.test(diff ~ cohort, data = csome, var.equal = TRUE)
+res
+
+
+#do the above for each cluster (like in a loop)
+
