@@ -1,64 +1,93 @@
-# average of all bins that belong to the same cluster (works!)
-bbb <- Ctrl_neo_0131_0207_widest
-View(bbb)
-colsToAggregate <- colnames(bbb[,3:ncol(bbb)])
-aggregateBy <- c("secondary_cluster")
-dummyaggfun <- function(v, na.rm = TRUE) {
-  c(mean = mean(v, na.rm = TRUE))
-}
-ccc <- aggregate(bbb[colsToAggregate], by = bbb[aggregateBy], FUN = dummyaggfun)
-View(ccc)
 
-fwrite(ccc, file = "~/Desktop/bins_clustering_parsing_dataframes/ccc.csv")
-
-library("DESeq")
-d <- read.csv("~/Desktop/bins_clustering_parsing_dataframes/ccc.csv", row.names=1)
-dim(d)
-View(d)
-
-# first col to rownames
-#rownames(df) <- df[,1]
-#df[,1] <- NULL
-#View(df)
-
-# create groups
-# get the cohort IDs for each column 
-invec <- colnames(d[,1:ncol(d)])
-out <- rep(NA, length(invec))
-for(x in c('Control', 'Neomycin')) out[grep(x, invec)] <- x
-group <- out
-length(group)
-sum(ncol(d))
-
-#NAs to zeros 
-d[is.na(d)] <- 0
-
-# create the DGEList object and calculate variance
-ddd <- DGEList(counts = d, group=group)
+# 8.R script                                              #
+# subsetting to cohort and dates of interest,             #
+# make wide,                                              #
+# t-test                                                  #
 
 
-dim(ddd)
+############################################################################################################
 
-ddd <- calcNormFactors(ddd)
-ddd$counts
-ddd$samples
-
-plotMDS(ddd, main = "MDS Plot for Li Data", xlim = c(-1, 1))
-
-ddd <- calcNormFactors(ddd)
-ddd <- estimateCommonDisp(ddd,verbose=TRUE)
-
-ddd <- estimateTagwiseDisp(ddd)
-de.tgw <- exactTest(ddd)
+# load input file (whole dataset)
+total_dereplicated <- read_csv("~/Desktop/bins_clustering_parsing_dataframes/total_dereplicated.csv")
+View(total_dereplicated)
 
 
+# TEST HYPOTHESES: 
 
-de.tgw <- exactTest (ddd,common.disp=FALSE)
-topTags(de.tgw)
+# subset to dates: Jan31 and Fe7
+# subset to cohorts: control and neomycin
+Ctrl_neo_0131_0207 <- total_dereplicated %>% filter(
+  date == "2017-01-31" | date == "2017-02-07", 
+  cohort == "Neomycin" | cohort == "Control"
+)
+
+View(Ctrl_neo_0131_0207)
 
 
-summary(decideTestsDGE(de.tgw,p.value=0.05))
-View(decideTestsDGE(de.tgw, p.value=0.05))
+library(reshape)
+#from long to wide (sooooo much better than pivot! this is fast and efficient!) 
+# wasted lot of time to get this working
+# checked and it's correct
+Ctrl_neo_0131_0207_wide <- cast(data = Ctrl_neo_0131_0207, pig + bin + secondary_cluster + cohort
+                                ~date, value = "value")
+
+View(Ctrl_neo_0131_0207_wide)
+
+#but how many NA values? just to know...
+sum(is.na(Ctrl_neo_0131_0207_wide))
+#1094/7562 when subset is Ctrl_neo_0131_0207_wide
+
+#calculate delta
+Ctrl_neo_0131_0207_wide$diff <- (Ctrl_neo_0131_0207_wide$`2017-01-31` - Ctrl_neo_0131_0207_wide$`2017-02-07`)
+View(Ctrl_neo_0131_0207_wide)
+
+library(dplyr)
+group_by(Ctrl_neo_0131_0207_wide, cohort) %>%
+  summarise(
+    count = n(),
+    mean = mean(diff, na.rm = TRUE),
+    sd = sd(diff, na.rm = TRUE)
+  )
+
+#visualize
+#install.packages("ggpubr")
+library("ggpubr")
+ggboxplot(Ctrl_neo_0131_0207_wide, x = "cohort", y = "diff", 
+          color = "cohort", palette = c("#00AFBB", "#E7B800"),
+          ylab = "diff", xlab = "cohort")
+
+#before running an indipendent t test on the two cohort groups 
+#you need to check whether the two groups are normally distributed
+#do this with the Shapiro-Wilk test: 
+#if p-value > 0.05 then the groups are NOT normally distributed
+with(Ctrl_neo_0131_0207_wide, shapiro.test(diff[cohort == "Control"])) ## W = 0.79465, p-value = 0.007999
+with(Ctrl_neo_0131_0207_wide, shapiro.test(diff[cohort == "Neomycin"])) #W = 0.64225, p-value = 4.171e-05
+# p value < 0.05 means that the two groups are NOT normally distributed
+
+#normally you stop here because the Shapiro-Wilk test result is telling you that the two groups are not normally distributed
+#if you ignore this and go ahead anyway: 
+
+# F-test to test for homogeneity in variances
+res.ftest <- var.test(diff ~ cohort, data = Ctrl_neo_0131_0207_wide)
+res.ftest
+
+# returns p-value < 2.2e-16, which is lower than the significance level alpha = 0.05. 
+#In conclusion, there is a significant difference between the variances of the two sets of data. 
+#Therefore, we can't use the classic t-test which assume equality of the two variances.
+
+# Compute t-test
+res <- t.test(diff ~ cohort, data = Ctrl_neo_0131_0207_wide, var.equal = TRUE)
+res
+#returns: p-value = 0.04396
+
+# printing the p-value
+res$p.value
+# printing the mean
+res$estimate
+# printing the confidence interval
+res$conf.int
+
+
 
 
 
