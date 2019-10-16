@@ -66,7 +66,6 @@ for (pig.id in list.files(pig.id.basedir)) {
   )
 }
 
-
 #this loop creates a file inside each sample directory from depth.txt files, stripping off 
 #the sample IDs from all headers, leaving only sampling dates and extensions
 for (pig.id in list.files(pig.id.basedir)) {
@@ -145,10 +144,17 @@ for (pig.id in list.files(pig.id.basedir)) {
   dt <- as.data.table(df_new)
   colsTOweight <- dt %>% 
     select(contains('.bam'))
+  
+  # create bin length from contig lengths
+  bins_lengths <- setNames(aggregate(dt$contigLen, by=list(bin=dt$bin), FUN=sum), c("bin","binLen"))
+  
   dt_new <- dt[,lapply(.SD,weighted.mean,w=contigLen),by=list(bin, pig), .SDcols = colnames(colsTOweight)]
   
+  # merge the current dataframe (with weighted bins) with dataframe containing bins lengths
+  dt_new2 <- merge(bins_lengths,dt_new, by="bin")
+  
   fwrite(
-    x = dt_new,
+    x = dt_new2,
     file = file.path(pig.id.dir, "wa_bins.csv"),
     row.names=FALSE
   )
@@ -201,5 +207,3 @@ for (pig.id in list.files(pig.id.basedir)) {
     row.names=FALSE
   )
 }
-
-

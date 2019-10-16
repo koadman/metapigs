@@ -1,103 +1,48 @@
 
-#merge df_total.csv with cohorts.xlsx from metapigs/source_data
+# 7.R script                    #
+# Further cleaning,             #
+# parsing, and                  #
+# transform depth into counts   #
 
-library(readxl)
-
-#input files
-cohorts <- read_excel("~/metapigs/source_data/cohorts.xlsx")
-df_total <- read.csv("~/Desktop/bins_clustering_parsing_dataframes/merged_all_clustered_wa_bins.csv")
-
-colnames(df_total)[colnames(df_total)=="X170130.01.bam"] <- "17-01-30.1"
-colnames(df_total)[colnames(df_total)=="X170131.01.bam"] <- "17-01-31.1"
-colnames(df_total)[colnames(df_total)=="X170131.02.bam"] <- "17-01-31.2"
-colnames(df_total)[colnames(df_total)=="X170131.03.bam"] <- "17-01-31.3"
-colnames(df_total)[colnames(df_total)=="X170201.01.bam"] <- "17-02-01.1"
-colnames(df_total)[colnames(df_total)=="X170201.02.bam"] <- "17-02-01.2"
-colnames(df_total)[colnames(df_total)=="X170203.01.bam"] <- "17-02-03.1"
-colnames(df_total)[colnames(df_total)=="X170206.01.bam"] <- "17-02-06.1"
-colnames(df_total)[colnames(df_total)=="X170206.02.bam"] <- "17-02-06.2"
-colnames(df_total)[colnames(df_total)=="X170207.01.bam"] <- "17-02-07.1"
-colnames(df_total)[colnames(df_total)=="X170207.02.bam"] <- "17-02-07.2"
-colnames(df_total)[colnames(df_total)=="X170208.01.bam"] <- "17-02-08.1"
-colnames(df_total)[colnames(df_total)=="X170210.01.bam"] <- "17-02-10.1"
-colnames(df_total)[colnames(df_total)=="X170214.01.bam"] <- "17-02-14.1"
-colnames(df_total)[colnames(df_total)=="X170214.02.bam"] <- "17-02-14.2"
-colnames(df_total)[colnames(df_total)=="X170214.03.bam"] <- "17-02-14.3"
-colnames(df_total)[colnames(df_total)=="X170216.01.bam"] <- "17-02-16.1"
-colnames(df_total)[colnames(df_total)=="X170216.02.bam"] <- "17-02-16.2"
-colnames(df_total)[colnames(df_total)=="X170217.01.bam"] <- "17-02-17.1"
-colnames(df_total)[colnames(df_total)=="X170221.01.bam"] <- "17-02-21.1"
-colnames(df_total)[colnames(df_total)=="X170207.01.bam"] <- "17-02-7.1"
-colnames(df_total)[colnames(df_total)=="X170224.01.bam"] <- "17-02-24.1"
-colnames(df_total)[colnames(df_total)=="X170228.01.bam"] <- "17-02-28.1"
-colnames(df_total)[colnames(df_total)=="X170303.01.bam"] <- "17-03-3.1"
-colnames(df_total)[colnames(df_total)=="X170306.01.bam"] <- "17-03-6.1"
-colnames(df_total)[colnames(df_total)=="X170307.01.bam"] <- "17-03-7.1"
-colnames(df_total)[colnames(df_total)=="X170308.01.bam"] <- "17-03-8.1"
-colnames(df_total)[colnames(df_total)=="X170309.01.bam"] <- "17-03-9.1"
-colnames(df_total)[colnames(df_total)=="X170310.01.bam"] <- "17-03-10.1"
-
-library(dplyr)
 library(data.table)
+merged_all_clustered_wa_bins_with_cohorts <- read_csv("~/Desktop/bins_clustering_parsing_dataframes/merged_all_clustered_wa_bins_with_cohorts_all.csv")
 
-#merge cohorts
-df_total_2 <- merge.data.frame(df_total, cohorts, by.x="pig", by.y = "Animal ID")
-
-#move Cohort Name column to first position of dataframe
-df_total_3 <- df_total_2 %>% 
-  select("Cohort Name", everything())
-#rename to eliminate space
-colnames(df_total_3)[colnames(df_total_3)=="Cohort Name"] <- "cohort"
-#fill out column "secondary_cluster" -empty cells with NA
-library(dplyr)
-df_total_4 <- mutate_all(df_total_3, funs(na_if(.,"")))
-
-#subset to contain only rows that have a secondary_cluster value (not na)
-clustered_only<-subset(df_total_4, (!is.na(df_total_4[,4])))
-
-View(clustered_only)
-
-#subset based on number of occurrences of cluster IDs. 
-#which means: if the cluster contains >100 bins (i.e. bins appear in >100 samples) then bring forward with this subset (newdata)
-x <- 50 # number of occurrences
-y <- split(clustered_only,f=clustered_only$secondary_cluster)
-z <- y[unlist(lapply(y,nrow))>x]
-newdata <- vector()
-for( k in z ) {
-  newdata <- rbind(newdata,k)
-}
-
-#these are to test if the subsetting to x number of occurrences is working fine
-#change the secondary_cluster ID to check which ones are broughtforward in the analysis
-#sum(clustered_only$secondary_cluster == "1000_1")
-#sum(newdata$secondary_cluster == "1000_1")
-
+#subset to contain only rows that have a secondary_cluster value (non NA)
+aaa<-subset(merged_all_clustered_wa_bins_with_cohorts, (!is.na(merged_all_clustered_wa_bins_with_cohorts[,5])))
 #what's the number of uniq clusters we have now? 
-#library(data.table)
-#DT <- data.table(newdata)
+length(unique(aaa$secondary_cluster))
 
-#when we keep only bins that occur 100 times (100 times the same cluster) we end up with 24 different clusters
-#DT2 <- DT[, .(number_of_distinct_clusters = length(unique(secondary_cluster))), by = secondary_cluster]
-#View(DT2)
+#get the column names before entering function
+original_colnames <- colnames(aaa)
+
+# transform depth values into counts
+# where {counts = depth*binLen/300} (300 is the read pair length)
+A <- function(x) x * aaa[,2] / 300
+counts <- data.frame(aaa[1:5], apply(aaa[,6:ncol(aaa)],2, A) )
+
+#return the original colnames to new dataframe
+colnames(counts) <- original_colnames
+
+#now we don't need binLen anymore we can remove this column
+counts <- counts[,-2]
 
 #make long (one value per row)
 library(reshape)
-newdata_long <- melt(newdata, id=c("cohort", "pig", "bin", "secondary_cluster"))
+counts_long <- melt(counts, id=c("cohort", "pig", "bin", "secondary_cluster"))
 
 #split column "variable" using dot separator
 #install.packages("splitstackshape")
 library(splitstackshape)
-NL2 <- cSplit(newdata_long, "variable", ".")
+NL2 <- cSplit(counts_long, "variable", ".")
 # rename new columns
 colnames(NL2)[colnames(NL2)=="variable_1"] <- "date"
 colnames(NL2)[colnames(NL2)=="variable_2"] <- "replicate"
-
 #reformat to be recognized as dates
-#NL2$date <- as.Date(NL2$date, format = "%y-%m-%d")
+NL2$date <- as.Date(NL2$date, format = "%y-%m-%d")
 
 #keep only rows that have values (exclude NA rows)
 all_but_NA <- NL2[complete.cases(NL2), ]
-View(all_but_NA)
+
 #return rows that have replicate==1, ==2, ==3, ==4
 NLrep1 <- all_but_NA[which(all_but_NA$replicate == 1), ]
 NLrep2 <- all_but_NA[which(all_but_NA$replicate == 2), ]
@@ -106,21 +51,51 @@ NLrep4 <- all_but_NA[which(all_but_NA$replicate == 4), ]
 
 #concatenate the above dataframes
 total <- rbind(NLrep1, NLrep2, NLrep3, NLrep4)
-View(total)
-#take mean out of the replicates (works right)
-library(dplyr)
-total_dereplicated <- total %>% group_by(pig, bin, secondary_cluster, cohort, date) %>% 
-  summarize(value.mean = mean(value))
+
+#take mean out of the replicates (works fine, example below)
+total_dereplicated <- aggregate(value~cohort+pig+bin+secondary_cluster+date,total,mean)
 View(total_dereplicated)
 
-#write out to play with it interactively
+# checking if mean of replicates is working fine
+#a <- filter(NLrep1, pig == "29951", bin == "bins.1.fa", date == "2017-01-31")
+#a
+#b <- filter(NLrep2, pig == "29951", bin == "bins.1.fa", date == "2017-01-31")
+#b
+#c <- filter(total_dereplicated, pig == "29951", bin == "bins.1.fa", date == "2017-01-31")
+#c
+# yes, c is the mean of a and b
+
+#write out to play with it 
 fwrite(x = total_dereplicated, file = "~/Desktop/bins_clustering_parsing_dataframes/total_dereplicated.csv")
+
+############################################################################################################
+
+# Let the subsetting and stats begin!
 
 #make sure column date is seen as Date
 # (it matters when geom_smooth)
 total_dereplicated$date <- as.Date(total_dereplicated$date, format='%y-%m-%d')
 class(total_dereplicated$date)
 
+#how many unique clusters is there? so I know how many to expect from the function below? 
+length(unique(total_dereplicated$secondary_cluster))
+
+#if secondary_cluster ID occurs more than 100 times, keep rows
+library(dplyr)
+mostPopular <- total_dereplicated %>%
+  group_by(secondary_cluster) %>%
+  filter(n() > 500)
+View(mostPopular)
+nrow(mostPopular)
+
+length(unique(total_dereplicated$secondary_cluster))
+# there is 4274 unique secondary clusters in total
+length(unique(mostPopular$secondary_cluster))
+# there is 52 unique most popular secondary clusters
+
+############################################################################################################
+
+# PLOT 1: 
 
 # for uniq secondary_cluster ID, make a single plot: 
 # all cohorts in one plot
@@ -128,22 +103,22 @@ class(total_dereplicated$date)
 library(ggplot2)
 # Design a function
 gg_fun <- function(parameter, dt){
-  p <- ggplot(dt[dt$secondary_cluster == parameter, ], aes(x=date, y=value.mean))+
+  p <- ggplot(dt[dt$secondary_cluster == parameter, ], aes(x=date, y=value))+
     geom_point(aes(colour = factor(cohort)), size = 0.2)+
     #geom_line to connect the dots by pig
     geom_line(aes(group = pig))+
     ggtitle(parameter)
   return(p)
 }
-plot_list <- lapply(unique(total_dereplicated$secondary_cluster), gg_fun, dt = total_dereplicated)
+plot_list <- lapply(unique(mostPopular$secondary_cluster), gg_fun, dt = mostPopular)
 #save all plots into one pdf
-pdf("~/Desktop/bins_clustering_parsing_dataframes/plots_by_secondary_cluster.pdf")
+pdf("~/Desktop/bins_clustering_parsing_dataframes/plots_by_secondary_cluster_mostPop.pdf")
 plot_list
 dev.off()
 
 ############################################################################################################
 
-# PLOTS: 
+# PLOT 2: 
 
 #plot multiple plots (1 per cohort) in each page (1 page : 1 cluster) 
 # IT WORKS! 
@@ -154,7 +129,7 @@ dev.off()
 #to be done with a different method
 library(ggplot2)
 gg_fun <- function(parameter, dt){
-  p <- ggplot(dt[dt$secondary_cluster == parameter, ], aes(x=date, y=value.mean, colour = cohort))+
+  p <- ggplot(dt[dt$secondary_cluster == parameter, ], aes(x=date, y=value, colour = cohort))+
     annotate("rect", 
              xmin = as.Date('2017-02-01'), 
              ymin = -Inf,
@@ -172,29 +147,36 @@ gg_fun <- function(parameter, dt){
     ggtitle(parameter)
   return(p)
 }
-plot_list <- lapply(unique(total_dereplicated$secondary_cluster), gg_fun, dt = total_dereplicated)
+plot_list <- lapply(unique(mostPopular$secondary_cluster), gg_fun, dt = mostPopular)
 #save all plots into one pdf
-pdf("~/Desktop/bins_clustering_parsing_dataframes/plots_by_secondary_cluster.pdf")
+pdf("~/Desktop/bins_clustering_parsing_dataframes/plots_by_secondary_cluster_small_mostPop.pdf")
 plot_list
 dev.off()
 
-
 ############################################################################################################
 
-#ggplot playing with just one cluster:
+# GGPLOT playing with just one cluster and one cohort:
+
 #subset whole dataset to one cluster only
-subset <- total_dereplicated[which(total_dereplicated$secondary_cluster == "34_1"),names(total_dereplicated) %in% 
-                       c("pig","bin","cohort", "date", "value.mean")]
-#subset one cluster one cohort
-subset2 <- subset[which(subset$cohort == "Control"),names(subset) %in% 
-                               c("pig","bin", "date", "value.mean")]
-View(subset2)
+clu1_1 <- subset(total_dereplicated, secondary_cluster == "1_1", select = c("pig","bin","cohort", "date", "value"))
+
+# test: if same, it's working
+#NROW(clu1_1)
+#NROW(which(total_dereplicated$secondary_cluster == "1_1"))
+
+#subset further to one cohort
+clu1_1_Ctrl <- subset(clu1_1, cohort == "Control", select = c("pig","bin", "date", "value"))
+
+# test: if same, it's working
+#NROW(clu1_1_Ctrl)
+#NROW(which(clu1_1$cohort == "Control"))
+
 #simple and works
-ggplot(subset2, aes(date, value.mean)) + 
+ggplot(clu1_1_Ctrl, aes(date, value)) + 
   geom_point() 
 
 #now do smooth: 
-gg2 <- ggplot(subset, aes(date, value.mean)) + 
+gg2 <- ggplot(clu1_1_Ctrl, aes(date, value)) + 
   annotate("rect", 
            xmin = as.Date('2017-02-01'), 
            ymin = -Inf,
@@ -205,9 +187,7 @@ gg2 <- ggplot(subset, aes(date, value.mean)) +
 gg3 <- gg2 + geom_smooth(method='loess', 
               formula = y ~ splines::bs(x, 3))
                         
-
 ############################################################################################################
-
 
 #TO DOs improvements: 
 #make rectangles to cover the treatment periods. 
@@ -223,8 +203,6 @@ gg3 <- gg2 + geom_smooth(method='loess',
 
 
 ############################################################################################################
-
-
 
 # TEST HYPOTHESES: 
 
@@ -243,7 +221,7 @@ library(reshape)
 #from long to wide (sooooo much better than pivot! this is fast and efficient!) # wasted lot of time to get this working
 # checked and it's correct
 Ctrl_neo_0131_0207_wide <- cast(data = b, pig + bin + secondary_cluster + cohort
-     ~date, value = "value.mean")
+     ~date, value = "value")
 View(Ctrl_neo_0131_0207_wide)
 
 #but how many NA values? just to know...
@@ -299,10 +277,7 @@ res$estimate
 # printing the confidence interval
 res$conf.int
 
-
 ############################################################################################################
-
-
 
 # TEST HYPOTHESES using EdgeR and DESeq. you'll need to make the dataframe the widest
 # start from dataframe Ctrl_neo_0131_0207 and make it the widest you can, 
@@ -312,14 +287,12 @@ res$conf.int
 Ctrl_neo_0131_0207 <- total_dereplicated %>% filter(
   date == "2017-01-31" | date == "2017-02-07", 
   cohort == "Neomycin" | cohort == "Control"
-  #secondary_cluster == "34_1"
 )
-View(Ctrl_neo_0131_0207)
 
 #make widest, one row per secondary_custer + bin
 library(tidyverse)
 Ctrl_neo_0131_0207_widest <- Ctrl_neo_0131_0207 %>% 
-  pivot_wider(names_from = c("date", "cohort", "pig"), values_from = "value.mean")
+  pivot_wider(names_from = c("date", "cohort", "pig"), values_from = "value")
 View(Ctrl_neo_0131_0207_widest)
 
 
@@ -330,9 +303,9 @@ Ctrl_neo_0131_0207_widest$bin <- NULL
 Ctrl_neo_0131_0207_widest$secondary_cluster <- NULL
 #bring the sec_clu_bin column to first position
 Ctrl_neo_0131_0207_widest <- Ctrl_neo_0131_0207_widest[,c(ncol(Ctrl_neo_0131_0207_widest),1:(ncol(Ctrl_neo_0131_0207_widest)-1))]
-View(Ctrl_neo_0131_0207_widest)
 
 #replace NAs with zeros (yet to be determined if it's a good idea in our case)
 Ctrl_neo_0131_0207_widest[is.na(Ctrl_neo_0131_0207_widest)] <- 0
+View(Ctrl_neo_0131_0207_widest)
 
-fwrite(Ctrl_neo_0131_0207_widest, file = "~/Desktop/bins_clustering_parsing_dataframes/Ctrl_neo_0131_0207_widest.csv")
+fwrite(Ctrl_neo_0131_0207_widest, file = "~/Desktop/bins_clustering_parsing_dataframes/Ctrl_neo_0131_0207_widest_counts.csv")
