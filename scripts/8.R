@@ -1,7 +1,8 @@
 
 # 8.R script                                              #
-# normalize count data,                                   #
-# subsetting to cohort and dates of interest,             #
+# subsets to cohort and dates of interest,                #
+# make widest                                             #
+# average of bins that belong to the same cluster         #
 # t-tests                                                 #
 
 
@@ -41,7 +42,6 @@ dummyaggfun <- function(v, na.rm = TRUE) {
 ccc <- aggregate(bbb[colsToAggregate], by = bbb[aggregateBy], FUN = dummyaggfun)
 
 #replace missing values with zeros
-#replace missing values with zeros 
 ccc[is.na(ccc)] <- 0
 
 View(ccc)

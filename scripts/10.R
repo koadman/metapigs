@@ -1,8 +1,9 @@
 
 
 # 10.R script                                             #
-# sort columns                                            #
+# sorts columns                                           #
 # edgeR from new manual + grouping working                #
+# dispersion estimated with min.row.sum=0, then it works  #
 
 
 # load input file (normalized and subset dataset from 8.R)
@@ -19,13 +20,15 @@ Ctrl_neo_0131_0207_widest_sorted2 <- Ctrl_neo_0131_0207_widest_sorted1 %>%
 View(Ctrl_neo_0131_0207_widest_sorted2)
 
 
-# EdgeR from new manual:
+# START F1000 edgeR INSTRUCTIONS:
+
+#######################################
+
+# Prepare metadata
 
 # convert countdata first column secondary_cluster to rownames
 count_data <- data.frame(Ctrl_neo_0131_0207_widest_sorted2[,-1], row.names=Ctrl_neo_0131_0207_widest_sorted2[,1], check.names = FALSE)
 View(count_data)
-
-# Extract metadata
 
 # create an empty df (purpose: fill in the metadata) based on the current data df:
 empty_df = data.frame(
@@ -55,10 +58,13 @@ metadata <- data.frame(df[,-1], row.names=df[,1])
 View(metadata)
 fwrite(metadata, file = "~/Desktop/bins_clustering_parsing_dataframes/metadata.csv")
 
-# START F1000 EDGER INSTRUCTIONS
-#CellType is date 
-#Status is cohort
-group <- paste(metadata$date, metadata$cohort, sep=".")
+#######################################
+
+# Prepare Count data
+
+group <- paste(metadata$cohort, metadata$date, sep=".")
+typeof(group)
+group <- gsub('-', '.' ,group)
 group <- factor(group)
 table(group)
 
@@ -66,14 +72,12 @@ table(group)
 colnames(count_data) 
 rownames(count_data)
 dim(count_data)
-head(count_data)
 
-# is it normal that my lib size is one? 
 library(edgeR)
-y <- DGEList(count_data[,-1], group=group,
+y <- DGEList(count_data[,], group=group,
              genes=count_data[,1,drop=FALSE])
-#?? options(digits=3)
-calcNormFactors(y)
+
+y$samples
 
 # Filtering to remove low counts
 keep <- rowSums(cpm(y) > 0.5) >= 2
@@ -91,15 +95,33 @@ legend("topright", legend=levels(group), col=colors, ncol=2)
 plotMDS.DGEList(y, main = "MDS Plot", col=colors[group], pch=1)
 
 # Design Matrix 
-design <- model.matrix(~0+group)
+design <- model.matrix(~group)
 colnames(design) <- levels(group)
 design
 
-y <- estimateDisp(y, design, robust=TRUE)
-
-
+library(statmod)
+y <- estimateDisp(y, design, robust=TRUE, min.row.sum=0)
 fit <- glmQLFit(y, design, robust=TRUE)
-# can 't make dispersion values! it says: 
-# Error in glmQLFit.DGEList(y, design, robust = TRUE) : 
-# No dispersion values found in DGEList object.
+head(fit$coefficients)
+
+plotQLDisp(fit)
+summary(fit$df.prior)
+
+table(group)
+# Control.2017.01.31  Control.2017.02.07 Neomycin.2017.01.31 Neomycin.2017.02.07 
+
+B.LvsP_1 <- makeContrasts(Control.2017.01.31-Control.2017.02.07, levels=design)
+B.LvsP_2 <- makeContrasts(Neomycin.2017.01.31-Neomycin.2017.02.07, levels=design)
+B.LvsP_3 <- makeContrasts(Control.2017.01.31-Neomycin.2017.01.31, levels=design)
+B.LvsP_4 <- makeContrasts(Control.2017.02.07-Neomycin.2017.02.07, levels=design)
+
+res_1 <- glmQLFTest(fit, contrast=B.LvsP_1)
+res_2 <- glmQLFTest(fit, contrast=B.LvsP_2)
+res_3 <- glmQLFTest(fit, contrast=B.LvsP_3)
+res_4 <- glmQLFTest(fit, contrast=B.LvsP_4)
+
+topTags(res_1)
+topTags(res_2)
+topTags(res_3)
+topTags(res_4)
 
