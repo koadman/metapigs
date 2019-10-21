@@ -1,3 +1,4 @@
+#!/usr/bin/env Rscript
 
 # 8.R script                                              #
 # normalize count data,                                   #
@@ -7,12 +8,16 @@
 
 ############################################################################################################
 
+# this assumes the script will be run from the top-level directory of the git repo
+data_prefix <- "results/"
+
 
 library(readr)
 library(data.table)
+library(dplyr)
 
 # load input file (normalized dataset)
-normalized <- read.csv("~/Desktop/bins_clustering_parsing_dataframes/normalized.csv")
+normalized <- read.csv(paste(data_prefix,"normalized.csv",sep=""))
 View(normalized)
 
 
@@ -46,7 +51,7 @@ ccc[is.na(ccc)] <- 0
 
 View(ccc)
 
-fwrite(ccc, file = "~/Desktop/bins_clustering_parsing_dataframes/Ctrl_neo_0131_0207_widest.csv")
+fwrite(ccc, file = paste(data_prefix,"Ctrl_neo_0131_0207_widest.csv",sep=""))
 
 
 # TEST HYPOTHESES: 
