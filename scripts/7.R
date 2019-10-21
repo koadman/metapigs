@@ -5,37 +5,37 @@
 # transform depth into counts   #
 # playing with plots            #
 
-
 library(data.table)
-merged_all_clustered_wa_bins_with_cohorts <- read_csv("~/Desktop/bins_clustering_parsing_dataframes/merged_all_clustered_wa_bins_with_cohorts_all.csv")
-
-#subset to contain only rows that have a secondary_cluster value (non NA)
-aaa<-subset(merged_all_clustered_wa_bins_with_cohorts, (!is.na(merged_all_clustered_wa_bins_with_cohorts[,5])))
-#what's the number of uniq clusters we have now? 
-length(unique(aaa$secondary_cluster))
+merged_all_clustered_wa_bins_with_cohorts <- read.csv("~/Desktop/bins_clustering_parsing_dataframes/merged_all_clustered_wa_bins_with_cohorts.csv", 
+                                                      na.strings=c("","NA"),
+                                                      check.names = FALSE,
+                                                      header = TRUE)
+# Remove rows with missing values on secondary_cluster column 
+containsClu <- merged_all_clustered_wa_bins_with_cohorts[!is.na(merged_all_clustered_wa_bins_with_cohorts$secondary_cluster), ]
 
 #get the column names before entering function
-original_colnames <- colnames(aaa)
+original_colnames <- colnames(containsClu)
 
 # transform depth values into counts
 # where {counts = depth*binLen/300} (300 is the read pair length)
-A <- function(x) x * aaa[,2] / 300
-counts <- data.frame(aaa[1:5], apply(aaa[,6:ncol(aaa)],2, A) )
+A <- function(x) x * containsClu[,2] / 300
+counts <- data.frame(containsClu[1:5], apply(containsClu[,6:ncol(containsClu)],2, A) )
 
 #return the original colnames to new dataframe
 colnames(counts) <- original_colnames
-
 #now we don't need binLen anymore we can remove this column
 counts <- counts[,-2]
 
 #make long (one value per row)
 library(reshape)
 counts_long <- melt(counts, id=c("cohort", "pig", "bin", "secondary_cluster"))
+View(counts_long)
 
 #split column "variable" using dot separator
 #install.packages("splitstackshape")
 library(splitstackshape)
 NL2 <- cSplit(counts_long, "variable", ".")
+NL2
 # rename new columns
 colnames(NL2)[colnames(NL2)=="variable_1"] <- "date"
 colnames(NL2)[colnames(NL2)=="variable_2"] <- "replicate"
@@ -44,7 +44,7 @@ NL2$date <- as.Date(NL2$date, format = "%y-%m-%d")
 
 #keep only rows that have values (exclude NA rows)
 all_but_NA <- NL2[complete.cases(NL2), ]
-
+View(all_but_NA)
 #return rows that have replicate==1, ==2, ==3, ==4
 NLrep1 <- all_but_NA[which(all_but_NA$replicate == 1), ]
 NLrep2 <- all_but_NA[which(all_but_NA$replicate == 2), ]
@@ -55,20 +55,33 @@ NLrep4 <- all_but_NA[which(all_but_NA$replicate == 4), ]
 total <- rbind(NLrep1, NLrep2, NLrep3, NLrep4)
 
 #take mean out of the replicates (works fine, example below)
-total_dereplicated <- aggregate(value~cohort+pig+bin+secondary_cluster+date,total,mean)
-View(total_dereplicated)
+tot_counts_dereplicated <- aggregate(value~cohort+pig+bin+secondary_cluster+date,total,mean)
+View(tot_counts_dereplicated)
 
 # checking if mean of replicates is working fine
-#a <- filter(NLrep1, pig == "29951", bin == "bins.1.fa", date == "2017-01-31")
-#a
-#b <- filter(NLrep2, pig == "29951", bin == "bins.1.fa", date == "2017-01-31")
-#b
-#c <- filter(total_dereplicated, pig == "29951", bin == "bins.1.fa", date == "2017-01-31")
-#c
+a <- filter(NLrep1, pig == "29951", bin == "bins.1.fa", date == "2017-01-31")
+a
+b <- filter(NLrep2, pig == "29951", bin == "bins.1.fa", date == "2017-01-31")
+b
+c <- filter(tot_counts_dereplicated, pig == "29951", bin == "bins.1.fa", date == "2017-01-31")
+c
 # yes, c is the mean of a and b
 
 #write out to play with it 
-fwrite(x = total_dereplicated, file = "~/Desktop/bins_clustering_parsing_dataframes/total_dereplicated.csv")
+fwrite(x = total_dereplicated, file = "~/Desktop/bins_clustering_parsing_dataframes/tot_counts_dereplicated.csv")
+
+library(dplyr)
+normalized <- tot_counts_dereplicated %>%
+  group_by(pig, date) %>%
+  mutate(norm_counts = value/sum(value))
+View(normalized)
+#remove value column
+normalized <- normalized[,-6]
+
+View(normalized)
+
+# write out the normalized counts
+fwrite(x = normalized, file = "~/Desktop/bins_clustering_parsing_dataframes/normalized.csv")
 
 ############################################################################################################
 
@@ -77,24 +90,25 @@ fwrite(x = total_dereplicated, file = "~/Desktop/bins_clustering_parsing_datafra
 
 #make sure column date is seen as Date
 # (it matters when geom_smooth)
-total_dereplicated$date <- as.Date(total_dereplicated$date, format='%y-%m-%d')
-class(total_dereplicated$date)
+normalized$date <- as.Date(normalized$date, format='%y-%m-%d')
+class(normalized$date)
 
 #how many unique clusters is there? so I know how many to expect from the function below? 
-length(unique(total_dereplicated$secondary_cluster))
+length(unique(normalized$secondary_cluster))
 
 #if secondary_cluster ID occurs more than 100 times, keep rows
 library(dplyr)
-mostPopular <- total_dereplicated %>%
+mostPopular <- normalized %>%
   group_by(secondary_cluster) %>%
-  filter(n() > 500)
+  filter(n() > 100)
 View(mostPopular)
 nrow(mostPopular)
+#106899 rows left when subsetting (from 162440)
 
-length(unique(total_dereplicated$secondary_cluster))
-# there is 4274 unique secondary clusters in total
+length(unique(normalized$secondary_cluster))
+# there is 4465 unique secondary clusters in total
 length(unique(mostPopular$secondary_cluster))
-# there is 52 unique most popular secondary clusters
+# there is 338 unique most popular secondary clusters
 
 ############################################################################################################
 
@@ -106,7 +120,7 @@ length(unique(mostPopular$secondary_cluster))
 library(ggplot2)
 # Design a function
 gg_fun <- function(parameter, dt){
-  p <- ggplot(dt[dt$secondary_cluster == parameter, ], aes(x=date, y=value))+
+  p <- ggplot(dt[dt$secondary_cluster == parameter, ], aes(x=date, y=norm_counts))+
     geom_point(aes(colour = factor(cohort)), size = 0.2)+
     #geom_line to connect the dots by pig
     geom_line(aes(group = pig))+
@@ -132,7 +146,7 @@ dev.off()
 #to be done with a different method
 library(ggplot2)
 gg_fun <- function(parameter, dt){
-  p <- ggplot(dt[dt$secondary_cluster == parameter, ], aes(x=date, y=value, colour = cohort))+
+  p <- ggplot(dt[dt$secondary_cluster == parameter, ], aes(x=date, y=norm_counts, colour = cohort))+
     annotate("rect", 
              xmin = as.Date('2017-02-01'), 
              ymin = -Inf,
@@ -155,6 +169,23 @@ plot_list <- lapply(unique(mostPopular$secondary_cluster), gg_fun, dt = mostPopu
 pdf("~/Desktop/bins_clustering_parsing_dataframes/plots_by_secondary_cluster_small_mostPop.pdf")
 plot_list
 dev.off()
+
+
+mostPopular$secondary_cluster
+
+aaa <- subset(mostPopular, mostPopular$secondary_cluster=="957_1")
+aaa <- subset(mostPopular, mostPopular$cohort=="957_1")
+bbb <- subset(aaa, aaa$cohort %in% c("Control","Neomycin"))
+
+ggplot(bbb, aes(x=date, y=norm_counts, colour = cohort))+
+  geom_point(stat='identity', position='identity', aes(colour=cohort),size=0.3) + 
+  geom_smooth(method='loess', 
+              formula = y ~ splines::bs(x, 3)) +
+  facet_wrap(~ cohort, ncol = 2, scales = "free_x") +
+  guides(colour = "none") +
+  #geom_line to connect the dots by pig
+  #geom_line(aes(group = pig))
+  theme(text = element_text(size=5), axis.text.x = element_text(angle = 45, hjust=1))
 
 ############################################################################################################
 
