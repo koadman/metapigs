@@ -1,12 +1,14 @@
+#!/usr/bin/env Rscript
 
 # 7.R script                    #
 # Further cleaning,             #
 # parsing, and                  #
 # transform depth into counts   #
 # playing with plots            #
+data_prefix <- "/home/koadman/git/metapigs/results/"
 
 library(data.table)
-merged_all_clustered_wa_bins_with_cohorts <- read.csv("~/Desktop/bins_clustering_parsing_dataframes/merged_all_clustered_wa_bins_with_cohorts.csv", 
+merged_all_clustered_wa_bins_with_cohorts <- read.csv(paste(data_prefix,"merged_all_clustered_wa_bins_with_cohorts.csv",sep=""), 
                                                       na.strings=c("","NA"),
                                                       check.names = FALSE,
                                                       header = TRUE)
@@ -59,16 +61,17 @@ tot_counts_dereplicated <- aggregate(value~cohort+pig+bin+secondary_cluster+date
 View(tot_counts_dereplicated)
 
 # checking if mean of replicates is working fine
-a <- filter(NLrep1, pig == "29951", bin == "bins.1.fa", date == "2017-01-31")
-a
-b <- filter(NLrep2, pig == "29951", bin == "bins.1.fa", date == "2017-01-31")
-b
-c <- filter(tot_counts_dereplicated, pig == "29951", bin == "bins.1.fa", date == "2017-01-31")
-c
+# AD: "bin" does not exist
+#a <- filter(NLrep1, pig == "29951", bin == "bins.1.fa", date == "2017-01-31")
+#a
+#b <- filter(NLrep2, pig == "29951", bin == "bins.1.fa", date == "2017-01-31")
+#b
+#c <- filter(tot_counts_dereplicated, pig == "29951", bin == "bins.1.fa", date == "2017-01-31")
+#c
 # yes, c is the mean of a and b
 
 #write out to play with it 
-fwrite(x = total_dereplicated, file = "~/Desktop/bins_clustering_parsing_dataframes/tot_counts_dereplicated.csv")
+fwrite(x = tot_counts_dereplicated, file = paste(data_prefix,"tot_counts_dereplicated.csv",sep=""))
 
 library(dplyr)
 normalized <- tot_counts_dereplicated %>%
@@ -81,7 +84,7 @@ normalized <- normalized[,-6]
 View(normalized)
 
 # write out the normalized counts
-fwrite(x = normalized, file = "~/Desktop/bins_clustering_parsing_dataframes/normalized.csv")
+fwrite(x = normalized, file = paste(data_prefix,"normalized.csv",sep=""))
 
 ############################################################################################################
 
@@ -129,7 +132,7 @@ gg_fun <- function(parameter, dt){
 }
 plot_list <- lapply(unique(mostPopular$secondary_cluster), gg_fun, dt = mostPopular)
 #save all plots into one pdf
-pdf("~/Desktop/bins_clustering_parsing_dataframes/plots_by_secondary_cluster_mostPop.pdf")
+pdf(paste(data_prefix,"plots_by_secondary_cluster_mostPop.pdf",sep=""))
 plot_list
 dev.off()
 
@@ -166,7 +169,7 @@ gg_fun <- function(parameter, dt){
 }
 plot_list <- lapply(unique(mostPopular$secondary_cluster), gg_fun, dt = mostPopular)
 #save all plots into one pdf
-pdf("~/Desktop/bins_clustering_parsing_dataframes/plots_by_secondary_cluster_small_mostPop.pdf")
+pdf(paste(data_prefix,"plots_by_secondary_cluster_small_mostPop.pdf",sep=""))
 plot_list
 dev.off()
 
