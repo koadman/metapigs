@@ -4,19 +4,18 @@
  * process a biom table with fastspar
  **/
 
-otu_channel = Channel.fromPath(params.otu_table)
-otu_channel2 = Channel.fromPath(params.otu_table)
-otu_channel3 = Channel.fromPath(params.otu_table)
 params.bootstraps = 1000
 params.out_dir = "output"
+params.mem = '4G'
+params.cpus = 2
 
 process fastspar_setup_bootstrap {
-    cpus = 2
-    memory = '4G'
+    cpus = params.cpus
+    memory = params.mem
     container = 'quay.io/biocontainers/fastspar:0.0.10--hd41b482_0'
 
     input:
-	file(otutable) from otu_channel
+	file(otutable) from Channel.fromPath(params.otu_table)
 
     output:
     file("otu_data*.tsv") into otu_replicates mode flatten
@@ -28,8 +27,8 @@ fastspar_bootstrap --otu_table ${otutable} --number ${params.bootstraps} --prefi
 }
 
 process fastspar_bootstrap {
-    cpus = 2
-    memory = '4G'
+    cpus = params.cpus
+    memory = params.mem
     container = 'quay.io/biocontainers/fastspar:0.0.10--hd41b482_0'
 
     input:
@@ -40,7 +39,8 @@ process fastspar_bootstrap {
 
     script:
 """
-fastspar --threads 2 --otu_table ${otutable} --correlation cor_${otutable} --covariance cov_${otutable} -i 5
+export OMP_NUM_THREADS=${params.cpus}
+fastspar -y --threads ${params.cpus} --otu_table ${otutable} --correlation cor_${otutable} --covariance cov_${otutable} -i 5
 """
 }
 
@@ -48,30 +48,31 @@ all_cors = correlations.collect()
 
 process fastspar {
 	publishDir params.out_dir, mode: 'copy'
-    cpus = 2
-    memory = '4G'
+    cpus = params.cpus
+    memory = params.mem
     container = 'quay.io/biocontainers/fastspar:0.0.10--hd41b482_0'
 
     input:
-	file(otutable) from otu_channel2
+	file(otutable) from Channel.fromPath(params.otu_table)
     output:
     file('median_covariance.tsv')
     file('median_correlation.tsv') into median_cor
 
     script:
 """
-fastspar --otu_table ${otutable}  --correlation median_correlation.tsv --covariance median_covariance.tsv 
+export OMP_NUM_THREADS=${params.cpus}
+fastspar -y --threads ${params.cpus} --otu_table ${otutable}  --correlation median_correlation.tsv --covariance median_covariance.tsv 
 """
 }
 
-process fastspar_pvalues {
+process fastspar_pvalue {
 	publishDir params.out_dir, mode: 'copy'
-    cpus = 2
-    memory = '4G'
+    cpus = params.cpus
+    memory = params.mem
     container = 'quay.io/biocontainers/fastspar:0.0.10--hd41b482_0'
 
     input:
-	file(otutable) from otu_channel3
+	file(otutable) from Channel.fromPath(params.otu_table)
     file('*') from all_cors
     file('median_correlation.tsv') from median_cor
     output:
