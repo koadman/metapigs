@@ -3,11 +3,15 @@ import groovy.util.FileNameFinder
 import java.io.File
 import java.nio.file.Paths
 
-params.refDB = 'gtdb_kraken' # '/shared/homes/s1/databases/gtdb_kraken'
-params.threads = 2
+# --genomes /shared/homes/s1/pig_microbiome/kraken2/paths_to_bins.txt
+# --refDB /shared/homes/s1/databases/gtdb_kraken
+# --out_dir /shared/homes/s1/pig_microbiome/kraken2/kraken2_out
+
 params.debug = false
-params.out_dir = 'kraken2_out' # '/shared/homes/s1/pig_microbiome/kraken2/kraken2_out'
-params.mem = '4G'
+params.refDB = 'gtdb_kraken' 
+params.threads = 2
+params.out_dir = 'kraken2_out' 
+params.mem = '150G'
 
 fnf = new FileNameFinder()
 
@@ -26,31 +30,51 @@ genome_dirs = Channel.fromPath(params.genomes)
         }
 
 
+process remove_contig_headers {
+	
+	input:
+	val dir from genome_dirs
+	
+	output:
+	bin to bins_channel
+	
+	script:
+		"""
+		sed '/^>/d' dir > bin
+		"""
+}
+
+
 process run_kraken2 {
 
-    scratch '/scratch/work/'
-    stageInMode 'copy'
-    publishDir params.out_dir, mode: 'copy', saveAs: {fn -> "${dir.parent.name}/${fn}" }
     memory = params.mem
     container = 'quay.io/biocontainers/kraken2:2.0.8_beta--pl526h6bb024c_0'
 
     input:
-    val dir from genome_dirs
+    val bin from bins_channel
 
     output:
-    file('unclassified.tsv'), file('classified.tsv'), file('kraken2_out.tsv') into kraken2_out_files mode flatten
+    file('kraken2_out.tsv') into kraken2_out_files mode flatten
 
     script:
-    if (params.debug) {
-        """
-        echo $dir > unclassified.tsv
-        echo $dir > classified.tsv
-        """
-    }
-    else {
         """
         kraken2 --db ${params.refDB} $dir --threads ${params.threads} --unclassified-out $dir unclassifed.tsv --classified-out $dir classified.tsv --output $dir kraken2_out.tsv --confidence 0.99 --memory mapping
         """
-    }
 
 }
+
+all_krakens = kraken2_out_files.collect()
+
+process concatenate_kraken2_outputs {
+
+	input:
+	file('*') from all_krakens
+	
+	output:
+	file('all_kraken2_out.tsv') into all_out 
+	
+	script:
+		"""
+		cat file('*') > all_kraken2_out.tsv
+		"""
+		
