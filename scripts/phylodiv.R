@@ -16,24 +16,37 @@
 
 ###########################################################################################
 
-library(broom)
-library(cowplot)
-library(data.table)
-library(dunn.test)
-library(dplyr)
-library(forcats)
-library(ggbiplot)
-library(ggplot2)
-library(ggpubr)
-library(gridExtra)
-library(plotrix)
-library(plyr)
-library(readr)
-library(readxl)
-library(sva)
-library(tidyr)
-library(tidyverse)
-library(varhandle)
+# install packages
+
+pkgs <- c("ggbiplot","ggpubr","sva","tidyverse","broom","cowplot","data.table","dunn.test","plyr",
+           "dplyr","forcats","ggplot2","gridExtra","plotrix","readr","readxl","tidyr","varhandle","tibble","purr")
+
+install.packages(pkgs[], repos='https://cran.rstudio.com')  
+
+###########################################################################################
+
+# load libraries
+
+library(ggbiplot) # ggbiplot_0.55 
+library(ggpubr) # ggpubr_0.2.4 
+library(sva) # sva_3.32.1  
+library(tidyverse) # tidyverse_1.3.0 
+library(broom) # broom_0.5.2
+library(cowplot) # cowplot_1.0.0
+library(data.table) # data.table_1.12.8  
+library(dunn.test) # dunn.test_1.3.5 
+library(plyr) # plyr_1.8.5 
+library(dplyr) # dplyr_0.8.3 
+library(forcats) # forcats_0.4.0 
+library(ggplot2) # ggplot2_3.2.1
+library(gridExtra) # gridExtra_2.3     
+library(plotrix) # plotrix_3.7-7
+library(readr) # readr_1.3.1
+library(readxl) # readxl_1.3.1
+library(tidyr) # tidyr_1.0.0
+library(varhandle) # varhandle_2.0.4
+library(tibble) # tibble_2.1.3 
+library(purrr) # purrr_0.3.3
 
 # from local 
 #setwd("/Users/12705859/Desktop/metapigs_base/phylosift")
@@ -59,6 +72,17 @@ mdat <- read_excel(paste0(basedir,"Metagenome.environmental_20190308_2.xlsx"),
 # load details (breed, line, bday, mothers)
 details <- read_excel(paste0(basedir, "pigTrial_GrowthWtsGE.hlsx.xlsx"),
                       "Piglet details")
+
+# format details
+colnames(details)[colnames(details) == 'STIG'] <- 'pig'
+colnames(details)[colnames(details) == 'Nursing Dam'] <- 'nurse'
+colnames(details)[colnames(details) == 'STIGDAM'] <- 'stig'
+colnames(details)[colnames(details) == '...8'] <- 'breed'
+details$pig <- gsub("G","",details$pig)
+details$pig <- gsub("T","",details$pig)
+
+details <- details %>%
+  select(pig,BIRTH_DAY,LINE,breed,stig,nurse)
 
 # formatting metadata column names 
 mdat$`*collection_date` <- as.character(mdat$`*collection_date`)
@@ -91,7 +115,7 @@ pcadat$DNA_plate <- factor(pcadat$DNA_plate,
 
 palette <- c("black","red","green3","blue","cyan","magenta","yellow","gray","orange","brown")
 
-pdf("edge_pca_batch_all.pdf")
+pdf("out/edge_pca_batch_all.pdf")
 par(mfrow=c(3,2), mai = c(0.3, 0.3, 0.3, 0.3))
 plot(pcadat$pc1,pcadat$pc2,main="PC1 PC2",xlab="",ylab="",pch=NA,type="p")
 DNA_plates=unique(sort(pcadat$DNA_plate))
@@ -137,7 +161,7 @@ capture.output(
     }) %>%
     ungroup(),
   df_DNA_plate_all,
-  file = "batch_stats.txt")
+  file = "out/batch_stats.txt")
 
 capture.output(
   paste0("############################# batch stats - before batch removal - beta ########### "),
@@ -156,7 +180,7 @@ capture.output(
     }) %>%
     ungroup(),
   df_DNA_plate_all,
-  file = "batch_stats.txt",
+  file = "out/batch_stats.txt",
   append = TRUE)
 
 # shit! we have batch effects! let's look at it
@@ -255,7 +279,7 @@ figure <- grid.arrange(
   batch_unroo, batch_bw, batch_pc1, batch_pc2, batch_pc3, batch_pc4, batch_pc5, leg, nrow = 4, ncol = 2
 )
 
-pdf("alpha_beta_batch.pdf")
+pdf("out/alpha_beta_batch.pdf")
 annotate_figure(figure,
                 top = text_grob("Batch effect by alpha and beta diversity", color = "black", size = 14)
 )
@@ -309,7 +333,7 @@ capture.output(
     }) %>%
     ungroup(),
   df_DNA_plate_all,
-  file = "batch_stats.txt",
+  file = "out/batch_stats.txt",
   append = TRUE)
 
 capture.output(
@@ -329,13 +353,13 @@ capture.output(
     }) %>%
     ungroup(),
   df_DNA_plate_all,
-  file = "batch_stats.txt",
+  file = "out/batch_stats.txt",
   append = TRUE)
 
 
 # save new un-batched data 
-fwrite(x = pcadat, file = "pcadat_clean")
-fwrite(x = fpddat, file = "fpddat_clean")
+fwrite(x = pcadat, file = "out/pcadat_clean")
+fwrite(x = fpddat, file = "out/fpddat_clean")
 
 
 ######### Plot batch effect after removal of batch effect: 
@@ -373,6 +397,11 @@ batch_bw <- ggboxplot(fpddat, x = "DNA_plate", y = "bwpd",
             aes(DNA_plate, Inf, label = n), vjust="inward", size = your_font_size) +
   stat_compare_means(method = "anova", label.x=2, label.y=1, size = your_font_size) 
 batch_bw
+
+cw_summary <- pcadat %>% 
+  group_by(DNA_plate) %>% 
+  tally()
+
 batch_pc1 <- ggboxplot(pcadat, x = "DNA_plate", y = "pc1",
                        color = "DNA_plate", palette = "jco")+
   My_Theme+
@@ -429,7 +458,7 @@ figure <- grid.arrange(
   batch_unroo, batch_bw, batch_pc1, batch_pc2, batch_pc3, batch_pc4, batch_pc5, leg, nrow = 4, ncol = 2
 )
 
-pdf("alpha_beta_no_batch.pdf")
+pdf("out/alpha_beta_no_batch.pdf")
 annotate_figure(figure,
                 top = text_grob("Batch effect after batch effect removal", color = "black", size = 14)
 )
@@ -495,7 +524,7 @@ p1 <- ggplot(df1, aes(fill=collection_date, y=Freq, x=DNA_plate)) +
   geom_bar(position="stack", stat="identity")+
   labs(x = "DNA extraction plate",
        y = "number of samples",
-       fill = "sample collection date") +
+       fill = "collection date") +
   theme_bw()+
   theme(legend.position="top",
         axis.title.x=element_text(),
@@ -516,7 +545,7 @@ p2 <- ggplot(df1, aes(fill=DNA_plate, y=Freq, x=collection_date)) +
         axis.title.y=element_text())
 p2
 
-pdf("samples_distribution_DNA_plate_timeintervals.pdf")
+pdf("out/samples_distribution_DNA_plate_timeintervals.pdf")
 ggarrange(
   p1,p2,nrow=2, labels=c("A","B")
 )
@@ -528,7 +557,7 @@ df1 <- setDT(boggo)[, .(Freq = .N), by = .(collection_date,Cohort)]
 
 df1[order(df1$collection_date)]
 
-pdf("samples_distribution_cohorts_timeintervals.pdf")
+pdf("out/samples_distribution_cohorts_timeintervals.pdf")
 ggplot(df1, aes(fill=Cohort, y=Freq, x=collection_date)) + 
   geom_bar(position="dodge", stat="identity")+
   labs(x = "time interval across trial",
@@ -611,19 +640,19 @@ coggo$Cohort <- factor(coggo$Cohort,
 # ALPHA diversity overall (includes pos controls):
 
 
-pdf("alpha_phyloentropy.pdf",width=9,height=5)
+pdf("out/alpha_phyloentropy.pdf",width=9,height=5)
 par(mar=(c(5, 10, 4, 2) +0.1))
 boxplot(boggo$phylo_entropy~factor(boggo$Cohort,c("Control","ColiGuard","D-scour","Neomycin+ColiGuard","Neomycin+D-scour","Neomycin","Mothers","PosControl_ColiGuard","PosControl_D-scour","MockCommunity")),horizontal=TRUE,main="Alpha diversity",xlab="Phylogenetic entropy",ylab=NULL,las=1)
 dev.off()
 
 boggo<-inner_join(fpddat,mdat)
-pdf("alpha_unrooted.pdf",width=9,height=5)
+pdf("out/alpha_unrooted.pdf",width=9,height=5)
 par(mar=(c(5, 10, 4, 2) +0.1))
 boxplot(boggo$unrooted_pd~factor(boggo$Cohort,c("Control","ColiGuard","D-scour","Neomycin+ColiGuard","Neomycin+D-scour","Neomycin","Mothers","PosControl_ColiGuard","PosControl_D-scour","MockCommunity")),horizontal=TRUE,main="Alpha diversity",xlab="Unrooted PD",ylab=NULL,las=1)
 dev.off()
 
 boggo<-inner_join(fpddat,mdat)
-pdf("alpha_bwpd.pdf",width=9,height=5)
+pdf("out/alpha_bwpd.pdf",width=9,height=5)
 par(mar=(c(5, 10, 4, 2) +0.1))
 boxplot(boggo$bwpd~factor(boggo$Cohort,c("Control","ColiGuard","D-scour","Neomycin+ColiGuard","Neomycin+D-scour","Neomycin","Mothers","PosControl_ColiGuard","PosControl_D-scour","MockCommunity")),horizontal=TRUE,main="Alpha diversity",xlab="Balance-weighted PD",ylab=NULL,las=1)
 dev.off()
@@ -648,11 +677,11 @@ p3 <- ggplot(boggo, aes(x=fct_inorder(Cohort), y=unrooted_pd)) +
 p3
 
 
-pdf("alpha_BWPD&unrooted.pdf")
+pdf("out/alpha_BWPD&unrooted.pdf")
 plot_grid(p2,p3, align = "hv", nrow=2, labels = "auto")
 dev.off()
 
-pdf("alpha_all.pdf")
+pdf("out/alpha_all.pdf")
 plot_grid(p1,p2,p3, align = "hv", nrow=3, labels = "auto")
 dev.off()
 
@@ -676,7 +705,7 @@ capture.output(
   paste0("################### Per cohort - mean and sd ###################"),
   ddply(boggo, "Cohort", summarise, mean=mean(unrooted_pd), sd=sd(unrooted_pd)),
   ddply(boggo, "Cohort", summarise, mean=mean(bwpd), sd=sd(bwpd)),
-  file = "pd_numbers.txt"
+  file = "out/pd_numbers.txt"
 )
 
 ##############################################
@@ -712,7 +741,7 @@ my_comparisons = list( c("2017-01-31", "2017-02-07"),
                         c("2017-02-07", "2017-02-21"))
 
 # general time change - unrooted
-pdf("alpha_unrooted_time.pdf",width=9,height=5)
+pdf("out/alpha_unrooted_time.pdf",width=9,height=5)
 gen_unrooted <- ggplot(doggo, aes(x=collection_date, y=unrooted_pd, 
                                   fill=Cohort)) +
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) +
@@ -725,7 +754,7 @@ gen_unrooted
 dev.off()
 
 # general time change - BWPD
-pdf("alpha_bwpd_time.pdf",width=9,height=5)
+pdf("out/alpha_bwpd_time.pdf",width=9,height=5)
 gen_bwpd <- ggplot(doggo, aes(x=collection_date, y=bwpd, 
                               fill=Cohort)) +
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) +
@@ -737,14 +766,14 @@ gen_bwpd <- ggplot(doggo, aes(x=collection_date, y=bwpd,
 gen_bwpd
 dev.off()
 
-pdf("alpha_unrooted&bwpd_time.pdf")
+pdf("out/alpha_unrooted&bwpd_time.pdf")
 grid.arrange(
   gen_bwpd, gen_unrooted, nrow = 2
 )
 dev.off()
 
 # unrooted pd - fill: collection date
-pdf("alpha_unrooted_cohorts.pdf",width=9,height=5)
+pdf("out/alpha_unrooted_cohorts.pdf",width=9,height=5)
 unrooted_time <- ggplot(doggo, aes(x=Cohort, y=unrooted_pd, 
                                    fill=collection_date)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -755,7 +784,7 @@ unrooted_time
 dev.off()
 
 # bwpd - fill: collection date
-pdf("alpha_bwpd_fill_cohorts.pdf",width=9,height=5)
+pdf("out/alpha_bwpd_fill_cohorts.pdf",width=9,height=5)
 bwpd_time <- ggplot(doggo, aes(x=Cohort, y=bwpd, 
                                fill=collection_date)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -765,7 +794,7 @@ bwpd_time <- ggplot(doggo, aes(x=Cohort, y=bwpd,
 bwpd_time
 dev.off()
 
-pdf("alpha_unrooted&bwpd_cohorts.pdf")
+pdf("out/alpha_unrooted&bwpd_cohorts.pdf")
 grid.arrange(
   unrooted_time, bwpd_time, nrow = 2,
   top = "Alpha diversity"
@@ -778,7 +807,7 @@ my_comparisons <- list( c("2017-01-31", "2017-02-07"),
                         c("2017-02-07", "2017-02-14"), 
                         c("2017-02-07", "2017-02-21") )
 
-pdf("alpha_unrooted_cohorts_facets.pdf",width=9,height=5)
+pdf("out/alpha_unrooted_cohorts_facets.pdf",width=9,height=5)
 p <- ggboxplot(doggo, x = "collection_date", y = "unrooted_pd",
                color = "collection_date", palette = "jco",
                add = "jitter",facet.by = "Cohort", short.panel.labs = FALSE) +
@@ -791,7 +820,7 @@ p
 
 #########
 
-pdf("alpha_bwpd_cohorts_facets.pdf",width=9,height=5)
+pdf("out/alpha_bwpd_cohorts_facets.pdf",width=9,height=5)
 p <- ggboxplot(doggo, x = "collection_date", y = "bwpd",
                color = "collection_date", palette = "jco",
                add = "jitter",
@@ -811,7 +840,7 @@ dev.off()
 
 # plot
 
-pdf("edge_pca.pdf")
+pdf("out/edge_pca.pdf")
 plot(coggo$pc1,coggo$pc3,main="phylosift edge PCA on pigs",xlab="PC1",ylab="PC3",pch=NA,type="p")
 cohorts=unique(sort(coggo$Cohort))
 for(coho in 1:length(cohorts)){
@@ -828,7 +857,7 @@ color_legend <- function(x, y, xlen, ylen, main, tiks, colors){
 
 rbow <- rainbow(60, end=0.7, alpha=0.7)
 
-pdf("PCA_time.pdf")
+pdf("out/PCA_time.pdf")
 plot(coggo$pc1[coggo$Cohort!="Mothers"&coggo$Cohort!="NegativeControl"],coggo$pc2[coggo$Cohort!="Mothers"&coggo$Cohort!="NegativeControl"],main="beta diversity (phylosift edge PCA)",xlab="PC1",ylab="PC2",type="p",col=rbow[as.Date(coggo$collection_date[coggo$Cohort!="Mothers"&coggo$Cohort!="NegativeControl"])-as.Date("2017-01-29 00:00:00")])
 legvec <- c(0,15,30,45,60)
 color_legend( -2.9, 4, 3.5, 1.5, "trial days:", legvec, rbow)
@@ -838,7 +867,7 @@ dev.off()
 
 # timeseries within cohort 
 
-pdf("PCA_cohorts.pdf")
+pdf("out/PCA_cohorts.pdf")
 par(mfrow=c(3,2), mai = c(0.4, 0.4, 0.4, 0.4))
 plot(coggo$pc1[coggo$Cohort=="Control"],
      coggo$pc2[coggo$Cohort=="Control"],
@@ -945,17 +974,6 @@ length(unique(startDF$isolation_source))
 
 #########################
 
-# format details
-colnames(details)[colnames(details) == 'STIG'] <- 'pig'
-colnames(details)[colnames(details) == 'Nursing Dam'] <- 'nurse'
-colnames(details)[colnames(details) == 'STIGDAM'] <- 'stig'
-
-details <- details %>%
-  select(pig, nurse, stig)
-
-details$pig <- gsub("G","",details$pig)
-details$pig <- gsub("T","",details$pig)
-
 startDF1 <- merge(startDF,details, by.x="isolation_source",by.y="pig")
 
 startDF1 <- startDF1 %>%
@@ -989,7 +1007,7 @@ b <- ggplot(startDF1, aes(x=nurse, y=unrooted_pd, group=nurse)) +
         plot.subtitle = element_text(lineheight = 0.9, size=11)) +
   scale_y_continuous(limits=c(60,160))
 
-pdf("alpha_piglets_bynurse.pdf")
+pdf("out/alpha_piglets_bynurse.pdf")
 ggarrange(a, b, 
           labels = c("A", "B"),
           ncol = 1, nrow = 2)
@@ -1024,7 +1042,7 @@ d <- ggplot(startDF1, aes(x=stig, y=unrooted_pd, group=stig)) +
   scale_y_continuous(limits=c(60,160))
 
 
-pdf("alpha_piglets_bystig.pdf")
+pdf("out/alpha_piglets_bystig.pdf")
 ggarrange(c, d, 
           labels = c("A", "B"),
           ncol = 1, nrow = 2)
@@ -1034,13 +1052,13 @@ dev.off()
 ##################
 
 # same but putting nurses and stigs on the same plot, dividing BWPD from unrooted
-pdf("alpha_BWPD_bystig_bynurse.pdf")
+pdf("out/alpha_BWPD_bystig_bynurse.pdf")
 ggarrange(c, a, 
           labels = c("A", "B"),
           ncol = 1, nrow = 2)
 dev.off()
 
-pdf("alpha_unrooted_bystig_bynurse.pdf")
+pdf("out/alpha_unrooted_bystig_bynurse.pdf")
 ggarrange(d, b, 
           labels = c("A", "B"),
           ncol = 1, nrow = 2)
@@ -1050,18 +1068,6 @@ dev.off()
 
 # do piglets at arrival cluster by unrooted and bwpd
 # based on breed/line/birth day? 
-
-# format details
-
-colnames(details)[colnames(details) == '...8'] <- 'breed'
-colnames(details)[colnames(details) == 'STIG'] <- 'pig'
-
-details$pig <- gsub("G","",details$pig)
-details$pig <- gsub("T","",details$pig)
-
-# select cols 
-details <- details %>%
-  select(pig, BIRTH_DAY, Crate, LINE, breed)
 
 startDF2 <- merge(startDF,details, by.x="isolation_source",by.y="pig")
 
@@ -1108,7 +1114,7 @@ breed_bwpd_plot <- ggboxplot(startDF2, x = "breed", y = "bwpd",
             aes(breed, Inf, label = n), vjust="inward")+
   stat_compare_means(method = "kruskal.test", label.y=1.5) 
 
-pdf("breed.pdf")
+pdf("out/breed.pdf")
 grid.arrange(
   breed_unrooted_plot, breed_bwpd_plot, nrow = 2
 )
@@ -1144,7 +1150,7 @@ bday_bwpd_plot <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "bwpd",
             aes(BIRTH_DAY, Inf, label = n), vjust="inward") +
   stat_compare_means(method = "kruskal.test", label.y=1.5)  # Add pairwise comparisons p-value
 
-pdf("bday.pdf")
+pdf("out/bday.pdf")
 grid.arrange(
   bday_unrooted_plot, bday_bwpd_plot, nrow = 2
 )
@@ -1181,7 +1187,7 @@ LINE_bwpd_plot <- ggboxplot(startDF2, x = "LINE", y = "bwpd",
             aes(LINE, Inf, label = n), vjust="inward") +
   stat_compare_means(method = "kruskal.test", label.y=1.5)  # Add pairwise comparisons p-value
 
-pdf("line.pdf")
+pdf("out/line.pdf")
 grid.arrange(
   LINE_unrooted_plot, LINE_bwpd_plot, nrow = 2
 )
@@ -1197,7 +1203,7 @@ my_comparisons <- list(  c("2017-01-07", "2017-01-09"),
                          c("2017-01-08", "2017-01-10"), 
                          c("2017-01-09", "2017-01-11"), 
                          c("2017-01-10", "2017-01-11") )
-pdf("unrooted_bday_bybreed.pdf",width=9,height=5)
+pdf("out/unrooted_bday_bybreed.pdf",width=9,height=5)
 p <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "unrooted_pd",
                color = "BIRTH_DAY", palette = "jco",
                add = "jitter",
@@ -1207,7 +1213,7 @@ p <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "unrooted_pd",
   ylim(50,230)
 p + stat_compare_means(comparisons = my_comparisons)
 dev.off()
-pdf("bwpd_bday_bybreed.pdf",width=9,height=5)
+pdf("out/bwpd_bday_bybreed.pdf",width=9,height=5)
 p <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "bwpd",
                color = "BIRTH_DAY", palette = "jco",
                add = "jitter",
@@ -1279,7 +1285,7 @@ moms.pca4 <- prcomp(startDF14[,1:5], center = TRUE, scale. = TRUE)
 moms.pca5 <- prcomp(startDF15[,1:5], center = TRUE, scale. = TRUE)
 moms.pca6 <- prcomp(startDF16[,1:5], center = TRUE, scale. = TRUE)
 
-pdf("piglets_to_nurse1.pdf")
+pdf("out/piglets_to_nurse1.pdf")
 nurse1 <- ggbiplot(moms.pca1, obs.scale = 1, var.scale = 1,
                    groups = startDF11$nurse, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
@@ -1287,7 +1293,7 @@ nurse1 <- ggbiplot(moms.pca1, obs.scale = 1, var.scale = 1,
         panel.background = element_rect(fill = "white", colour = "grey50"))
 nurse1
 dev.off()
-pdf("piglets_to_nurse2.pdf")
+pdf("out/piglets_to_nurse2.pdf")
 nurse2 <- ggbiplot(moms.pca2, obs.scale = 1, var.scale = 1,
                    groups = startDF12$nurse, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
@@ -1295,7 +1301,7 @@ nurse2 <- ggbiplot(moms.pca2, obs.scale = 1, var.scale = 1,
         panel.background = element_rect(fill = "white", colour = "grey50"))
 nurse2
 dev.off()
-pdf("piglets_to_nurse3.pdf")
+pdf("out/piglets_to_nurse3.pdf")
 nurse3 <- ggbiplot(moms.pca3, obs.scale = 1, var.scale = 1,
                    groups = startDF13$nurse, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
@@ -1303,7 +1309,7 @@ nurse3 <- ggbiplot(moms.pca3, obs.scale = 1, var.scale = 1,
         panel.background = element_rect(fill = "white", colour = "grey50"))
 nurse3
 dev.off()
-pdf("piglets_to_nurse4.pdf")
+pdf("out/piglets_to_nurse4.pdf")
 nurse4 <- ggbiplot(moms.pca4, obs.scale = 1, var.scale = 1,
                    groups = startDF14$nurse, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
@@ -1311,7 +1317,7 @@ nurse4 <- ggbiplot(moms.pca4, obs.scale = 1, var.scale = 1,
         panel.background = element_rect(fill = "white", colour = "grey50"))
 nurse4
 dev.off()
-pdf("piglets_to_nurse5.pdf")
+pdf("out/piglets_to_nurse5.pdf")
 nurse5 <- ggbiplot(moms.pca5, obs.scale = 1, var.scale = 1,
                    groups = startDF15$nurse, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
@@ -1319,7 +1325,7 @@ nurse5 <- ggbiplot(moms.pca5, obs.scale = 1, var.scale = 1,
         panel.background = element_rect(fill = "white", colour = "grey50"))
 nurse5
 dev.off()
-pdf("piglets_to_nurse6.pdf")
+pdf("out/piglets_to_nurse6.pdf")
 nurse6 <- ggbiplot(moms.pca6, obs.scale = 1, var.scale = 1,
                    groups = startDF16$nurse, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
@@ -1358,7 +1364,7 @@ moms.pca5 <- prcomp(startDF15[,1:5], center = TRUE, scale. = TRUE)
 moms.pca6 <- prcomp(startDF16[,1:5], center = TRUE, scale. = TRUE)
 
 
-pdf("piglets_to_stig1.pdf")
+pdf("out/piglets_to_stig1.pdf")
 stig1 <- ggbiplot(moms.pca1, obs.scale = 1, var.scale = 1,
                   groups = startDF11$stig, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
@@ -1366,7 +1372,7 @@ stig1 <- ggbiplot(moms.pca1, obs.scale = 1, var.scale = 1,
         panel.background = element_rect(fill = "white", colour = "grey50"))
 stig1
 dev.off()
-pdf("piglets_to_stig2.pdf")
+pdf("out/piglets_to_stig2.pdf")
 stig2 <- ggbiplot(moms.pca2, obs.scale = 1, var.scale = 1,
                   groups = startDF12$stig, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
@@ -1374,7 +1380,7 @@ stig2 <- ggbiplot(moms.pca2, obs.scale = 1, var.scale = 1,
         panel.background = element_rect(fill = "white", colour = "grey50"))
 stig2
 dev.off()
-pdf("piglets_to_stig3.pdf")
+pdf("out/piglets_to_stig3.pdf")
 stig3 <- ggbiplot(moms.pca3, obs.scale = 1, var.scale = 1,
                   groups = startDF13$stig, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
@@ -1382,7 +1388,7 @@ stig3 <- ggbiplot(moms.pca3, obs.scale = 1, var.scale = 1,
         panel.background = element_rect(fill = "white", colour = "grey50"))
 stig3
 dev.off()
-pdf("piglets_to_stig4.pdf")
+pdf("out/piglets_to_stig4.pdf")
 stig4 <- ggbiplot(moms.pca4, obs.scale = 1, var.scale = 1,
                   groups = startDF14$stig, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
@@ -1390,7 +1396,7 @@ stig4 <- ggbiplot(moms.pca4, obs.scale = 1, var.scale = 1,
         panel.background = element_rect(fill = "white", colour = "grey50"))
 stig4
 dev.off()
-pdf("piglets_to_stig5.pdf")
+pdf("out/piglets_to_stig5.pdf")
 stig5 <- ggbiplot(moms.pca5, obs.scale = 1, var.scale = 1,
                   groups = startDF15$stig, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
@@ -1398,7 +1404,7 @@ stig5 <- ggbiplot(moms.pca5, obs.scale = 1, var.scale = 1,
         panel.background = element_rect(fill = "white", colour = "grey50"))
 stig5
 dev.off()
-pdf("piglets_to_stig6.pdf")
+pdf("out/piglets_to_stig6.pdf")
 stig6 <- ggbiplot(moms.pca6, obs.scale = 1, var.scale = 1,
                   groups = startDF16$stig, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
@@ -1483,7 +1489,7 @@ breed_PC5_plot <- ggboxplot(startDF2, x = "breed", y = "pc5",
   stat_compare_means(method = "kruskal.test", label.x=1, label.y=4.5)  # Add pairwise comparisons p-value
 breed_PC5_plot
 
-pdf("PCA_bars_breed.pdf")
+pdf("out/PCA_bars_breed.pdf")
 grid.arrange(
   breed_PC1_plot, breed_PC2_plot, breed_PC3_plot, breed_PC4_plot, breed_PC5_plot, nrow = 3, ncol=2
 )
@@ -1509,7 +1515,7 @@ breedPCA45 <- ggbiplot(breed_PCA, obs.scale = 1, var.scale = 1,
   theme(legend.position = 'right',
         panel.background = element_rect(fill = "white", colour = "grey50"))
 breedPCA45
-pdf("PCA_dots_breed.pdf")
+pdf("out/PCA_dots_breed.pdf")
 grid.arrange(
   breedPCA12, breedPCA34, breedPCA45, nrow = 3, ncol = 1
 )
@@ -1571,7 +1577,7 @@ bday_PC5_plot <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "pc5",
   stat_compare_means(method = "kruskal.test", label.x=1, label.y=4.5)  # Add pairwise comparisons p-value
 bday_PC5_plot
 
-pdf("PCA_bars_bday.pdf")
+pdf("out/PCA_bars_bday.pdf")
 grid.arrange(
   bday_PC1_plot, bday_PC2_plot, bday_PC3_plot, bday_PC4_plot, bday_PC5_plot, nrow = 3, ncol=2
 )
@@ -1598,7 +1604,7 @@ bdayPCA25 <- ggbiplot(breed_PCA, obs.scale = 1, var.scale = 1,
         panel.background = element_rect(fill = "white", colour = "grey50"))
 bdayPCA25
 
-pdf("PCA_dots_bday.pdf")
+pdf("out/PCA_dots_bday.pdf")
 grid.arrange(
   bdayPCA12, bdayPCA34, bdayPCA25, nrow = 3, ncol = 1
 )
@@ -1661,7 +1667,7 @@ line_PC5_plot <- ggboxplot(startDF2, x = "LINE", y = "pc5",
   stat_compare_means(method = "kruskal.test", label.x=1, label.y=4.5)  # Add pairwise comparisons p-value
 line_PC5_plot
 
-pdf("PCA_bars_line.pdf")
+pdf("out/PCA_bars_line.pdf")
 grid.arrange(
   line_PC1_plot, line_PC2_plot, line_PC3_plot, line_PC4_plot, line_PC5_plot, nrow = 3, ncol=2
 )
@@ -1689,7 +1695,7 @@ linePCA45 <- ggbiplot(breed_PCA, obs.scale = 1, var.scale = 1,
         panel.background = element_rect(fill = "white", colour = "grey50"))
 linePCA45
 
-pdf("PCA_dots_line.pdf")
+pdf("out/PCA_dots_line.pdf")
 grid.arrange(
   linePCA12, linePCA34, linePCA45, nrow = 3, ncol = 1
 )
@@ -1746,7 +1752,7 @@ p5 <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "pc5",
   theme(axis.text.x=element_blank(), legend.position = 'none')+
   stat_compare_means(comparisons = my_comparisons)
 
-pdf("PCA_bars_bdaybreeds.pdf")
+pdf("out/PCA_bars_bdaybreeds.pdf")
 grid.arrange(
   p1,p2, nrow = 1, ncol = 2
 )
@@ -1931,7 +1937,7 @@ figure <- grid.arrange(
   unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 4, ncol = 2
 )
 
-pdf("alpha_beta_t1.pdf")
+pdf("out/alpha_beta_t1.pdf")
 annotate_figure(figure,
                 top = text_grob("Trial day 2 - Alpha and beta diversity among cohorts", color = "black", size = 14)
 )
@@ -1940,7 +1946,7 @@ dev.off()
 all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, 
                        labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
                        ncol = 4)
-ggsave("t1.tiff", all_plots, width=15.8, height=11)
+ggsave("out/t1.tiff", all_plots, width=15.8, height=11)
 
 ############################### t2.1 ############################### 
 
@@ -2042,7 +2048,7 @@ figure <- grid.arrange(
   unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 4, ncol = 2
 )
 
-pdf("alpha_beta_t2.1.pdf")
+pdf("out/alpha_beta_t2.1.pdf")
 annotate_figure(figure,
                 top = text_grob("Trial day 5 - Alpha and beta diversity among cohorts", color = "black", size = 14)
 )
@@ -2051,7 +2057,7 @@ dev.off()
 all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, 
                        labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
                        ncol = 4)
-ggsave("t2.1.tiff", all_plots, width=15.8, height=11)
+ggsave("out/t2.1.tiff", all_plots, width=15.8, height=11)
 
 ############################### t2.2 ############################### 
 
@@ -2154,7 +2160,7 @@ figure <- grid.arrange(
   unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 4, ncol = 2
 )
 
-pdf("alpha_beta_t2.2.pdf")
+pdf("out/alpha_beta_t2.2.pdf")
 annotate_figure(figure,
                 top = text_grob("Trial day 9 - Alpha and beta diversity among cohorts", color = "black", size = 14)
 )
@@ -2163,7 +2169,7 @@ dev.off()
 all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, 
                        labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
                        ncol = 4)
-ggsave("t2.2.tiff", all_plots, width=15.8, height=11)
+ggsave("out/t2.2.tiff", all_plots, width=15.8, height=11)
 
 ############################### t3.1 ############################### 
 
@@ -2266,7 +2272,7 @@ figure <- grid.arrange(
   unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 4, ncol = 2
 )
 
-pdf("alpha_beta_t3.1.pdf")
+pdf("out/alpha_beta_t3.1.pdf")
 annotate_figure(figure,
                 top = text_grob("Trial day 12 - Alpha and beta diversity among cohorts", color = "black", size = 14)
 )
@@ -2275,7 +2281,7 @@ dev.off()
 all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, 
                        labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
                        ncol = 4)
-ggsave("t3.1.tiff", all_plots, width=15.8, height=11)
+ggsave("out/t3.1.tiff", all_plots, width=15.8, height=11)
 
 ############################### t3.2 ############################### 
 
@@ -2378,7 +2384,7 @@ figure <- grid.arrange(
   unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 4, ncol = 2
 )
 
-pdf("alpha_beta_t3.2.pdf")
+pdf("out/alpha_beta_t3.2.pdf")
 annotate_figure(figure,
                 top = text_grob("Trial day 16 - Alpha and beta diversity among cohorts", color = "black", size = 14)
 )
@@ -2387,7 +2393,7 @@ dev.off()
 all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, 
                        labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
                        ncol = 4)
-ggsave("t3.2.tiff", all_plots, width=15.8, height=11)
+ggsave("out/t3.2.tiff", all_plots, width=15.8, height=11)
 
 ############################### t4 ############################### 
 
@@ -2492,7 +2498,7 @@ figure <- grid.arrange(
   unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 4, ncol = 2
 )
 
-pdf("alpha_beta_t4.pdf")
+pdf("out/alpha_beta_t4.pdf")
 annotate_figure(figure,
                 top = text_grob("Trial days 18-23 - Alpha and beta diversity among cohorts", color = "black", size = 14)
 )
@@ -2501,7 +2507,7 @@ dev.off()
 all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, 
                        labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
                        ncol = 4)
-ggsave("t4.tiff", all_plots, width=15.8, height=11)
+ggsave("out/t4.tiff", all_plots, width=15.8, height=11)
 
 ############################### t5 ############################### 
 
@@ -2605,7 +2611,7 @@ figure <- grid.arrange(
   unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 4, ncol = 2
 )
 
-pdf("alpha_beta_t5.pdf")
+pdf("out/alpha_beta_t5.pdf")
 annotate_figure(figure,
                 top = text_grob("Trial days 26-30 - Alpha and beta diversity among cohorts", color = "black", size = 14)
 )
@@ -2615,7 +2621,7 @@ all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc
                        labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
                        ncol = 4)
 all_plots
-ggsave("t5.tiff", all_plots, width=15.8, height=11)
+ggsave("out/t5.tiff", all_plots, width=15.8, height=11)
 
 ############################### t6 ############################### 
 
@@ -2723,7 +2729,7 @@ figure <- grid.arrange(
   unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, ncol = 4
 )
 
-pdf("alpha_beta_t6.pdf")
+pdf("out/alpha_beta_t6.pdf")
 annotate_figure(figure,
                 top = text_grob("Trial days 23-40 - Alpha and beta diversity among cohorts", color = "black", size = 14)
 )
@@ -2732,7 +2738,7 @@ dev.off()
 all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, 
                        labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
                        ncol = 4)
-ggsave("t6.tiff", all_plots, width=15.8, height=11)
+ggsave("out/t6.tiff", all_plots, width=15.8, height=11)
 
 
 # find out plot colors to be replicated in the timeline
@@ -2745,12 +2751,14 @@ scales::show_col(scales::hue_pal()(6))
 
 # PVALUES - 
 
+
+
 # merge alpha&beta div (finalDF) to details and details metadata
-finalDF1 <- merge(finalDF,details, by.x="isolation_source",by.y="pig")
-df <- merge(finalDF1,details, by.x="isolation_source",by.y="pig")
+
+df <- merge(finalDF,details, by.x="isolation_source",by.y="pig")
+head(df)
 
 # rename collection dates to time intervals 
-
 # iM <- "2017-01-30"
 df[10] <- lapply(
   df[10], 
@@ -3243,7 +3251,7 @@ all_pvalues <- rbind(df_breed_all, df_breed,
                      df_ctrl_neo, df_Dscour_ColiGuard, df_neoD_neoC)
 
 # write out the normalized counts
-fwrite(x = all_pvalues, file = "all_pvalues.csv")
+fwrite(x = all_pvalues, file = "out/all_pvalues.csv")
 
 # bh correction: 
 
@@ -3518,7 +3526,7 @@ capture.output(
   dunn.test(df[df$collection_date=="i6",]$pc5, 
             df[df$collection_date=="i6",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  file = "pvalues_BH_correction.txt", append = FALSE
+  file = "out/pvalues_BH_correction.txt", append = FALSE
 )
 
 # plot p-values for start factors
@@ -3540,7 +3548,7 @@ unroo <- ggplot(piglets_factors, aes(fill=collection_date, y=unrooted_pd, x=grou
   geom_point(aes(colour = collection_date))+
   labs(y="unrooted PD - p-value")+
   ylim(0,0.06)+
-  theme(axis.text.x=element_text(hjust=0.5, angle=0),
+  theme(axis.text.x=element_text(hjust=1, angle=45),
         axis.title.x=element_blank(),
         axis.title.y=element_text(),
         legend.position="none")+
@@ -3551,7 +3559,7 @@ bwpd <- ggplot(piglets_factors, aes(fill=collection_date, y=bwpd, x=grouping)) +
   geom_point(aes(colour = collection_date))+
   labs(y="BWPD - p-value")+
   ylim(0,0.06)+
-  theme(axis.text.x=element_text(hjust=0.5, angle=0),
+  theme(axis.text.x=element_text(hjust=1, angle=45),
         axis.title.x=element_blank(),
         axis.title.y=element_text(),
         legend.position="none")+
@@ -3562,7 +3570,7 @@ pc1 <- ggplot(piglets_factors, aes(fill=collection_date, y=pc1, x=grouping)) +
   geom_point(aes(colour = collection_date))+
   labs(y="PC1 - p-value")+
   ylim(0,0.06)+
-  theme(axis.text.x=element_text(hjust=0.5, angle=0),
+  theme(axis.text.x=element_text(hjust=1, angle=45),
         axis.title.x=element_blank(),
         axis.title.y=element_text(),
         legend.position="none")+
@@ -3573,7 +3581,7 @@ pc2 <- ggplot(piglets_factors, aes(fill=collection_date, y=pc2, x=grouping)) +
   geom_point(aes(colour = collection_date))+
   labs(y="PC3 - p-value")+
   ylim(0,0.06)+
-  theme(axis.text.x=element_text(hjust=0.5, angle=0),
+  theme(axis.text.x=element_text(hjust=1, angle=45),
         axis.title.x=element_blank(),
         axis.title.y=element_text(),
         legend.position="none")+
@@ -3584,7 +3592,7 @@ pc3 <- ggplot(piglets_factors, aes(fill=collection_date, y=pc3, x=grouping)) +
   geom_point(aes(colour = collection_date))+
   labs(y="PC3 - p-value")+
   ylim(0,0.06)+
-  theme(axis.text.x=element_text(hjust=0.5, angle=0),
+  theme(axis.text.x=element_text(hjust=1, angle=45),
         axis.title.x=element_blank(),
         axis.title.y=element_text(),
         legend.position="none")+
@@ -3595,7 +3603,7 @@ pc4 <- ggplot(piglets_factors, aes(fill=collection_date, y=pc4, x=grouping)) +
   geom_point(aes(colour = collection_date))+
   labs(y="PC4 - p-value")+
   ylim(0,0.06)+
-  theme(axis.text.x=element_text(hjust=0.5, angle=0),
+  theme(axis.text.x=element_text(hjust=1, angle=45),
         axis.title.x=element_blank(),
         axis.title.y=element_text(),
         legend.position="none")+
@@ -3606,7 +3614,7 @@ pc5 <- ggplot(piglets_factors, aes(fill=collection_date, y=pc5, x=grouping)) +
   geom_point(aes(colour = collection_date))+
   labs(y="PC5 - p-value")+
   ylim(0,0.06)+
-  theme(axis.text.x=element_text(hjust=0.5, angle=0),
+  theme(axis.text.x=element_text(hjust=1, angle=45),
         axis.title.x=element_blank(),
         axis.title.y=element_text(),
         legend.position="none")+
@@ -3616,7 +3624,7 @@ pc5 <- ggplot(piglets_factors, aes(fill=collection_date, y=pc5, x=grouping)) +
 # Extract the legend. Returns a gtable
 for_legend_only <- ggplot(piglets_factors, aes(fill=collection_date, y=pc5, x=grouping)) + 
   geom_point(aes(colour = collection_date))+
-  theme(axis.text.x=element_text(hjust=0.5, angle=0),
+  theme(axis.text.x=element_text(hjust=1, angle=20),
         axis.title.x=element_blank(),
         axis.title.y=element_text(),
         legend.title = element_text(),
@@ -3625,7 +3633,7 @@ for_legend_only <- ggplot(piglets_factors, aes(fill=collection_date, y=pc5, x=gr
 leg <- get_legend(for_legend_only)
 
 
-pdf("piglets_start_factors_pvalues.pdf")
+pdf("out/piglets_start_factors_pvalues.pdf")
 ggarrange(
   unroo, bwpd, pc1, pc2, pc3, pc4, pc5,leg,ncol=2,nrow=4
 )
@@ -3725,7 +3733,7 @@ pc5 <- ggplot(piglets_factors, aes(collection_date,pc5, label = collection_date)
         axis.title.y=element_text(),
         legend.position="none")
 
-pdf("piglets_start_factors_pvalues_2plotsXpage.pdf")
+pdf("out/piglets_start_factors_pvalues_2plotsXpage.pdf")
 ggarrange(
   unroo, bwpd,ncol=1,nrow=2
 )
