@@ -19,11 +19,15 @@
 # install packages
 
 pkgs <- c("ggbiplot","ggpubr","sva","tidyverse","broom","cowplot","data.table","dunn.test","plyr",
-           "dplyr","forcats","ggplot2","gridExtra","plotrix","readr","readxl","tidyr","varhandle","tibble","purr")
+           "dplyr","forcats","ggplot2","gridExtra","plotrix","readr","readxl","tidyr","varhandle","tibble","purr","remotes")
 
 install.packages(pkgs[], repos='https://cran.rstudio.com')  
 
+remotes::install_github("vqv/ggbiplot")
+
 ###########################################################################################
+
+
 
 # load libraries
 
