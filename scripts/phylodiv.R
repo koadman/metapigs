@@ -21,11 +21,15 @@
 pkgs <- c("ggbiplot","ggpubr","sva","tidyverse","broom","cowplot","data.table","dunn.test","plyr",
            "dplyr","forcats","ggplot2","gridExtra","plotrix","readr","readxl","tidyr","varhandle","tibble","purr","remotes")
 
-install.packages(pkgs[], repos='https://cran.rstudio.com')  
+install.packages(pkgs[], repos='https://cran.rstudio.com', dependencies = TRUE)  
 
 remotes::install_github("vqv/ggbiplot")
 
 ###########################################################################################
+
+> BiocManager::install("sva")
+Error: Bioconductor version '3.8' requires R version '3.5'; see
+https://bioconductor.org/install
 
 
 
@@ -53,12 +57,12 @@ library(tibble) # tibble_2.1.3
 library(purrr) # purrr_0.3.3
 
 # from local 
-#setwd("/Users/12705859/Desktop/metapigs_base/phylosift")
-#basedir = "/Users/12705859/Desktop/metapigs_base/phylosift/input_files/"
+setwd("/Users/12705859/Desktop/metapigs_base/phylosift")
+basedir = "/Users/12705859/Desktop/metapigs_base/phylosift/input_files/"
 
 # from HPC
-setwd("/shared/homes/s1/pig_microbiome/metapigs_base")
-basedir = "/shared/homes/s1/pig_microbiome/metapigs_base/input_files/"
+#setwd("/shared/homes/s1/pig_microbiome/metapigs_base")
+#basedir = "/shared/homes/s1/pig_microbiome/metapigs_base/input_files/"
 
 ###########################################################################################
 
@@ -2748,6 +2752,380 @@ ggsave("out/t6.tiff", all_plots, width=15.8, height=11)
 # find out plot colors to be replicated in the timeline
 scales::show_col(scales::hue_pal()(6))
 
+######################################################################################################
+
+# same but using facets. Looking at one measurement (unrooted, bwpd, etc)
+# at a time
+# separating by time intervals
+
+
+df <- finalDF
+head(df)
+# rename collection dates to time intervals 
+# iM <- "2017-01-30"
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-01-30", 
+  replacement = "iM", 
+  fixed = TRUE)
+# i0 <- "2017-01-31" "2017-02-01" 
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-01-31", 
+  replacement = "i1", 
+  fixed = TRUE)
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-02-01", 
+  replacement = "i1", 
+  fixed = TRUE)
+
+# i1 <- "2017-02-03" 
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-02-03", 
+  replacement = "i2.1", 
+  fixed = TRUE)
+
+# i2 <- "2017-02-06" "2017-02-07" "2017-02-08"
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-02-06", 
+  replacement = "i2.2", 
+  fixed = TRUE)
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-02-07", 
+  replacement = "i2.2", 
+  fixed = TRUE)
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-02-08", 
+  replacement = "i2.2", 
+  fixed = TRUE)
+
+# i3 <- "2017-02-10" 
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-02-10", 
+  replacement = "i3.1", 
+  fixed = TRUE)
+
+# i4 <- "2017-02-14"
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-02-14", 
+  replacement = "i3.2", 
+  fixed = TRUE)
+
+# i4 <- "2017-02-16" "2017-02-17" 
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-02-16", 
+  replacement = "i4", 
+  fixed = TRUE)
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-02-17", 
+  replacement = "i4", 
+  fixed = TRUE)
+
+# i6 <- "2017-02-21" 
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-02-21", 
+  replacement = "i4", 
+  fixed = TRUE)
+
+# i7 <- "2017-02-24" 
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-02-24", 
+  replacement = "i5", 
+  fixed = TRUE)
+
+# i8 <- "2017-02-28" 
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-02-28", 
+  replacement = "i5", 
+  fixed = TRUE)
+
+# i9 <- "2017-03-03" 
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-03-03", 
+  replacement = "i6", 
+  fixed = TRUE)
+
+# i10 <- "2017-03-06" "2017-03-07" "2017-03-08" "2017-03-09" "2017-03-10"
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-03-06", 
+  replacement = "i6", 
+  fixed = TRUE)
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-03-07", 
+  replacement = "i6", 
+  fixed = TRUE)
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-03-08", 
+  replacement = "i6", 
+  fixed = TRUE)
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-03-09", 
+  replacement = "i6", 
+  fixed = TRUE)
+df[10] <- lapply(
+  df[10], 
+  gsub, 
+  pattern = "2017-03-10", 
+  replacement = "i6",  
+  fixed = TRUE)
+
+df <- na.omit(df, cols = c("Cohort","collection_date"))
+NROW(df)
+
+#font size for pvalues 
+your_font_size <- 3
+
+# other fonts
+My_Theme = theme(
+  axis.title.x = element_blank(),
+  axis.text.x = element_blank(),
+  axis.text.y = element_text(size = 7),
+  axis.title.y = element_text(size = 9))
+
+# unrooted
+rep(seq(130,160,length.out=15),8) # deciding y.pos for signif values
+stat.test <- df %>%
+  group_by(collection_date) %>%
+  t_test(unrooted_pd ~ Cohort) %>%
+  adjust_pvalue(method="fdr") %>%
+  mutate(y.position=rep(seq(130,160,length.out=15),8))
+# any significant? 
+NROW(which(stat.test$p.adj.signif != "ns"))
+unroo <- ggboxplot(df, x = "Cohort", y = "unrooted_pd", color = "Cohort", 
+                   legend = "none") +
+  geom_jitter(aes(colour = Cohort, x = Cohort), 
+              position = position_jitter(width = .2), alpha = 1, size=0.7)+
+  ylim(40,200)+
+  facet_wrap(~collection_date)+
+  My_Theme+
+  geom_hline(yintercept = mean(df$unrooted_pd), linetype = 2)+ # Add horizontal line at base mean
+  stat_compare_means(method = "anova", label.y = 40, size = your_font_size) +
+  stat_pvalue_manual(stat.test, label = "p.adj",
+                     hide.ns=TRUE,
+                     bracket.size = 0.3,
+                     size = your_font_size)
+unroo
+
+# bwpd
+rep(seq(2.5,3,length.out=15),8) # deciding y.pos for signif values
+stat.test <- df %>%
+  group_by(collection_date) %>%
+  t_test(bwpd ~ Cohort) %>%
+  adjust_pvalue(method="fdr") %>%
+  mutate(y.position=rep(seq(2.5,3,length.out=15),8))
+# any significant? 
+NROW(which(stat.test$p.adj.signif != "ns"))
+bw <- ggboxplot(df, x = "Cohort", y = "bwpd", color = "Cohort", 
+                legend = "none") +
+  geom_jitter(aes(colour = Cohort, x = Cohort), 
+              position = position_jitter(width = .2), alpha = 1, size=0.7)+
+  ylim(1,3.3)+
+  facet_wrap(~collection_date)+
+  My_Theme+
+  geom_hline(yintercept = mean(df$bwpd), linetype = 2)+ # Add horizontal line at base mean
+  stat_compare_means(method = "anova", label.y = 1, size = your_font_size) +
+  stat_pvalue_manual(stat.test, label = "p.adj",
+                     hide.ns=TRUE,
+                     bracket.size = 0.3,
+                     size = your_font_size)
+bw
+
+# pc1
+rep(seq(2.5,4,length.out=15),8) # deciding y.pos for signif values
+stat.test <- df %>%
+  group_by(collection_date) %>%
+  t_test(pc1 ~ Cohort) %>%
+  adjust_pvalue(method="fdr") %>%
+  mutate(y.position=rep(seq(2.5,4,length.out=15),8))
+# any significant? 
+NROW(which(stat.test$p.adj.signif != "ns"))
+pc1 <- ggboxplot(df, x = "Cohort", y = "pc1", color = "Cohort", 
+                 legend = "none") +
+  geom_jitter(aes(colour = Cohort, x = Cohort), 
+              position = position_jitter(width = .2), alpha = 1, size=0.7)+
+  ylim(-2,4)+
+  facet_wrap(~collection_date)+
+  My_Theme+
+  geom_hline(yintercept = mean(df$pc1), linetype = 2)+ # Add horizontal line at base mean
+  stat_compare_means(method = "anova", label.y = -2, size = your_font_size) +
+  stat_pvalue_manual(stat.test, label = "p.adj",
+                     hide.ns=TRUE,
+                     bracket.size = 0.3,
+                     size = your_font_size)
+pc1
+
+# pc2
+rep(seq(3.5,4.5,length.out=15),8) # deciding y.pos for signif values
+stat.test <- df %>%
+  group_by(collection_date) %>%
+  t_test(pc2 ~ Cohort) %>%
+  adjust_pvalue(method="fdr") %>%
+  mutate(y.position=rep(seq(3,4,length.out=15),8))
+# any significant? 
+NROW(which(stat.test$p.adj.signif != "ns"))
+pc2 <- ggboxplot(df, x = "Cohort", y = "pc2", color = "Cohort", 
+                 legend = "none") +
+  geom_jitter(aes(colour = Cohort, x = Cohort), 
+              position = position_jitter(width = .2), alpha = 1, size=0.7)+
+  ylim(0,4.5)+
+  facet_wrap(~collection_date)+
+  My_Theme+
+  geom_hline(yintercept = mean(df$pc2), linetype = 2)+ # Add horizontal line at base mean
+  stat_compare_means(method = "anova", label.y = 0, size = your_font_size) +
+  stat_pvalue_manual(stat.test, label = "p.adj",
+                     hide.ns=TRUE,
+                     bracket.size = 0.3,
+                     size = your_font_size)
+pc2
+
+# pc3
+rep(seq(0.8,1.2,length.out=15),8) # deciding y.pos for signif values
+stat.test <- df %>%
+  group_by(collection_date) %>%
+  t_test(pc3 ~ Cohort) %>%
+  adjust_pvalue(method="fdr") %>%
+  mutate(y.position=rep(seq(0.8,1.2,length.out=15),8))
+# any significant? 
+NROW(which(stat.test$p.adj.signif != "ns"))
+pc3 <- ggboxplot(df, x = "Cohort", y = "pc3", color = "Cohort", 
+                 legend = "none") +
+  geom_jitter(aes(colour = Cohort, x = Cohort), 
+              position = position_jitter(width = .2), alpha = 1, size=0.7)+
+  ylim(-2,1.5)+
+  facet_wrap(~collection_date)+
+  My_Theme+
+  geom_hline(yintercept = mean(df$pc3), linetype = 2)+ # Add horizontal line at base mean
+  stat_compare_means(method = "anova", label.y = -2, size = your_font_size) +
+  stat_pvalue_manual(stat.test, label = "p.adj",
+                     hide.ns=TRUE,
+                     bracket.size = 0.3,
+                     size = your_font_size)
+pc3
+
+# pc4
+rep(seq(0.5,1.2,length.out=15),8) # deciding y.pos for signif values
+stat.test <- df %>%
+  group_by(collection_date) %>%
+  t_test(pc4 ~ Cohort) %>%
+  adjust_pvalue(method="fdr") %>%
+  mutate(y.position=rep(seq(0.5,1.2,length.out=15),8))
+# any significant? 
+NROW(which(stat.test$p.adj.signif != "ns"))
+pc4 <- ggboxplot(df, x = "Cohort", y = "pc4", color = "Cohort", 
+                 legend = "none") +
+  geom_jitter(aes(colour = Cohort, x = Cohort), 
+              position = position_jitter(width = .2), alpha = 1, size=0.7)+
+  ylim(-1.5,1.5)+
+  facet_wrap(~collection_date)+
+  My_Theme+
+  geom_hline(yintercept = mean(df$pc4), linetype = 2)+ # Add horizontal line at base mean
+  stat_compare_means(method = "anova", label.y = -1.5, size = your_font_size) +
+  stat_pvalue_manual(stat.test, label = "p.adj",
+                     hide.ns=TRUE,
+                     bracket.size = 0.3,
+                     size = your_font_size)
+pc4
+
+# pc5
+rep(seq(6.3,6.8,length.out=15),8) # deciding y.pos for signif values
+stat.test <- df %>%
+  group_by(collection_date) %>%
+  t_test(pc5 ~ Cohort) %>%
+  adjust_pvalue(method="fdr") %>%
+  mutate(y.position=rep(seq(6.3,6.8,length.out=15),8))
+# any significant? 
+NROW(which(stat.test$p.adj.signif != "ns"))
+pc5 <- ggboxplot(df, x = "Cohort", y = "pc5", color = "Cohort", 
+                 legend = "none") +
+  geom_jitter(aes(colour = Cohort, x = Cohort), 
+              position = position_jitter(width = .2), alpha = 1, size=0.7)+
+  ylim(4.5,7)+
+  facet_wrap(~collection_date)+
+  My_Theme+
+  geom_hline(yintercept = mean(df$pc5), linetype = 2)+ # Add horizontal line at base mean
+  stat_compare_means(method = "anova", label.y = 4.5, size = your_font_size) +
+  stat_pvalue_manual(stat.test, label = "p.adj",
+                     hide.ns=TRUE,
+                     bracket.size = 0.3,
+                     size = your_font_size)
+pc5
+
+
+pdf("out/cohorts_by_interval.pdf")
+grid.arrange(
+  unroo, bw, nrow = 2, ncol = 1
+)
+grid.arrange(
+  pc1,pc2, nrow = 2, ncol = 1
+)
+grid.arrange(
+  pc3,pc4, nrow = 2, ncol = 1
+)
+grid.arrange(
+  pc5, nrow = 2, ncol = 1
+)
+dev.off()
+
+######################################################################################################
+
+# 7.1   # p-values cohorts
+
+df1 <- df %>%
+  select(unrooted_pd,bwpd,pc1,pc2,pc3,pc4,pc5,Cohort,collection_date) %>%
+  pivot_longer(cols = unrooted_pd:pc5,
+               values_to = "value",
+               names_to = "method")
+
+stat.test <- df1 %>% 
+  group_by(Cohort,method) %>%
+  t_test(value ~ collection_date) %>%
+  adjust_pvalue(method="fdr") %>%
+  filter(p.adj.signif != "ns")
+stat.test2 <- df1 %>%
+  group_by(collection_date,method) %>%
+  t_test(value ~ Cohort) %>%
+  adjust_pvalue(method="fdr") %>%
+  filter(p.adj.signif != "ns")
+
+# write out 
+fwrite(x = stat.test, file = "out/cohorts_WithinAndBetween_fdr_pvalues.csv")
+fwrite(x = stat.test2, file = "out/cohorts_WithinAndBetween_fdr_pvalues.csv",append=TRUE)
 
 ######################################################################################################
 
