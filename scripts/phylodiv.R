@@ -695,25 +695,104 @@ dev.off()
 
 ##############################################
 
+a <- boggo %>% 
+  filter(!Cohort=="MockCommunity") %>% 
+  filter(!Cohort=="PosControl_D-scour") %>% 
+  filter(!Cohort=="PosControl_ColiGuard") %>% 
+  filter(!Cohort=="NegativeControl") %>% 
+  filter(!Cohort=="Mothers") %>% 
+  summarise(min = min(unrooted_pd)
+            ,max = max(unrooted_pd)
+            ,mean = mean(unrooted_pd)
+            ,sd = sd(unrooted_pd)
+            ,n = n()
+            ,q25 = quantile(unrooted_pd, .25)
+            ,q75 = quantile(unrooted_pd, .75)) 
+
+b <- boggo %>% 
+  filter(!Cohort=="MockCommunity") %>% 
+  filter(!Cohort=="PosControl_D-scour") %>% 
+  filter(!Cohort=="PosControl_ColiGuard") %>% 
+  filter(!Cohort=="NegativeControl") %>% 
+  filter(!Cohort=="Control") %>% 
+  filter(!Cohort=="D-scour") %>% 
+  filter(!Cohort=="ColiGuard") %>% 
+  filter(!Cohort=="Neomycin") %>% 
+  filter(!Cohort=="Neomycin+D-scour") %>% 
+  filter(!Cohort=="Neomycin+ColiGuard") %>% 
+  summarise(min = min(unrooted_pd)
+            ,max = max(unrooted_pd)
+            ,mean = mean(unrooted_pd)
+            ,sd = sd(unrooted_pd)
+            ,n = n()
+            ,q25 = quantile(unrooted_pd, .25)
+            ,q75 = quantile(unrooted_pd, .75)) 
+
+c <- boggo %>% 
+  filter(!Cohort=="MockCommunity") %>% 
+  filter(!Cohort=="PosControl_D-scour") %>% 
+  filter(!Cohort=="PosControl_ColiGuard") %>% 
+  filter(!Cohort=="NegativeControl") %>% 
+  filter(!Cohort=="Mothers") %>% 
+  summarise(min = min(bwpd)
+            ,max = max(bwpd)
+            ,mean = mean(bwpd)
+            ,sd = sd(bwpd)
+            ,n = n()
+            ,q25 = quantile(bwpd, .25)
+            ,q75 = quantile(bwpd, .75)) 
+
+d <- boggo %>% 
+  filter(!Cohort=="MockCommunity") %>% 
+  filter(!Cohort=="PosControl_D-scour") %>% 
+  filter(!Cohort=="PosControl_ColiGuard") %>% 
+  filter(!Cohort=="NegativeControl") %>% 
+  filter(!Cohort=="Control") %>% 
+  filter(!Cohort=="D-scour") %>% 
+  filter(!Cohort=="ColiGuard") %>% 
+  filter(!Cohort=="Neomycin") %>% 
+  filter(!Cohort=="Neomycin+D-scour") %>% 
+  filter(!Cohort=="Neomycin+ColiGuard") %>% 
+  summarise(min = min(bwpd)
+            ,max = max(bwpd)
+            ,mean = mean(bwpd)
+            ,sd = sd(bwpd)
+            ,n = n()
+            ,q25 = quantile(bwpd, .25)
+            ,q75 = quantile(bwpd, .75)) 
+
+e <- boggo %>% group_by(Cohort) %>% 
+  summarise(min = min(unrooted_pd)
+            ,max = max(unrooted_pd)
+            ,mean = mean(unrooted_pd)
+            ,sd = sd(unrooted_pd)
+            ,n = n()
+            ,q25 = quantile(unrooted_pd, .25)
+            ,q75 = quantile(unrooted_pd, .75))
+
+f <- boggo %>% group_by(Cohort) %>% 
+  summarise(min = min(bwpd)
+            ,max = max(bwpd)
+            ,mean = mean(bwpd)
+            ,sd = sd(bwpd)
+            ,n = n()
+            ,q25 = quantile(bwpd, .25)
+            ,q75 = quantile(bwpd, .75)) 
+
 capture.output(
-  paste0("################### Piglets and mothers - stats ###################"),
-  summary(boggo$bwpd[boggo$Cohort!="MockCommunity"&boggo$Cohort!="NegativeControl"&boggo$Cohort!="PosControl_D-scour"&boggo$Cohort!="PosControl_ColiGuard"]),
-  paste0("################### Per cohort - BWPD ###################"),
-  tapply(boggo$bwpd, boggo$Cohort, summary),
-  paste0("################### Per cohort - unrooted ###################"),
-  tapply(boggo$unrooted_pd, boggo$Cohort, summary),
-  paste0("################### Mothers - BWPD ###################"),
-  summary(boggo$bwpd[boggo$Cohort=="Mothers"]),
-  paste0("################### Piglets - BWPD ###################"),
-  summary(boggo$bwpd[boggo$Cohort!="MockCommunity"&boggo$Cohort!="NegativeControl"&boggo$Cohort!="PosControl_D-scour"&boggo$Cohort!="PosControl_ColiGuard"&boggo$Cohort!="Mothers"]),
-  paste0("################### Mothers - unrooted ###################"),
-  summary(boggo$unrooted_pd[boggo$Cohort=="Mothers"]),
-  paste0("################### Piglets - unrooted ###################"),
-  summary(boggo$unrooted_pd[boggo$Cohort!="MockCommunity"&boggo$Cohort!="NegativeControl"&boggo$Cohort!="PosControl_D-scour"&boggo$Cohort!="PosControl_ColiGuard"&boggo$Cohort!="Mothers"]),
-  paste0("################### Per cohort - mean and sd ###################"),
-  ddply(boggo, "Cohort", summarise, mean=mean(unrooted_pd), sd=sd(unrooted_pd)),
-  ddply(boggo, "Cohort", summarise, mean=mean(bwpd), sd=sd(bwpd)),
-  file = "out/pd_numbers.txt"
+  paste0("##################################### - Piglets - unrooted ################################"),
+  a,
+  paste0("##################################### - Mothers - unrooted ################################"),
+  b,
+  paste0("##################################### - Piglets - bwpd ################################"),
+  c,
+  paste0("##################################### - Mothers - bwpd ################################"),
+  d,
+  paste0("##################################### - cohorts - unrooted ################################"),
+  e,
+  paste0("##################################### - cohorts - bwpd ################################"),
+  f,
+  file = "out/alpha_div__numbers.txt"
 )
 
 ##############################################
@@ -749,34 +828,87 @@ my_comparisons = list( c("2017-01-31", "2017-02-07"),
                         c("2017-02-07", "2017-02-21"))
 
 # general time change - unrooted
+summs_unroo <- doggo %>% group_by(collection_date,Cohort) %>% 
+  summarise(min = min(unrooted_pd)
+            ,max = max(unrooted_pd)
+            ,mean = mean(unrooted_pd)
+            ,sd = sd(unrooted_pd)
+            ,n = n()
+            ,q25 = quantile(unrooted_pd, .25)
+            ,q75 = quantile(unrooted_pd, .75)) 
 pdf("out/alpha_unrooted_time.pdf",width=9,height=5)
-gen_unrooted <- ggplot(doggo, aes(x=collection_date, y=unrooted_pd, 
-                                  fill=Cohort)) +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) +
-  geom_boxplot() + 
-  labs(x = "collection date") +
-  ylim(60,260) +
+gen_unrooted <- ggplot(summs_unroo, aes(x=collection_date, y=mean, group=Cohort, color=Cohort)) + 
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.1,
+                position=position_dodge(0.5)) +
+  geom_line() + geom_point()+
+  theme_bw()+
   stat_compare_means(comparisons = my_comparisons)+
-  theme(legend.position="none")
+  theme(legend.position="none")+
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) +
+  labs(x = "collection date",
+       y = "unrooted PD - mean")
 gen_unrooted
 dev.off()
 
-# general time change - BWPD
+a <- stat.test <- doggo %>%
+  group_by(Cohort) %>%
+  t_test(unrooted_pd ~ collection_date) %>%
+  adjust_pvalue(method="fdr")
+
+b <- stat.test <- doggo %>%
+  group_by(Cohort) %>%
+  t_test(bwpd ~ collection_date) %>%
+  adjust_pvalue(method="fdr")
+
+# general time change - unrooted
+summs_unroo <- doggo %>% group_by(collection_date) %>% 
+  summarise(min = min(unrooted_pd)
+            ,max = max(unrooted_pd)
+            ,mean = mean(unrooted_pd)
+            ,sd = sd(unrooted_pd)
+            ,n = n()
+            ,q25 = quantile(unrooted_pd, .25)
+            ,q75 = quantile(unrooted_pd, .75)) 
+# general time change - unrooted
+summs_bw <- doggo %>% group_by(collection_date) %>% 
+  summarise(min = min(bwpd)
+            ,max = max(bwpd)
+            ,mean = mean(bwpd)
+            ,n = n()
+            ,q25 = quantile(bwpd, .25)
+            ,q75 = quantile(bwpd, .75)) 
+
+fwrite(a, file = "out/alpha_unroo&bwpd_cohorts_time_stats.csv", append=FALSE)
+fwrite(b, file = "out/alpha_unroo&bwpd_cohorts_time_stats.csv", append=TRUE)
+fwrite(summs_unroo, file = "out/alpha_unroo&bwpd_cohorts_time_stats.csv", append=TRUE)
+fwrite(summs_bw, file = "out/alpha_unroo&bwpd_cohorts_time_stats.csv", append=TRUE)
+
+# general time change - unrooted
+summs_bw <- doggo %>% group_by(collection_date,Cohort) %>% 
+  summarise(min = min(bwpd)
+            ,max = max(bwpd)
+            ,mean = mean(bwpd)
+            ,sd = sd(bwpd)
+            ,n = n()
+            ,q25 = quantile(bwpd, .25)
+            ,q75 = quantile(bwpd, .75)) 
 pdf("out/alpha_bwpd_time.pdf",width=9,height=5)
-gen_bwpd <- ggplot(doggo, aes(x=collection_date, y=bwpd, 
-                              fill=Cohort)) +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) +
-  geom_boxplot() + 
-  labs(x = "collection date") +
-  ylim(1.7,3.5) +
+gen_bwpd <- ggplot(summs_bw, aes(x=collection_date, y=mean, group=Cohort, color=Cohort)) + 
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.1,
+                position=position_dodge(0.5)) +
+  geom_line() + geom_point()+
+  theme_bw()+
   stat_compare_means(comparisons = my_comparisons)+
-  theme(legend.position="top")
+  theme(legend.position="none")+
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) +
+  labs(x = "collection date",
+       y = "BWPD - mean")
 gen_bwpd
 dev.off()
 
 pdf("out/alpha_unrooted&bwpd_time.pdf")
 grid.arrange(
-  gen_bwpd, gen_unrooted, nrow = 2
+  gen_unrooted, gen_bwpd, nrow = 2
 )
 dev.off()
 
@@ -811,34 +943,76 @@ dev.off()
 
 #########################################################################
 
-my_comparisons <- list( c("2017-01-31", "2017-02-07"), 
-                        c("2017-02-07", "2017-02-14"), 
-                        c("2017-02-07", "2017-02-21") )
+stat.test <- doggo %>%
+  group_by(Cohort) %>%
+  t_test(unrooted_pd ~ collection_date) %>%
+  adjust_pvalue(method="fdr") %>%
+  mutate(y.position=rep(seq(150,250,length.out=6),6)) %>%
+  mutate_if(is.numeric, round, digits = 4)
 
 pdf("out/alpha_unrooted_cohorts_facets.pdf",width=9,height=5)
-p <- ggboxplot(doggo, x = "collection_date", y = "unrooted_pd",
+ggboxplot(doggo, x = "collection_date", y = "unrooted_pd",
                color = "collection_date", palette = "jco",
                add = "jitter",facet.by = "Cohort", short.panel.labs = FALSE) +
   theme_bw()+
   theme(axis.text.x=element_blank())+
-  ylim(0,250)
-p + stat_compare_means(comparisons = my_comparisons)  # Add pairwise comparisons p-value
+  ylim(0,250)+
+  stat_pvalue_manual(stat.test, label = "p.adj",
+                     hide.ns=TRUE,
+                     bracket.size = 0.3,
+                     size = 3)
 dev.off()
-p
+
 
 #########
 
+stat.test <- doggo %>%
+  group_by(Cohort) %>%
+  t_test(bwpd ~ collection_date) %>%
+  adjust_pvalue(method="fdr") %>%
+  mutate(y.position=rep(seq(2.5,2.8,length.out=6),6)) %>%
+  mutate_if(is.numeric, round, digits = 4)
+max(doggo$bwpd)
+
 pdf("out/alpha_bwpd_cohorts_facets.pdf",width=9,height=5)
-p <- ggboxplot(doggo, x = "collection_date", y = "bwpd",
-               color = "collection_date", palette = "jco",
-               add = "jitter",
-               facet.by = "Cohort", short.panel.labs = FALSE)+
+ggboxplot(doggo, x = "collection_date", y = "bwpd",
+          color = "collection_date", palette = "jco",
+          add = "jitter",facet.by = "Cohort", short.panel.labs = FALSE) +
   theme_bw()+
   theme(axis.text.x=element_blank())+
-  ylim(1.5,3.5)
-p + stat_compare_means(comparisons = my_comparisons)  # Add pairwise comparisons p-value
+  ylim(1.3,3)+
+  stat_pvalue_manual(stat.test, label = "p.adj",
+                     hide.ns=TRUE,
+                     bracket.size = 0.3,
+                     size = 3)
 dev.off()
 
+
+unroo <- doggo %>%
+  group_by(collection_date,Cohort) %>%
+  summarise(min = min(unrooted_pd)
+            ,max = max(unrooted_pd)
+            ,mean = mean(unrooted_pd)
+            ,sd = sd(unrooted_pd)
+            ,n = n()
+            ,q25 = quantile(unrooted_pd, .25)
+            ,q75 = quantile(unrooted_pd, .75)) 
+
+bw <- doggo %>%
+  group_by(collection_date,Cohort) %>%
+  summarise(min = min(bwpd)
+          ,max = max(bwpd)
+          ,mean = mean(bwpd)
+          ,sd = sd(bwpd)
+          ,n = n()
+          ,q25 = quantile(bwpd, .25)
+          ,q75 = quantile(bwpd, .75)) 
+
+unroo[nrow(unroo)+1,] <- NA
+bw[nrow(bw)+1,] <- NA
+
+fwrite(unroo, file = "out/alpha_unroo&bwpd_cohorts_time_stats.csv", append=TRUE)
+fwrite(bw, file = "out/alpha_unroo&bwpd_cohorts_time_stats.csv", append=TRUE)
 
 ######################################################################################################
 
@@ -1108,7 +1282,7 @@ breed_unrooted_plot <- ggboxplot(startDF2, x = "breed", y = "unrooted_pd",
   ylim(50,160)+
   geom_text(data = cw_summary,
             aes(breed, Inf, label = n), vjust="inward") +
-  stat_compare_means(method = "kruskal.test", label.y=80)  # Add pairwise comparisons p-value
+  stat_compare_means(method = "kruskal.test", label.y=50)  # Add pairwise comparisons p-value
 
 # breed - bwpd
 
@@ -1182,7 +1356,7 @@ LINE_unrooted_plot <- ggboxplot(startDF2, x = "LINE", y = "unrooted_pd",
   ylim(50,160)+
   geom_text(data = cw_summary,
             aes(LINE, Inf, label = n), vjust="inward") +
-  stat_compare_means(method = "kruskal.test", label.y=80)  # Add pairwise comparisons p-value
+  stat_compare_means(method = "kruskal.test", label.y=50)  # Add pairwise comparisons p-value
 
 # line - bwpd 
 LINE_bwpd_plot <- ggboxplot(startDF2, x = "LINE", y = "bwpd",
@@ -3088,18 +3262,13 @@ pc5
 
 
 pdf("out/cohorts_by_interval.pdf")
-grid.arrange(
-  unroo, bw, nrow = 2, ncol = 1
-)
-grid.arrange(
-  pc1,pc2, nrow = 2, ncol = 1
-)
-grid.arrange(
-  pc3,pc4, nrow = 2, ncol = 1
-)
-grid.arrange(
-  pc5, nrow = 2, ncol = 1
-)
+grid.arrange(unroo)
+grid.arrange(bw)
+grid.arrange(pc1)
+grid.arrange(pc2)
+grid.arrange(pc3)
+grid.arrange(pc4)
+grid.arrange(pc5)
 dev.off()
 
 ######################################################################################################
@@ -3107,6 +3276,15 @@ dev.off()
 # 7.1   # p-values cohorts
 
 df1 <- df %>%
+  select(unrooted_pd,bwpd,pc1,pc2,pc3,pc4,pc5,Cohort,collection_date,isolation_source)
+NROW(df1)
+
+# aggregating by avg (unique samples kept)
+cols <- 1:7
+df1 <- setDT(df1)[, lapply(.SD, mean), by=c(names(df1)[8:10]), .SDcols=cols]
+NROW(df1)
+
+df1 <- df1 %>%
   select(unrooted_pd,bwpd,pc1,pc2,pc3,pc4,pc5,Cohort,collection_date) %>%
   pivot_longer(cols = unrooted_pd:pc5,
                values_to = "value",
@@ -3132,7 +3310,6 @@ fwrite(x = stat.test2, file = "out/cohorts_WithinAndBetween_fdr_pvalues.csv",app
 # 8   # p-values
 
 # PVALUES - 
-
 
 
 # merge alpha&beta div (finalDF) to details and details metadata
@@ -3233,7 +3410,7 @@ df[10] <- lapply(
   df[10], 
   gsub, 
   pattern = "2017-02-24", 
-  replacement = "i5.1", 
+  replacement = "i5", 
   fixed = TRUE)
 
 # i8 <- "2017-02-28" 
@@ -3241,7 +3418,7 @@ df[10] <- lapply(
   df[10], 
   gsub, 
   pattern = "2017-02-28", 
-  replacement = "i5.2", 
+  replacement = "i5", 
   fixed = TRUE)
 
 # i9 <- "2017-03-03" 
@@ -3284,8 +3461,24 @@ df[10] <- lapply(
   replacement = "i6",  
   fixed = TRUE)
 
+NROW(df)
+df <- na.omit(df, cols = c("Cohort","collection_date"))
+NROW(df)
 
-df_breed <- df %>%
+head(df)
+
+df1 <- df %>%
+  select(unrooted_pd,bwpd,pc1,pc2,pc3,pc4,pc5,Cohort,collection_date,isolation_source,
+         BIRTH_DAY,breed,LINE,stig,nurse)
+NROW(df1)
+
+# aggregating by avg (unique samples kept)
+cols <- 1:7
+df1 <- setDT(df1)[, lapply(.SD, mean), by=c(names(df1)[8:15]), .SDcols=cols]
+NROW(df1)
+
+
+df_breed <- df1 %>%
   group_by(collection_date) %>%
   do({
     data.frame(
@@ -3304,7 +3497,7 @@ df_breed <- df %>%
   select(-starts_with("i"))
 df_breed
 
-df_breed_all <- df %>%
+df_breed_all <- df1 %>%
   do({
     data.frame(
       collection_date=paste0("all"),
@@ -3323,7 +3516,7 @@ df_breed_all <- df %>%
   select(-starts_with("i"))
 df_breed_all
 
-df_line <- df %>%
+df_line <- df1 %>%
   group_by(collection_date) %>%
   do({
     data.frame(
@@ -3342,7 +3535,7 @@ df_line <- df %>%
   select(-starts_with("i"))
 df_line
 
-df_line_all <- df %>%
+df_line_all <- df1 %>%
   do({
     data.frame(
       collection_date=paste0("all"),
@@ -3361,7 +3554,7 @@ df_line_all <- df %>%
   select(-starts_with("i"))
 df_line_all
 
-df_bday <- df %>%
+df_bday <- df1 %>%
   group_by(collection_date) %>%
   do({
     data.frame(
@@ -3386,7 +3579,7 @@ df_bday
 "Duroc x Large white"
 "Large white x Duroc"
 
-df_bday_DurocxLandrace <- df[df$breed=="Duroc x Landrace",] %>%
+df_bday_DurocxLandrace <- df1[df1$breed=="Duroc x Landrace",] %>%
   group_by(collection_date) %>%
   do({
     data.frame(
@@ -3405,7 +3598,7 @@ df_bday_DurocxLandrace <- df[df$breed=="Duroc x Landrace",] %>%
   select(-starts_with("i"))
 df_bday_DurocxLandrace
 
-df_bday_DurocxLw <- df[df$breed=="Duroc x Large white",] %>%
+df_bday_DurocxLw <- df1[df1$breed=="Duroc x Large white",] %>%
   group_by(collection_date) %>%
   do({
     data.frame(
@@ -3424,7 +3617,7 @@ df_bday_DurocxLw <- df[df$breed=="Duroc x Large white",] %>%
   select(-starts_with("i"))
 df_bday_DurocxLw
 
-df_bday_all <- df %>%
+df_bday_all <- df1 %>%
   do({
     data.frame(
       collection_date=paste0("all"),
@@ -3443,7 +3636,7 @@ df_bday_all <- df %>%
   select(-starts_with("i"))
 df_bday_all
 
-df_stig <- df %>%
+df_stig <- df1 %>%
   group_by(collection_date) %>%
   do({
     data.frame(
@@ -3462,7 +3655,7 @@ df_stig <- df %>%
   select(-starts_with("i"))
 df_stig
 
-df_stig_all <- df %>%
+df_stig_all <- df1 %>%
   do({
     data.frame(
       collection_date=paste0("all"),
@@ -3481,7 +3674,7 @@ df_stig_all <- df %>%
   select(-starts_with("i"))
 df_stig_all
 
-df_nurse <- df %>%
+df_nurse <- df1 %>%
   group_by(collection_date) %>%
   do({
     data.frame(
@@ -3501,7 +3694,7 @@ df_nurse <- df %>%
 df_nurse
 
 
-df_nurse_all <- df %>%
+df_nurse_all <- df1 %>%
   do({
     data.frame(
       collection_date=paste0("all"),
@@ -3520,7 +3713,7 @@ df_nurse_all <- df %>%
   select(-starts_with("i"))
 df_nurse_all
 
-df_Cohort <- df %>%
+df_Cohort <- df1 %>%
   group_by(collection_date) %>%
   do({
     data.frame(
@@ -3539,7 +3732,7 @@ df_Cohort <- df %>%
   select(-starts_with("i"))
 df_Cohort
 
-df_Cohort_all <- df %>%
+df_Cohort_all <- df1 %>%
   do({
     data.frame(
       collection_date=paste0("all"),
@@ -3557,9 +3750,8 @@ df_Cohort_all <- df %>%
   ungroup() %>%
   select(-starts_with("i"))
 df_Cohort_all
-df
 
-sub <- df %>% filter(Cohort == "Control" |
+sub <- df1 %>% filter(Cohort == "Control" |
                        Cohort == "Neo" ) 
 df_ctrl_neo <- sub %>%
   group_by(collection_date) %>%
@@ -3580,7 +3772,7 @@ df_ctrl_neo <- sub %>%
   select(-starts_with("i"))
 df_ctrl_neo
 
-sub <- df %>% filter(Cohort == "ColiGuard" |
+sub <- df1 %>% filter(Cohort == "ColiGuard" |
                        Cohort == "D-scour" ) 
 df_Dscour_ColiGuard <- sub %>%
   group_by(collection_date) %>%
@@ -3601,7 +3793,7 @@ df_Dscour_ColiGuard <- sub %>%
   select(-starts_with("i"))
 df_Dscour_ColiGuard
 
-sub <- df %>% filter(Cohort == "Neo+D" |
+sub <- df1 %>% filter(Cohort == "Neo+D" |
                        Cohort == "Neo+C" ) 
 df_neoD_neoC <- sub %>%
   group_by(collection_date) %>%
@@ -3639,274 +3831,252 @@ fwrite(x = all_pvalues, file = "out/all_pvalues.csv")
 
 capture.output(
   paste0("#################################### BREED ##############################"),
-  dunn.test(df$unrooted_pd, 
-            df$breed, 
+  dunn.test(df1$unrooted_pd, 
+            df1$breed, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df$bwpd, 
-            df$breed, 
+  dunn.test(df1$bwpd, 
+            df1$breed, 
             method="bh",alpha=0.05,list=TRUE),
   paste0("#################################### LINE ##############################"),
-  dunn.test(df$unrooted_pd, 
-            df$LINE, 
+  dunn.test(df1$unrooted_pd, 
+            df1$LINE, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df$bwpd, 
-            df$LINE, 
+  dunn.test(df1$bwpd, 
+            df1$LINE, 
             method="bh",alpha=0.05,list=TRUE),
   paste0("#################################### BIRTH DAY ##############################"),
-  dunn.test(df$unrooted_pd, 
-            df$BIRTH_DAY, 
+  dunn.test(df1$unrooted_pd, 
+            df1$BIRTH_DAY, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df$bwpd, 
-            df$BIRTH_DAY, 
+  dunn.test(df1$bwpd, 
+            df1$BIRTH_DAY, 
             method="bh",alpha=0.05,list=TRUE),
   paste0("#################################### BREED ### Duroc x Landrace ############"),
-  dunn.test(df[df$breed=="Duroc x Landrace",]$unrooted_pd, 
-            df[df$breed=="Duroc x Landrace",]$BIRTH_DAY, 
+  dunn.test(df1[df1$breed=="Duroc x Landrace",]$unrooted_pd, 
+            df1[df1$breed=="Duroc x Landrace",]$BIRTH_DAY, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$breed=="Duroc x Landrace",]$bwpd, 
-            df[df$breed=="Duroc x Landrace",]$BIRTH_DAY, 
+  dunn.test(df1[df1$breed=="Duroc x Landrace",]$bwpd, 
+            df1[df1$breed=="Duroc x Landrace",]$BIRTH_DAY, 
             method="bh",alpha=0.05,list=TRUE),
   paste0("#################################### BREED ### Duroc x Large white ############"),
-  dunn.test(df[df$breed=="Duroc x Large white",]$unrooted_pd, 
-            df[df$breed=="Duroc x Large white",]$BIRTH_DAY, 
+  dunn.test(df1[df1$breed=="Duroc x Large white",]$unrooted_pd, 
+            df1[df1$breed=="Duroc x Large white",]$BIRTH_DAY, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$breed=="Duroc x Large white",]$bwpd, 
-            df[df$breed=="Duroc x Large white",]$BIRTH_DAY, 
+  dunn.test(df1[df1$breed=="Duroc x Large white",]$bwpd, 
+            df1[df1$breed=="Duroc x Large white",]$BIRTH_DAY, 
             method="bh",alpha=0.05,list=TRUE),
   paste0("#################################### BREED ### Large white x Duroc ############"),
-  dunn.test(df[df$breed=="Large white x Duroc",]$unrooted_pd, 
-            df[df$breed=="Large white x Duroc",]$BIRTH_DAY, 
+  dunn.test(df1[df1$breed=="Large white x Duroc",]$unrooted_pd, 
+            df1[df1$breed=="Large white x Duroc",]$BIRTH_DAY, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$breed=="Large white x Duroc",]$bwpd, 
-            df[df$breed=="Large white x Duroc",]$BIRTH_DAY, 
+  dunn.test(df1[df1$breed=="Large white x Duroc",]$bwpd, 
+            df1[df1$breed=="Large white x Duroc",]$BIRTH_DAY, 
             method="bh",alpha=0.05,list=TRUE),
   # not enough timepoint for "Landrace x Cross bred (LW x D)"
   paste0("#################################### Cohort ####################################"),
-  dunn.test(df$unrooted_pd, 
-            df$Cohort, 
+  dunn.test(df1$unrooted_pd, 
+            df1$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df$bwpd, 
-            df$Cohort, 
+  dunn.test(df1$bwpd, 
+            df1$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
   paste0("#################################### Cohort i1 ##################################"),
-  dunn.test(df[df$collection_date=="i1",]$unrooted_pd, 
-            df[df$collection_date=="i1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i1",]$unrooted_pd, 
+            df1[df1$collection_date=="i1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i1",]$bwpd, 
-            df[df$collection_date=="i1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i1",]$bwpd, 
+            df1[df1$collection_date=="i1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i1",]$pc1, 
-            df[df$collection_date=="i1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i1",]$pc1, 
+            df1[df1$collection_date=="i1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i1",]$pc2, 
-            df[df$collection_date=="i1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i1",]$pc2, 
+            df1[df1$collection_date=="i1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i1",]$pc3, 
-            df[df$collection_date=="i1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i1",]$pc3, 
+            df1[df1$collection_date=="i1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i1",]$pc4, 
-            df[df$collection_date=="i1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i1",]$pc4, 
+            df1[df1$collection_date=="i1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i1",]$pc5, 
-            df[df$collection_date=="i1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i1",]$pc5, 
+            df1[df1$collection_date=="i1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
   paste0("#################################### Cohort i2.1 ##################################"),
-  dunn.test(df[df$collection_date=="i2.1",]$unrooted_pd, 
-            df[df$collection_date=="i2.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i2.1",]$unrooted_pd, 
+            df1[df1$collection_date=="i2.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i2.1",]$bwpd, 
-            df[df$collection_date=="i2.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i2.1",]$bwpd, 
+            df1[df1$collection_date=="i2.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i2.1",]$pc1, 
-            df[df$collection_date=="i2.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i2.1",]$pc1, 
+            df1[df1$collection_date=="i2.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i2.1",]$pc2, 
-            df[df$collection_date=="i2.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i2.1",]$pc2, 
+            df1[df1$collection_date=="i2.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i2.1",]$pc3, 
-            df[df$collection_date=="i2.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i2.1",]$pc3, 
+            df1[df1$collection_date=="i2.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i2.1",]$pc4, 
-            df[df$collection_date=="i2.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i2.1",]$pc4, 
+            df1[df1$collection_date=="i2.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i2.1",]$pc5, 
-            df[df$collection_date=="i2.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i2.1",]$pc5, 
+            df1[df1$collection_date=="i2.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
   paste0("#################################### Cohort i2.2 ##################################"),
-  dunn.test(df[df$collection_date=="i2.2",]$unrooted_pd, 
-            df[df$collection_date=="i2.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i2.2",]$unrooted_pd, 
+            df1[df1$collection_date=="i2.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i2.2",]$bwpd, 
-            df[df$collection_date=="i2.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i2.2",]$bwpd, 
+            df1[df1$collection_date=="i2.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i2.2",]$pc1, 
-            df[df$collection_date=="i2.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i2.2",]$pc1, 
+            df1[df1$collection_date=="i2.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i2.2",]$pc2, 
-            df[df$collection_date=="i2.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i2.2",]$pc2, 
+            df1[df1$collection_date=="i2.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i2.2",]$pc3, 
-            df[df$collection_date=="i2.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i2.2",]$pc3, 
+            df1[df1$collection_date=="i2.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i2.2",]$pc4, 
-            df[df$collection_date=="i2.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i2.2",]$pc4, 
+            df1[df1$collection_date=="i2.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i2.2",]$pc5, 
-            df[df$collection_date=="i2.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i2.2",]$pc5, 
+            df1[df1$collection_date=="i2.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
   paste0("#################################### Cohort i3.1 ##################################"),
-  dunn.test(df[df$collection_date=="i3.1",]$unrooted_pd, 
-            df[df$collection_date=="i3.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i3.1",]$unrooted_pd, 
+            df1[df1$collection_date=="i3.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i3.1",]$bwpd, 
-            df[df$collection_date=="i3.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i3.1",]$bwpd, 
+            df1[df1$collection_date=="i3.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i3.1",]$pc1, 
-            df[df$collection_date=="i3.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i3.1",]$pc1, 
+            df1[df1$collection_date=="i3.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i3.1",]$pc2, 
-            df[df$collection_date=="i3.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i3.1",]$pc2, 
+            df1[df1$collection_date=="i3.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i3.1",]$pc3, 
-            df[df$collection_date=="i3.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i3.1",]$pc3, 
+            df1[df1$collection_date=="i3.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i3.1",]$pc4, 
-            df[df$collection_date=="i3.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i3.1",]$pc4, 
+            df1[df1$collection_date=="i3.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i3.1",]$pc5, 
-            df[df$collection_date=="i3.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i3.1",]$pc5, 
+            df1[df1$collection_date=="i3.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
   paste0("#################################### Cohort i3.2 ##################################"),
-  dunn.test(df[df$collection_date=="i3.2",]$unrooted_pd, 
-            df[df$collection_date=="i3.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i3.2",]$unrooted_pd, 
+            df1[df1$collection_date=="i3.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i3.2",]$bwpd, 
-            df[df$collection_date=="i3.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i3.2",]$bwpd, 
+            df1[df1$collection_date=="i3.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i3.2",]$pc1, 
-            df[df$collection_date=="i3.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i3.2",]$pc1, 
+            df1[df1$collection_date=="i3.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i3.2",]$pc2, 
-            df[df$collection_date=="i3.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i3.2",]$pc2, 
+            df1[df1$collection_date=="i3.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i3.2",]$pc3, 
-            df[df$collection_date=="i3.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i3.2",]$pc3, 
+            df1[df1$collection_date=="i3.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i3.2",]$pc4, 
-            df[df$collection_date=="i3.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i3.2",]$pc4, 
+            df1[df1$collection_date=="i3.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i3.2",]$pc5, 
-            df[df$collection_date=="i3.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i3.2",]$pc5, 
+            df1[df1$collection_date=="i3.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
   paste0("#################################### Cohort i4.1 ##################################"),
-  dunn.test(df[df$collection_date=="i4.1",]$unrooted_pd, 
-            df[df$collection_date=="i4.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i4.1",]$unrooted_pd, 
+            df1[df1$collection_date=="i4.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i4.1",]$bwpd, 
-            df[df$collection_date=="i4.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i4.1",]$bwpd, 
+            df1[df1$collection_date=="i4.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i4.1",]$pc1, 
-            df[df$collection_date=="i4.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i4.1",]$pc1, 
+            df1[df1$collection_date=="i4.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i4.1",]$pc2, 
-            df[df$collection_date=="i4.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i4.1",]$pc2, 
+            df1[df1$collection_date=="i4.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i4.1",]$pc3, 
-            df[df$collection_date=="i4.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i4.1",]$pc3, 
+            df1[df1$collection_date=="i4.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i4.1",]$pc4, 
-            df[df$collection_date=="i4.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i4.1",]$pc4, 
+            df1[df1$collection_date=="i4.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i4.1",]$pc5, 
-            df[df$collection_date=="i4.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i4.1",]$pc5, 
+            df1[df1$collection_date=="i4.1",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
   paste0("#################################### Cohort i4.2 ##################################"),
-  dunn.test(df[df$collection_date=="i4.2",]$unrooted_pd, 
-            df[df$collection_date=="i4.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i4.2",]$unrooted_pd, 
+            df1[df1$collection_date=="i4.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i4.2",]$bwpd, 
-            df[df$collection_date=="i4.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i4.2",]$bwpd, 
+            df1[df1$collection_date=="i4.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i4.2",]$pc1, 
-            df[df$collection_date=="i4.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i4.2",]$pc1, 
+            df1[df1$collection_date=="i4.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i4.2",]$pc2, 
-            df[df$collection_date=="i4.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i4.2",]$pc2, 
+            df1[df1$collection_date=="i4.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i4.2",]$pc3, 
-            df[df$collection_date=="i4.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i4.2",]$pc3, 
+            df1[df1$collection_date=="i4.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i4.2",]$pc4, 
-            df[df$collection_date=="i4.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i4.2",]$pc4, 
+            df1[df1$collection_date=="i4.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i4.2",]$pc5, 
-            df[df$collection_date=="i4.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i4.2",]$pc5, 
+            df1[df1$collection_date=="i4.2",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
   paste0("#################################### Cohort i5.1 ##################################"),
-  dunn.test(df[df$collection_date=="i5.1",]$unrooted_pd, 
-            df[df$collection_date=="i5.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i5",]$unrooted_pd, 
+            df1[df1$collection_date=="i5",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i5.1",]$bwpd, 
-            df[df$collection_date=="i5.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i5",]$bwpd, 
+            df1[df1$collection_date=="i5",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i5.1",]$pc1, 
-            df[df$collection_date=="i5.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i5",]$pc1, 
+            df1[df1$collection_date=="i5",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i5.1",]$pc2, 
-            df[df$collection_date=="i5.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i5",]$pc2, 
+            df1[df1$collection_date=="i5",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i5.1",]$pc3, 
-            df[df$collection_date=="i5.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i5",]$pc3, 
+            df1[df1$collection_date=="i5",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i5.1",]$pc4, 
-            df[df$collection_date=="i5.1",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i5",]$pc4, 
+            df1[df1$collection_date=="i5",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i5.1",]$pc5, 
-            df[df$collection_date=="i5.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  paste0("#################################### Cohort i5.2 ##################################"),
-  dunn.test(df[df$collection_date=="i5.2",]$unrooted_pd, 
-            df[df$collection_date=="i5.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i5.2",]$bwpd, 
-            df[df$collection_date=="i5.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i5.2",]$pc1, 
-            df[df$collection_date=="i5.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i5.2",]$pc2, 
-            df[df$collection_date=="i5.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i5.2",]$pc3, 
-            df[df$collection_date=="i5.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i5.2",]$pc4, 
-            df[df$collection_date=="i5.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i5.2",]$pc5, 
-            df[df$collection_date=="i5.2",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i5",]$pc5, 
+            df1[df1$collection_date=="i5",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
   paste0("#################################### Cohort i6 ##################################"),
-  dunn.test(df[df$collection_date=="i6",]$unrooted_pd, 
-            df[df$collection_date=="i6",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i6",]$unrooted_pd, 
+            df1[df1$collection_date=="i6",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i6",]$bwpd, 
-            df[df$collection_date=="i6",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i6",]$bwpd, 
+            df1[df1$collection_date=="i6",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i6",]$pc1, 
-            df[df$collection_date=="i6",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i6",]$pc1, 
+            df1[df1$collection_date=="i6",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i6",]$pc2, 
-            df[df$collection_date=="i6",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i6",]$pc2, 
+            df1[df1$collection_date=="i6",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i6",]$pc3, 
-            df[df$collection_date=="i6",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i6",]$pc3, 
+            df1[df1$collection_date=="i6",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i6",]$pc4, 
-            df[df$collection_date=="i6",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i6",]$pc4, 
+            df1[df1$collection_date=="i6",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df[df$collection_date=="i6",]$pc5, 
-            df[df$collection_date=="i6",]$Cohort, 
+  dunn.test(df1[df1$collection_date=="i6",]$pc5, 
+            df1[df1$collection_date=="i6",]$Cohort, 
             method="bh",alpha=0.05,list=TRUE),
   file = "out/pvalues_BH_correction.txt", append = FALSE
 )
