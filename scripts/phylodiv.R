@@ -18,23 +18,23 @@
 
 # install packages
 
-pkgs <- c("ggbiplot","ggpubr","sva","tidyverse","broom","cowplot","data.table","dunn.test","plyr",
-           "dplyr","forcats","ggplot2","gridExtra","plotrix","readr","readxl","tidyr","varhandle","tibble","purr","remotes")
+#pkgs <- c("ggbiplot","ggpubr","sva","tidyverse","broom","cowplot","data.table","dunn.test","plyr",
+#           "dplyr","forcats","ggplot2","gridExtra","plotrix","readr","readxl","tidyr","varhandle","tibble","purr","remotes")
 
-install.packages(pkgs[], repos='https://cran.rstudio.com', dependencies = TRUE)  
-
-remotes::install_github("vqv/ggbiplot")
+#install.packages(pkgs[], repos='https://cran.rstudio.com', dependencies = TRUE)  
+#remotes::install_github("vqv/ggbiplot")
 
 ###########################################################################################
 
-> BiocManager::install("sva")
-Error: Bioconductor version '3.8' requires R version '3.5'; see
-https://bioconductor.org/install
+#BiocManager::install("sva")
+#Error: Bioconductor version '3.8' requires R version '3.5'; see
+#https://bioconductor.org/install
 
 
 
 # load libraries
-
+library(tiff)
+library(rstatix)
 library(ggbiplot) # ggbiplot_0.55 
 library(ggpubr) # ggpubr_0.2.4 
 library(sva) # sva_3.32.1  
@@ -55,6 +55,7 @@ library(tidyr) # tidyr_1.0.0
 library(varhandle) # varhandle_2.0.4
 library(tibble) # tibble_2.1.3 
 library(purrr) # purrr_0.3.3
+library(openxlsx)
 
 # from local 
 setwd("/Users/12705859/Desktop/metapigs_base/phylosift")
@@ -67,6 +68,17 @@ basedir = "/Users/12705859/Desktop/metapigs_base/phylosift/input_files/"
 ###########################################################################################
 
 # 0   # loading input data
+
+# tiffs (timelines)
+timeline <- image_read(paste0(basedir,"Slide1.tiff"))
+timeline_31_Jan <- image_read(paste0(basedir,"Slide2.tiff"))
+timeline_3_Feb <- image_read(paste0(basedir,"Slide3.tiff"))
+timeline_7_Feb <- image_read(paste0(basedir,"Slide4.tiff"))
+timeline_10_Feb <- image_read(paste0(basedir,"Slide5.tiff"))
+timeline_14_Feb <- image_read(paste0(basedir,"Slide6.tiff"))
+timeline_17_21_Feb <- image_read(paste0(basedir,"Slide7.tiff"))
+timeline_24_28_Feb <- image_read(paste0(basedir,"Slide8.tiff"))
+timeline_3_10_Mar <- image_read(paste0(basedir,"Slide9.tiff"))
 
 # load metadata 
 mdat <- read_excel(paste0(basedir,"Metagenome.environmental_20190308_2.xlsx"),
@@ -104,6 +116,12 @@ pcadat<-read.table(paste0(basedir,"new.proj"),header=T,stringsAsFactors=F)
 
 ###########################################################################################
 
+# create workbook to add stats 
+
+wb <- createWorkbook()
+
+###########################################################################################
+
 
 # 1   # batch effect
 
@@ -123,7 +141,7 @@ pcadat$DNA_plate <- factor(pcadat$DNA_plate,
 
 palette <- c("black","red","green3","blue","cyan","magenta","yellow","gray","orange","brown")
 
-pdf("out/edge_pca_batch_all.pdf")
+pdf("out/batch_pca.pdf")
 par(mfrow=c(3,2), mai = c(0.3, 0.3, 0.3, 0.3))
 plot(pcadat$pc1,pcadat$pc2,main="PC1 PC2",xlab="",ylab="",pch=NA,type="p")
 DNA_plates=unique(sort(pcadat$DNA_plate))
@@ -154,44 +172,8 @@ plot.new()
 legend("center", legend=DNA_plates, title="DNA extraction plate", fill=palette, cex=1.2, ncol=3)
 dev.off()
 
-# Batch stats - before batch removal
-capture.output(
-  paste0("############################# batch stats - before batch removal - alpha ########### "),
-  df_DNA_plate_all <- fpddat %>%
-    do({
-      data.frame(
-        collection_date=paste0("all"),
-        sample_size=NROW(.),
-        unrooted_pd=kruskal.test(.$unrooted_pd, .$DNA_plate)$p.value,
-        bwpd=kruskal.test(.$bwpd, .$DNA_plate)$p.value,
-        grouping=paste0("DNA plate"),
-        stringsAsFactors=FALSE)
-    }) %>%
-    ungroup(),
-  df_DNA_plate_all,
-  file = "out/batch_stats.txt")
 
-capture.output(
-  paste0("############################# batch stats - before batch removal - beta ########### "),
-  df_DNA_plate_all <- pcadat %>%
-    do({
-      data.frame(
-        collection_date=paste0("all"),
-        sample_size=NROW(.),
-        pc1=kruskal.test(.$pc1, .$DNA_plate)$p.value,
-        pc2=kruskal.test(.$pc2, .$DNA_plate)$p.value,
-        pc3=kruskal.test(.$pc3, .$DNA_plate)$p.value,
-        pc4=kruskal.test(.$pc4, .$DNA_plate)$p.value,
-        pc5=kruskal.test(.$pc5, .$DNA_plate)$p.value,
-        grouping=paste0("DNA plate"),
-        stringsAsFactors=FALSE)
-    }) %>%
-    ungroup(),
-  df_DNA_plate_all,
-  file = "out/batch_stats.txt",
-  append = TRUE)
-
-# shit! we have batch effects! let's look at it
+# plot the phylogenetic diversity based on DNA plate (batch)
 
 ####### get sample size within each dna plate
 cw_summary <- fpddat %>% 
@@ -287,11 +269,60 @@ figure <- grid.arrange(
   batch_unroo, batch_bw, batch_pc1, batch_pc2, batch_pc3, batch_pc4, batch_pc5, leg, nrow = 4, ncol = 2
 )
 
-pdf("out/alpha_beta_batch.pdf")
+pdf("out/batch_alpha_beta.pdf")
 annotate_figure(figure,
                 top = text_grob("Batch effect by alpha and beta diversity", color = "black", size = 14)
 )
 dev.off()
+
+
+# adjusted p-values 
+
+aov.out1 = aov(unrooted_pd ~ DNA_plate, data=fpddat)
+res <- TukeyHSD(aov.out1)
+aov.out1 <- as.data.frame(res$DNA_plate)
+aov.out1$type="unrooted_pd"
+
+aov.out2 = aov(bwpd ~ DNA_plate, data=fpddat)
+res <- TukeyHSD(aov.out2)
+aov.out2 <- as.data.frame(res$DNA_plate)
+aov.out2$type="bwpd"
+
+aov.out3 = aov(pc1 ~ DNA_plate, data=pcadat)
+res <- TukeyHSD(aov.out3)
+aov.out3 <- as.data.frame(res$DNA_plate)
+aov.out3$type="PC1"
+
+aov.out4 = aov(pc2 ~ DNA_plate, data=pcadat)
+res <- TukeyHSD(aov.out4)
+aov.out4 <- as.data.frame(res$DNA_plate)
+aov.out4$type="PC2"
+
+aov.out5 = aov(pc3 ~ DNA_plate, data=pcadat)
+res <- TukeyHSD(aov.out5)
+aov.out5 <- as.data.frame(res$DNA_plate)
+aov.out5$type="PC3"
+
+aov.out6 = aov(pc4 ~ DNA_plate, data=pcadat)
+res <- TukeyHSD(aov.out6)
+aov.out6 <- as.data.frame(res$DNA_plate)
+aov.out6$type="PC4"
+
+aov.out7 = aov(pc5 ~ DNA_plate, data=pcadat)
+res <- TukeyHSD(aov.out7)
+aov.out7 <- as.data.frame(res$DNA_plate)
+aov.out7$type="PC5"
+
+all <- rbind(aov.out1,
+      aov.out2,
+      aov.out3,
+      aov.out4,
+      aov.out5,
+      aov.out6,
+      aov.out7)
+
+addWorksheet(wb, "batch_pre_process")
+writeData(wb, sheet = "batch_pre_process", all, rowNames = FALSE)
 
 
 ###########################################################################################
@@ -326,43 +357,6 @@ colnames(pcadat)[colnames(pcadat)=="PCA_batch"] <- "DNA_plate"
 colnames(pcadat)[colnames(pcadat)=="PCA_well"] <- "DNA_well"
 colnames(fpddat)[colnames(fpddat)=="PD_batch"] <- "DNA_plate"
 colnames(fpddat)[colnames(fpddat)=="PD_well"] <- "DNA_well"
-
-capture.output(
-  paste0("############################# batch stats - after batch removal - alpha ########### "),
-  df_DNA_plate_all <- fpddat %>%
-    do({
-      data.frame(
-        collection_date=paste0("all"),
-        sample_size=NROW(.),
-        unrooted_pd=kruskal.test(.$unrooted_pd, .$DNA_plate)$p.value,
-        bwpd=kruskal.test(.$bwpd, .$DNA_plate)$p.value,
-        grouping=paste0("DNA plate"),
-        stringsAsFactors=FALSE)
-    }) %>%
-    ungroup(),
-  df_DNA_plate_all,
-  file = "out/batch_stats.txt",
-  append = TRUE)
-
-capture.output(
-  paste0("############################# batch stats - after batch removal - beta ########### "),
-  df_DNA_plate_all <- pcadat %>%
-    do({
-      data.frame(
-        collection_date=paste0("all"),
-        sample_size=NROW(.),
-        pc1=kruskal.test(.$pc1, .$DNA_plate)$p.value,
-        pc2=kruskal.test(.$pc2, .$DNA_plate)$p.value,
-        pc3=kruskal.test(.$pc3, .$DNA_plate)$p.value,
-        pc4=kruskal.test(.$pc4, .$DNA_plate)$p.value,
-        pc5=kruskal.test(.$pc5, .$DNA_plate)$p.value,
-        grouping=paste0("DNA plate"),
-        stringsAsFactors=FALSE)
-    }) %>%
-    ungroup(),
-  df_DNA_plate_all,
-  file = "out/batch_stats.txt",
-  append = TRUE)
 
 
 # save new un-batched data 
@@ -466,11 +460,61 @@ figure <- grid.arrange(
   batch_unroo, batch_bw, batch_pc1, batch_pc2, batch_pc3, batch_pc4, batch_pc5, leg, nrow = 4, ncol = 2
 )
 
-pdf("out/alpha_beta_no_batch.pdf")
+
+# adjusted p-values 
+
+aov.out1 = aov(unrooted_pd ~ DNA_plate, data=fpddat)
+res <- TukeyHSD(aov.out1)
+aov.out1 <- as.data.frame(res$DNA_plate)
+aov.out1$type="unrooted_pd"
+
+aov.out2 = aov(bwpd ~ DNA_plate, data=fpddat)
+res <- TukeyHSD(aov.out2)
+aov.out2 <- as.data.frame(res$DNA_plate)
+aov.out2$type="bwpd"
+
+aov.out3 = aov(pc1 ~ DNA_plate, data=pcadat)
+res <- TukeyHSD(aov.out3)
+aov.out3 <- as.data.frame(res$DNA_plate)
+aov.out3$type="PC1"
+
+aov.out4 = aov(pc2 ~ DNA_plate, data=pcadat)
+res <- TukeyHSD(aov.out4)
+aov.out4 <- as.data.frame(res$DNA_plate)
+aov.out4$type="PC2"
+
+aov.out5 = aov(pc3 ~ DNA_plate, data=pcadat)
+res <- TukeyHSD(aov.out5)
+aov.out5 <- as.data.frame(res$DNA_plate)
+aov.out5$type="PC3"
+
+aov.out6 = aov(pc4 ~ DNA_plate, data=pcadat)
+res <- TukeyHSD(aov.out6)
+aov.out6 <- as.data.frame(res$DNA_plate)
+aov.out6$type="PC4"
+
+aov.out7 = aov(pc5 ~ DNA_plate, data=pcadat)
+res <- TukeyHSD(aov.out7)
+aov.out7 <- as.data.frame(res$DNA_plate)
+aov.out7$type="PC5"
+
+all <- rbind(aov.out1,
+             aov.out2,
+             aov.out3,
+             aov.out4,
+             aov.out5,
+             aov.out6,
+             aov.out7)
+
+addWorksheet(wb, "batch_post_process")
+writeData(wb, sheet = "batch_post_process", all, rowNames = FALSE)
+
+pdf("out/NO_batch_alpha_beta.pdf")
 annotate_figure(figure,
                 top = text_grob("Batch effect after batch effect removal", color = "black", size = 14)
 )
 dev.off()
+
 
 ######################################################################################################
 
@@ -647,19 +691,20 @@ coggo$Cohort <- factor(coggo$Cohort,
 
 # ALPHA diversity overall (includes pos controls):
 
+boggo<-inner_join(fpddat,mdat)
+boggo <- boggo %>%
+  filter(!isolation_source == "NegativeControl")
 
 pdf("out/alpha_phyloentropy.pdf",width=9,height=5)
 par(mar=(c(5, 10, 4, 2) +0.1))
 boxplot(boggo$phylo_entropy~factor(boggo$Cohort,c("Control","ColiGuard","D-scour","Neomycin+ColiGuard","Neomycin+D-scour","Neomycin","Mothers","PosControl_ColiGuard","PosControl_D-scour","MockCommunity")),horizontal=TRUE,main="Alpha diversity",xlab="Phylogenetic entropy",ylab=NULL,las=1)
 dev.off()
 
-boggo<-inner_join(fpddat,mdat)
 pdf("out/alpha_unrooted.pdf",width=9,height=5)
 par(mar=(c(5, 10, 4, 2) +0.1))
 boxplot(boggo$unrooted_pd~factor(boggo$Cohort,c("Control","ColiGuard","D-scour","Neomycin+ColiGuard","Neomycin+D-scour","Neomycin","Mothers","PosControl_ColiGuard","PosControl_D-scour","MockCommunity")),horizontal=TRUE,main="Alpha diversity",xlab="Unrooted PD",ylab=NULL,las=1)
 dev.off()
 
-boggo<-inner_join(fpddat,mdat)
 pdf("out/alpha_bwpd.pdf",width=9,height=5)
 par(mar=(c(5, 10, 4, 2) +0.1))
 boxplot(boggo$bwpd~factor(boggo$Cohort,c("Control","ColiGuard","D-scour","Neomycin+ColiGuard","Neomycin+D-scour","Neomycin","Mothers","PosControl_ColiGuard","PosControl_D-scour","MockCommunity")),horizontal=TRUE,main="Alpha diversity",xlab="Balance-weighted PD",ylab=NULL,las=1)
@@ -683,7 +728,6 @@ p3 <- ggplot(boggo, aes(x=fct_inorder(Cohort), y=unrooted_pd)) +
   xlab(NULL) +
   coord_flip()
 p3
-
 
 pdf("out/alpha_BWPD&unrooted.pdf")
 plot_grid(p2,p3, align = "hv", nrow=2, labels = "auto")
@@ -779,21 +823,21 @@ f <- boggo %>% group_by(Cohort) %>%
             ,q25 = quantile(bwpd, .25)
             ,q75 = quantile(bwpd, .75)) 
 
-capture.output(
-  paste0("##################################### - Piglets - unrooted ################################"),
-  a,
-  paste0("##################################### - Mothers - unrooted ################################"),
-  b,
-  paste0("##################################### - Piglets - bwpd ################################"),
-  c,
-  paste0("##################################### - Mothers - bwpd ################################"),
-  d,
-  paste0("##################################### - cohorts - unrooted ################################"),
-  e,
-  paste0("##################################### - cohorts - bwpd ################################"),
-  f,
-  file = "out/alpha_div__numbers.txt"
-)
+a$Cohort="piglets"
+b$Cohort="mothers"
+c$Cohort="piglets"
+d$Cohort="mothers"
+
+a$type="unrooted"
+b$type="unrooted"
+c$type="bwpd"
+d$type="bwpd"
+e$type="unrooted"
+f$type="bwpd"
+
+means <- rbind(a,b,c,d,e,f)
+means$collection_date = "all"
+# these are added later below into a df 
 
 ##############################################
 
@@ -836,7 +880,7 @@ summs_unroo <- doggo %>% group_by(collection_date,Cohort) %>%
             ,n = n()
             ,q25 = quantile(unrooted_pd, .25)
             ,q75 = quantile(unrooted_pd, .75)) 
-pdf("out/alpha_unrooted_time.pdf",width=9,height=5)
+pdf("out/time_unrooted.pdf",width=9,height=5)
 gen_unrooted <- ggplot(summs_unroo, aes(x=collection_date, y=mean, group=Cohort, color=Cohort)) + 
   geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.1,
                 position=position_dodge(0.5)) +
@@ -850,39 +894,6 @@ gen_unrooted <- ggplot(summs_unroo, aes(x=collection_date, y=mean, group=Cohort,
 gen_unrooted
 dev.off()
 
-a <- stat.test <- doggo %>%
-  group_by(Cohort) %>%
-  t_test(unrooted_pd ~ collection_date) %>%
-  adjust_pvalue(method="fdr")
-
-b <- stat.test <- doggo %>%
-  group_by(Cohort) %>%
-  t_test(bwpd ~ collection_date) %>%
-  adjust_pvalue(method="fdr")
-
-# general time change - unrooted
-summs_unroo <- doggo %>% group_by(collection_date) %>% 
-  summarise(min = min(unrooted_pd)
-            ,max = max(unrooted_pd)
-            ,mean = mean(unrooted_pd)
-            ,sd = sd(unrooted_pd)
-            ,n = n()
-            ,q25 = quantile(unrooted_pd, .25)
-            ,q75 = quantile(unrooted_pd, .75)) 
-# general time change - unrooted
-summs_bw <- doggo %>% group_by(collection_date) %>% 
-  summarise(min = min(bwpd)
-            ,max = max(bwpd)
-            ,mean = mean(bwpd)
-            ,n = n()
-            ,q25 = quantile(bwpd, .25)
-            ,q75 = quantile(bwpd, .75)) 
-
-fwrite(a, file = "out/alpha_unroo&bwpd_cohorts_time_stats.csv", append=FALSE)
-fwrite(b, file = "out/alpha_unroo&bwpd_cohorts_time_stats.csv", append=TRUE)
-fwrite(summs_unroo, file = "out/alpha_unroo&bwpd_cohorts_time_stats.csv", append=TRUE)
-fwrite(summs_bw, file = "out/alpha_unroo&bwpd_cohorts_time_stats.csv", append=TRUE)
-
 # general time change - unrooted
 summs_bw <- doggo %>% group_by(collection_date,Cohort) %>% 
   summarise(min = min(bwpd)
@@ -892,7 +903,8 @@ summs_bw <- doggo %>% group_by(collection_date,Cohort) %>%
             ,n = n()
             ,q25 = quantile(bwpd, .25)
             ,q75 = quantile(bwpd, .75)) 
-pdf("out/alpha_bwpd_time.pdf",width=9,height=5)
+
+pdf("out/time_bwpd.pdf",width=9,height=5)
 gen_bwpd <- ggplot(summs_bw, aes(x=collection_date, y=mean, group=Cohort, color=Cohort)) + 
   geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.1,
                 position=position_dodge(0.5)) +
@@ -906,14 +918,14 @@ gen_bwpd <- ggplot(summs_bw, aes(x=collection_date, y=mean, group=Cohort, color=
 gen_bwpd
 dev.off()
 
-pdf("out/alpha_unrooted&bwpd_time.pdf")
+pdf("out/time_unrooted&bwpd.pdf")
 grid.arrange(
   gen_unrooted, gen_bwpd, nrow = 2
 )
 dev.off()
 
 # unrooted pd - fill: collection date
-pdf("out/alpha_unrooted_cohorts.pdf",width=9,height=5)
+pdf("out/cohorts_unrooted.pdf",width=9,height=5)
 unrooted_time <- ggplot(doggo, aes(x=Cohort, y=unrooted_pd, 
                                    fill=collection_date)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -934,7 +946,7 @@ bwpd_time <- ggplot(doggo, aes(x=Cohort, y=bwpd,
 bwpd_time
 dev.off()
 
-pdf("out/alpha_unrooted&bwpd_cohorts.pdf")
+pdf("out/cohorts_unrooted&bwpd.pdf")
 grid.arrange(
   unrooted_time, bwpd_time, nrow = 2,
   top = "Alpha diversity"
@@ -943,50 +955,7 @@ dev.off()
 
 #########################################################################
 
-stat.test <- doggo %>%
-  group_by(Cohort) %>%
-  t_test(unrooted_pd ~ collection_date) %>%
-  adjust_pvalue(method="fdr") %>%
-  mutate(y.position=rep(seq(150,250,length.out=6),6)) %>%
-  mutate_if(is.numeric, round, digits = 4)
-
-pdf("out/alpha_unrooted_cohorts_facets.pdf",width=9,height=5)
-ggboxplot(doggo, x = "collection_date", y = "unrooted_pd",
-               color = "collection_date", palette = "jco",
-               add = "jitter",facet.by = "Cohort", short.panel.labs = FALSE) +
-  theme_bw()+
-  theme(axis.text.x=element_blank())+
-  ylim(0,250)+
-  stat_pvalue_manual(stat.test, label = "p.adj",
-                     hide.ns=TRUE,
-                     bracket.size = 0.3,
-                     size = 3)
-dev.off()
-
-
-#########
-
-stat.test <- doggo %>%
-  group_by(Cohort) %>%
-  t_test(bwpd ~ collection_date) %>%
-  adjust_pvalue(method="fdr") %>%
-  mutate(y.position=rep(seq(2.5,2.8,length.out=6),6)) %>%
-  mutate_if(is.numeric, round, digits = 4)
-max(doggo$bwpd)
-
-pdf("out/alpha_bwpd_cohorts_facets.pdf",width=9,height=5)
-ggboxplot(doggo, x = "collection_date", y = "bwpd",
-          color = "collection_date", palette = "jco",
-          add = "jitter",facet.by = "Cohort", short.panel.labs = FALSE) +
-  theme_bw()+
-  theme(axis.text.x=element_blank())+
-  ylim(1.3,3)+
-  stat_pvalue_manual(stat.test, label = "p.adj",
-                     hide.ns=TRUE,
-                     bracket.size = 0.3,
-                     size = 3)
-dev.off()
-
+# stats 
 
 unroo <- doggo %>%
   group_by(collection_date,Cohort) %>%
@@ -1001,18 +970,77 @@ unroo <- doggo %>%
 bw <- doggo %>%
   group_by(collection_date,Cohort) %>%
   summarise(min = min(bwpd)
-          ,max = max(bwpd)
-          ,mean = mean(bwpd)
-          ,sd = sd(bwpd)
-          ,n = n()
-          ,q25 = quantile(bwpd, .25)
-          ,q75 = quantile(bwpd, .75)) 
+            ,max = max(bwpd)
+            ,mean = mean(bwpd)
+            ,sd = sd(bwpd)
+            ,n = n()
+            ,q25 = quantile(bwpd, .25)
+            ,q75 = quantile(bwpd, .75)) 
 
-unroo[nrow(unroo)+1,] <- NA
-bw[nrow(bw)+1,] <- NA
+# add data to workbook 
 
-fwrite(unroo, file = "out/alpha_unroo&bwpd_cohorts_time_stats.csv", append=TRUE)
-fwrite(bw, file = "out/alpha_unroo&bwpd_cohorts_time_stats.csv", append=TRUE)
+bw$type="bwpd"
+unroo$type="unrooted_pd"
+bw <- as.data.frame(bw)
+unroo <- as.data.frame(unroo)
+both <- rbind(bw,unroo,means)
+addWorksheet(wb, "alpha_means")
+writeData(wb, sheet = "alpha_means", both, rowNames = FALSE)
+
+################
+
+
+stat.test_unroo <- doggo %>%
+  group_by(Cohort) %>%
+  t_test(unrooted_pd ~ collection_date) %>%
+  adjust_pvalue(method="fdr") %>%
+  mutate(y.position=rep(seq(150,250,length.out=6),6)) %>%
+  mutate_if(is.numeric, round, digits = 4)
+
+pdf("out/cohorts_facets_unrooted.pdf",width=9,height=5)
+ggboxplot(doggo, x = "collection_date", y = "unrooted_pd",
+               color = "collection_date", palette = "jco",
+               add = "jitter",facet.by = "Cohort", short.panel.labs = FALSE) +
+  theme_bw()+
+  theme(axis.text.x=element_blank())+
+  ylim(0,250)+
+  stat_pvalue_manual(stat.test_unroo, label = "p.adj",
+                     hide.ns=TRUE,
+                     bracket.size = 0.3,
+                     size = 3)
+dev.off()
+
+
+#########
+
+stat.test_bwpd <- doggo %>%
+  group_by(Cohort) %>%
+  t_test(bwpd ~ collection_date) %>%
+  adjust_pvalue(method="fdr") %>%
+  mutate(y.position=rep(seq(2.5,2.8,length.out=6),6)) %>%
+  mutate_if(is.numeric, round, digits = 4)
+max(doggo$bwpd)
+
+pdf("out/cohorts_facets_bwpd.pdf",width=9,height=5)
+ggboxplot(doggo, x = "collection_date", y = "bwpd",
+          color = "collection_date", palette = "jco",
+          add = "jitter",facet.by = "Cohort", short.panel.labs = FALSE) +
+  theme_bw()+
+  theme(axis.text.x=element_blank())+
+  ylim(1.3,3)+
+  stat_pvalue_manual(stat.test_bwpd, label = "p.adj",
+                     hide.ns=TRUE,
+                     bracket.size = 0.3,
+                     size = 3)
+dev.off()
+
+
+# add data to workbook 
+
+both <- rbind(stat.test_bwpd,
+      stat.test_unroo)
+addWorksheet(wb, "alpha_cohorts")
+writeData(wb, sheet = "alpha_cohorts", both, rowNames = FALSE)
 
 ######################################################################################################
 
@@ -1022,7 +1050,7 @@ fwrite(bw, file = "out/alpha_unroo&bwpd_cohorts_time_stats.csv", append=TRUE)
 
 # plot
 
-pdf("out/edge_pca.pdf")
+pdf("out/pca.pdf")
 plot(coggo$pc1,coggo$pc3,main="phylosift edge PCA on pigs",xlab="PC1",ylab="PC3",pch=NA,type="p")
 cohorts=unique(sort(coggo$Cohort))
 for(coho in 1:length(cohorts)){
@@ -1039,7 +1067,7 @@ color_legend <- function(x, y, xlen, ylen, main, tiks, colors){
 
 rbow <- rainbow(60, end=0.7, alpha=0.7)
 
-pdf("out/PCA_time.pdf")
+pdf("out/time_pca.pdf")
 plot(coggo$pc1[coggo$Cohort!="Mothers"&coggo$Cohort!="NegativeControl"],coggo$pc2[coggo$Cohort!="Mothers"&coggo$Cohort!="NegativeControl"],main="beta diversity (phylosift edge PCA)",xlab="PC1",ylab="PC2",type="p",col=rbow[as.Date(coggo$collection_date[coggo$Cohort!="Mothers"&coggo$Cohort!="NegativeControl"])-as.Date("2017-01-29 00:00:00")])
 legvec <- c(0,15,30,45,60)
 color_legend( -2.9, 4, 3.5, 1.5, "trial days:", legvec, rbow)
@@ -1049,7 +1077,7 @@ dev.off()
 
 # timeseries within cohort 
 
-pdf("out/PCA_cohorts.pdf")
+pdf("out/cohorts_pca.pdf")
 par(mfrow=c(3,2), mai = c(0.4, 0.4, 0.4, 0.4))
 plot(coggo$pc1[coggo$Cohort=="Control"],
      coggo$pc2[coggo$Cohort=="Control"],
@@ -1189,7 +1217,7 @@ b <- ggplot(startDF1, aes(x=nurse, y=unrooted_pd, group=nurse)) +
         plot.subtitle = element_text(lineheight = 0.9, size=11)) +
   scale_y_continuous(limits=c(60,160))
 
-pdf("out/alpha_piglets_bynurse.pdf")
+pdf("out/nurse_alpha.pdf")
 ggarrange(a, b, 
           labels = c("A", "B"),
           ncol = 1, nrow = 2)
@@ -1224,7 +1252,7 @@ d <- ggplot(startDF1, aes(x=stig, y=unrooted_pd, group=stig)) +
   scale_y_continuous(limits=c(60,160))
 
 
-pdf("out/alpha_piglets_bystig.pdf")
+pdf("out/stig_alpha.pdf")
 ggarrange(c, d, 
           labels = c("A", "B"),
           ncol = 1, nrow = 2)
@@ -1234,13 +1262,13 @@ dev.off()
 ##################
 
 # same but putting nurses and stigs on the same plot, dividing BWPD from unrooted
-pdf("out/alpha_BWPD_bystig_bynurse.pdf")
+pdf("out/nurse&stig_BWPD.pdf")
 ggarrange(c, a, 
           labels = c("A", "B"),
           ncol = 1, nrow = 2)
 dev.off()
 
-pdf("out/alpha_unrooted_bystig_bynurse.pdf")
+pdf("out/nurse&stig_unrooted.pdf")
 ggarrange(d, b, 
           labels = c("A", "B"),
           ncol = 1, nrow = 2)
@@ -1296,7 +1324,7 @@ breed_bwpd_plot <- ggboxplot(startDF2, x = "breed", y = "bwpd",
             aes(breed, Inf, label = n), vjust="inward")+
   stat_compare_means(method = "kruskal.test", label.y=1.5) 
 
-pdf("out/breed.pdf")
+pdf("out/breed_alpha.pdf")
 grid.arrange(
   breed_unrooted_plot, breed_bwpd_plot, nrow = 2
 )
@@ -1332,7 +1360,7 @@ bday_bwpd_plot <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "bwpd",
             aes(BIRTH_DAY, Inf, label = n), vjust="inward") +
   stat_compare_means(method = "kruskal.test", label.y=1.5)  # Add pairwise comparisons p-value
 
-pdf("out/bday.pdf")
+pdf("out/bday_alpha.pdf")
 grid.arrange(
   bday_unrooted_plot, bday_bwpd_plot, nrow = 2
 )
@@ -1369,7 +1397,7 @@ LINE_bwpd_plot <- ggboxplot(startDF2, x = "LINE", y = "bwpd",
             aes(LINE, Inf, label = n), vjust="inward") +
   stat_compare_means(method = "kruskal.test", label.y=1.5)  # Add pairwise comparisons p-value
 
-pdf("out/line.pdf")
+pdf("out/line_alpha.pdf")
 grid.arrange(
   LINE_unrooted_plot, LINE_bwpd_plot, nrow = 2
 )
@@ -1385,7 +1413,7 @@ my_comparisons <- list(  c("2017-01-07", "2017-01-09"),
                          c("2017-01-08", "2017-01-10"), 
                          c("2017-01-09", "2017-01-11"), 
                          c("2017-01-10", "2017-01-11") )
-pdf("out/unrooted_bday_bybreed.pdf",width=9,height=5)
+pdf("out/bday_bybreed_unrooted.pdf",width=9,height=5)
 p <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "unrooted_pd",
                color = "BIRTH_DAY", palette = "jco",
                add = "jitter",
@@ -1395,7 +1423,7 @@ p <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "unrooted_pd",
   ylim(50,230)
 p + stat_compare_means(comparisons = my_comparisons)
 dev.off()
-pdf("out/bwpd_bday_bybreed.pdf",width=9,height=5)
+pdf("out/bday_bybreed_bwpd.pdf",width=9,height=5)
 p <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "bwpd",
                color = "BIRTH_DAY", palette = "jco",
                add = "jitter",
@@ -1467,53 +1495,57 @@ moms.pca4 <- prcomp(startDF14[,1:5], center = TRUE, scale. = TRUE)
 moms.pca5 <- prcomp(startDF15[,1:5], center = TRUE, scale. = TRUE)
 moms.pca6 <- prcomp(startDF16[,1:5], center = TRUE, scale. = TRUE)
 
-pdf("out/piglets_to_nurse1.pdf")
+
 nurse1 <- ggbiplot(moms.pca1, obs.scale = 1, var.scale = 1,
                    groups = startDF11$nurse, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
-  theme(legend.position = 'top',
+  theme(legend.position = 'right',
         panel.background = element_rect(fill = "white", colour = "grey50"))
 nurse1
-dev.off()
-pdf("out/piglets_to_nurse2.pdf")
+
 nurse2 <- ggbiplot(moms.pca2, obs.scale = 1, var.scale = 1,
                    groups = startDF12$nurse, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
-  theme(legend.position = 'top',
+  theme(legend.position = 'right',
         panel.background = element_rect(fill = "white", colour = "grey50"))
 nurse2
-dev.off()
-pdf("out/piglets_to_nurse3.pdf")
+
 nurse3 <- ggbiplot(moms.pca3, obs.scale = 1, var.scale = 1,
                    groups = startDF13$nurse, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
-  theme(legend.position = 'top',
+  theme(legend.position = 'right',
         panel.background = element_rect(fill = "white", colour = "grey50"))
 nurse3
-dev.off()
-pdf("out/piglets_to_nurse4.pdf")
+
 nurse4 <- ggbiplot(moms.pca4, obs.scale = 1, var.scale = 1,
                    groups = startDF14$nurse, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
-  theme(legend.position = 'top',
+  theme(legend.position = 'right',
         panel.background = element_rect(fill = "white", colour = "grey50"))
 nurse4
-dev.off()
-pdf("out/piglets_to_nurse5.pdf")
+
 nurse5 <- ggbiplot(moms.pca5, obs.scale = 1, var.scale = 1,
                    groups = startDF15$nurse, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
-  theme(legend.position = 'top',
+  theme(legend.position = 'right',
         panel.background = element_rect(fill = "white", colour = "grey50"))
 nurse5
-dev.off()
-pdf("out/piglets_to_nurse6.pdf")
+
+
 nurse6 <- ggbiplot(moms.pca6, obs.scale = 1, var.scale = 1,
                    groups = startDF16$nurse, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
-  theme(legend.position = 'top',
+  theme(legend.position = 'right',
         panel.background = element_rect(fill = "white", colour = "grey50"))
 nurse6
+
+pdf("out/nurse_PC1PC2.pdf")
+grid.arrange(nurse1)
+grid.arrange(nurse2)
+grid.arrange(nurse3)
+grid.arrange(nurse4)
+grid.arrange(nurse5)
+grid.arrange(nurse6)
 dev.off()
 
 ######################
@@ -1546,55 +1578,57 @@ moms.pca5 <- prcomp(startDF15[,1:5], center = TRUE, scale. = TRUE)
 moms.pca6 <- prcomp(startDF16[,1:5], center = TRUE, scale. = TRUE)
 
 
-pdf("out/piglets_to_stig1.pdf")
 stig1 <- ggbiplot(moms.pca1, obs.scale = 1, var.scale = 1,
                   groups = startDF11$stig, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
   theme(legend.position = 'top',
         panel.background = element_rect(fill = "white", colour = "grey50"))
 stig1
-dev.off()
-pdf("out/piglets_to_stig2.pdf")
+
 stig2 <- ggbiplot(moms.pca2, obs.scale = 1, var.scale = 1,
                   groups = startDF12$stig, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
   theme(legend.position = 'top',
         panel.background = element_rect(fill = "white", colour = "grey50"))
 stig2
-dev.off()
-pdf("out/piglets_to_stig3.pdf")
+
 stig3 <- ggbiplot(moms.pca3, obs.scale = 1, var.scale = 1,
                   groups = startDF13$stig, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
   theme(legend.position = 'top',
         panel.background = element_rect(fill = "white", colour = "grey50"))
 stig3
-dev.off()
-pdf("out/piglets_to_stig4.pdf")
+
 stig4 <- ggbiplot(moms.pca4, obs.scale = 1, var.scale = 1,
                   groups = startDF14$stig, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
   theme(legend.position = 'top',
         panel.background = element_rect(fill = "white", colour = "grey50"))
 stig4
-dev.off()
-pdf("out/piglets_to_stig5.pdf")
+
 stig5 <- ggbiplot(moms.pca5, obs.scale = 1, var.scale = 1,
                   groups = startDF15$stig, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
   theme(legend.position = 'top',
         panel.background = element_rect(fill = "white", colour = "grey50"))
 stig5
-dev.off()
-pdf("out/piglets_to_stig6.pdf")
+
 stig6 <- ggbiplot(moms.pca6, obs.scale = 1, var.scale = 1,
                   groups = startDF16$stig, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
   theme(legend.position = 'top',
         panel.background = element_rect(fill = "white", colour = "grey50"))
 stig6
-dev.off()
 
+
+pdf("out/stig_PC1PC2.pdf")
+grid.arrange(stig1)
+grid.arrange(stig2)
+grid.arrange(stig3)
+grid.arrange(stig4)
+grid.arrange(stig5)
+grid.arrange(stig6)
+dev.off()
 
 ##############################################
 
@@ -1671,7 +1705,7 @@ breed_PC5_plot <- ggboxplot(startDF2, x = "breed", y = "pc5",
   stat_compare_means(method = "kruskal.test", label.x=1, label.y=4.5)  # Add pairwise comparisons p-value
 breed_PC5_plot
 
-pdf("out/PCA_bars_breed.pdf")
+pdf("out/breed_PCA_bars.pdf")
 grid.arrange(
   breed_PC1_plot, breed_PC2_plot, breed_PC3_plot, breed_PC4_plot, breed_PC5_plot, nrow = 3, ncol=2
 )
@@ -1697,7 +1731,7 @@ breedPCA45 <- ggbiplot(breed_PCA, obs.scale = 1, var.scale = 1,
   theme(legend.position = 'right',
         panel.background = element_rect(fill = "white", colour = "grey50"))
 breedPCA45
-pdf("out/PCA_dots_breed.pdf")
+pdf("out/breed_PCA_dots.pdf")
 grid.arrange(
   breedPCA12, breedPCA34, breedPCA45, nrow = 3, ncol = 1
 )
@@ -1759,7 +1793,7 @@ bday_PC5_plot <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "pc5",
   stat_compare_means(method = "kruskal.test", label.x=1, label.y=4.5)  # Add pairwise comparisons p-value
 bday_PC5_plot
 
-pdf("out/PCA_bars_bday.pdf")
+pdf("out/bday_PCA_bars.pdf")
 grid.arrange(
   bday_PC1_plot, bday_PC2_plot, bday_PC3_plot, bday_PC4_plot, bday_PC5_plot, nrow = 3, ncol=2
 )
@@ -1786,7 +1820,7 @@ bdayPCA25 <- ggbiplot(breed_PCA, obs.scale = 1, var.scale = 1,
         panel.background = element_rect(fill = "white", colour = "grey50"))
 bdayPCA25
 
-pdf("out/PCA_dots_bday.pdf")
+pdf("out/bday_PCA_dots.pdf")
 grid.arrange(
   bdayPCA12, bdayPCA34, bdayPCA25, nrow = 3, ncol = 1
 )
@@ -1849,7 +1883,7 @@ line_PC5_plot <- ggboxplot(startDF2, x = "LINE", y = "pc5",
   stat_compare_means(method = "kruskal.test", label.x=1, label.y=4.5)  # Add pairwise comparisons p-value
 line_PC5_plot
 
-pdf("out/PCA_bars_line.pdf")
+pdf("out/line_PCA_bars.pdf")
 grid.arrange(
   line_PC1_plot, line_PC2_plot, line_PC3_plot, line_PC4_plot, line_PC5_plot, nrow = 3, ncol=2
 )
@@ -1877,7 +1911,7 @@ linePCA45 <- ggbiplot(breed_PCA, obs.scale = 1, var.scale = 1,
         panel.background = element_rect(fill = "white", colour = "grey50"))
 linePCA45
 
-pdf("out/PCA_dots_line.pdf")
+pdf("out/line_PCA_dots.pdf")
 grid.arrange(
   linePCA12, linePCA34, linePCA45, nrow = 3, ncol = 1
 )
@@ -1934,7 +1968,7 @@ p5 <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "pc5",
   theme(axis.text.x=element_blank(), legend.position = 'none')+
   stat_compare_means(comparisons = my_comparisons)
 
-pdf("out/PCA_bars_bdaybreeds.pdf")
+pdf("out/bday_bybreed_unrooted_PCA_bars.pdf")
 grid.arrange(
   p1,p2, nrow = 1, ncol = 2
 )
@@ -2007,14 +2041,15 @@ my_comparisons = list( c("Control", "D-scour"),
 
 
 #font size for pvalues 
-your_font_size <- 4
+your_font_size <- 2 # 4 fine for tiff
 # to plot the pdfs rather than the tiffs, decrease size by 2
+
 
 My_Theme = theme(
   axis.title.x = element_blank(),
-  axis.text.x = element_text(size = 9),
-  axis.text.y = element_text(size = 9),
-  axis.title.y = element_text(size = 11))
+  axis.text.x = element_blank(), 
+  axis.text.y = element_text(size = 7), # 9 for tiff
+  axis.title.y = element_text(size = 9)) # 11 for tiff
 # to plot the pdfs rather than the tiffs, decrease size by 2
 
 
@@ -2115,20 +2150,23 @@ pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort",
   stat_compare_means(label = "p.signif", method = "t.test",
                      ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
 
-figure <- grid.arrange(
-  unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 4, ncol = 2
-)
 
-pdf("out/alpha_beta_t1.pdf")
-annotate_figure(figure,
-                top = text_grob("Trial day 2 - Alpha and beta diversity among cohorts", color = "black", size = 14)
-)
+# this is for extracting the legend 
+for_legend_only <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort", 
+                             legend = "right")+
+  My_Theme
+leg <- get_legend(for_legend_only)
+
+all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
+                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
+                       ncol = 4)
+
+pdf("out/cohorts_t1.pdf")
+ggdraw() +
+  draw_image(timeline_31_Jan, x = 0, y = 0.12) +
+  draw_plot(all_plots)
 dev.off()
 
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
-                       ncol = 4)
-ggsave("out/t1.tiff", all_plots, width=15.8, height=11)
 
 ############################### t2.1 ############################### 
 
@@ -2226,20 +2264,16 @@ pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort",
   stat_compare_means(label = "p.signif", method = "t.test",
                      ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
 
-figure <- grid.arrange(
-  unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 4, ncol = 2
-)
+all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
+                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
+                       ncol = 4)
 
-pdf("out/alpha_beta_t2.1.pdf")
-annotate_figure(figure,
-                top = text_grob("Trial day 5 - Alpha and beta diversity among cohorts", color = "black", size = 14)
-)
+pdf("out/cohorts_t2.1.pdf")
+ggdraw() +
+  draw_image(timeline_3_Feb, x = 0, y = 0.12) +
+  draw_plot(all_plots)
 dev.off()
 
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
-                       ncol = 4)
-ggsave("out/t2.1.tiff", all_plots, width=15.8, height=11)
 
 ############################### t2.2 ############################### 
 
@@ -2337,21 +2371,15 @@ pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort",
   stat_compare_means(label = "p.signif", method = "t.test",
                      ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
 
-
-figure <- grid.arrange(
-  unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 4, ncol = 2
-)
-
-pdf("out/alpha_beta_t2.2.pdf")
-annotate_figure(figure,
-                top = text_grob("Trial day 9 - Alpha and beta diversity among cohorts", color = "black", size = 14)
-)
-dev.off()
-
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
+all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
+                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
                        ncol = 4)
-ggsave("out/t2.2.tiff", all_plots, width=15.8, height=11)
+
+pdf("out/cohorts_t2.2.pdf")
+ggdraw() +
+  draw_image(timeline_7_Feb, x = 0, y = 0.12) +
+  draw_plot(all_plots)
+dev.off()
 
 ############################### t3.1 ############################### 
 
@@ -2450,20 +2478,16 @@ pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort",
                      ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
 pc5
 
-figure <- grid.arrange(
-  unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 4, ncol = 2
-)
+all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
+                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
+                       ncol = 4)
 
-pdf("out/alpha_beta_t3.1.pdf")
-annotate_figure(figure,
-                top = text_grob("Trial day 12 - Alpha and beta diversity among cohorts", color = "black", size = 14)
-)
+pdf("out/cohorts_t3.1.pdf")
+ggdraw() +
+  draw_image(timeline_10_Feb, x = 0, y = 0.12) +
+  draw_plot(all_plots)
 dev.off()
 
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
-                       ncol = 4)
-ggsave("out/t3.1.tiff", all_plots, width=15.8, height=11)
 
 ############################### t3.2 ############################### 
 
@@ -2562,20 +2586,15 @@ pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort",
                      ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
 pc5
 
-figure <- grid.arrange(
-  unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 4, ncol = 2
-)
-
-pdf("out/alpha_beta_t3.2.pdf")
-annotate_figure(figure,
-                top = text_grob("Trial day 16 - Alpha and beta diversity among cohorts", color = "black", size = 14)
-)
-dev.off()
-
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
+all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
+                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
                        ncol = 4)
-ggsave("out/t3.2.tiff", all_plots, width=15.8, height=11)
+
+pdf("out/cohorts_t3.2.pdf")
+ggdraw() +
+  draw_image(timeline_14_Feb, x = 0, y = 0.12) +
+  draw_plot(all_plots)
+dev.off()
 
 ############################### t4 ############################### 
 
@@ -2676,20 +2695,15 @@ pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort",
                      ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
 pc5
 
-figure <- grid.arrange(
-  unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 4, ncol = 2
-)
-
-pdf("out/alpha_beta_t4.pdf")
-annotate_figure(figure,
-                top = text_grob("Trial days 18-23 - Alpha and beta diversity among cohorts", color = "black", size = 14)
-)
-dev.off()
-
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
+all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
+                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
                        ncol = 4)
-ggsave("out/t4.tiff", all_plots, width=15.8, height=11)
+
+pdf("out/cohorts_t4.pdf")
+ggdraw() +
+  draw_image(timeline_17_21_Feb, x = 0, y = 0.12) +
+  draw_plot(all_plots)
+dev.off()
 
 ############################### t5 ############################### 
 
@@ -2789,21 +2803,15 @@ pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort",
                      ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
 pc5
 
-figure <- grid.arrange(
-  unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 4, ncol = 2
-)
-
-pdf("out/alpha_beta_t5.pdf")
-annotate_figure(figure,
-                top = text_grob("Trial days 26-30 - Alpha and beta diversity among cohorts", color = "black", size = 14)
-)
-dev.off()
-
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
+all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
+                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
                        ncol = 4)
-all_plots
-ggsave("out/t5.tiff", all_plots, width=15.8, height=11)
+
+pdf("out/cohorts_t5.pdf")
+ggdraw() +
+  draw_image(timeline_24_28_Feb, x = 0, y = 0.12) +
+  draw_plot(all_plots)
+dev.off()
 
 ############################### t6 ############################### 
 
@@ -2907,21 +2915,15 @@ pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort",
                      ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
 pc5
 
-figure <- grid.arrange(
-  unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, ncol = 4
-)
-
-pdf("out/alpha_beta_t6.pdf")
-annotate_figure(figure,
-                top = text_grob("Trial days 23-40 - Alpha and beta diversity among cohorts", color = "black", size = 14)
-)
-dev.off()
-
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H"),
+all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
+                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
                        ncol = 4)
-ggsave("out/t6.tiff", all_plots, width=15.8, height=11)
 
+pdf("out/cohorts_t6.pdf")
+ggdraw() +
+  draw_image(timeline_3_10_Mar, x = 0, y = 0.12) +
+  draw_plot(all_plots)
+dev.off()
 
 # find out plot colors to be replicated in the timeline
 scales::show_col(scales::hue_pal()(6))
@@ -3290,20 +3292,26 @@ df1 <- df1 %>%
                values_to = "value",
                names_to = "method")
 
-stat.test <- df1 %>% 
-  group_by(Cohort,method) %>%
-  t_test(value ~ collection_date) %>%
-  adjust_pvalue(method="fdr") %>%
-  filter(p.adj.signif != "ns")
 stat.test2 <- df1 %>%
   group_by(collection_date,method) %>%
   t_test(value ~ Cohort) %>%
   adjust_pvalue(method="fdr") %>%
   filter(p.adj.signif != "ns")
 
-# write out 
-fwrite(x = stat.test, file = "out/cohorts_WithinAndBetween_fdr_pvalues.csv")
-fwrite(x = stat.test2, file = "out/cohorts_WithinAndBetween_fdr_pvalues.csv",append=TRUE)
+stat.test <- df1 %>% 
+  group_by(Cohort,method) %>%
+  t_test(value ~ collection_date) %>%
+  adjust_pvalue(method="fdr") %>%
+  filter(p.adj.signif != "ns")
+
+stat.test2$Cohort = "cohorts_comparison"
+stat.test$collection_date = "time_comparison"
+
+both <- rbind(stat.test2,stat.test)
+both <- as.data.frame(both)
+
+addWorksheet(wb, "cohorts_time_fdr")
+writeData(wb, sheet = "cohorts_time_fdr", both, rowNames = FALSE)
 
 ######################################################################################################
 
@@ -3751,335 +3759,976 @@ df_Cohort_all <- df1 %>%
   select(-starts_with("i"))
 df_Cohort_all
 
-sub <- df1 %>% filter(Cohort == "Control" |
-                       Cohort == "Neo" ) 
-df_ctrl_neo <- sub %>%
-  group_by(collection_date) %>%
-  do({
-    data.frame(
-      sample_size=NROW(.),
-      unrooted_pd=kruskal.test(.$unrooted_pd, .$Cohort)$p.value,
-      bwpd=kruskal.test(.$bwpd, .$Cohort)$p.value,
-      pc1=kruskal.test(.$pc1, .$Cohort)$p.value,
-      pc2=kruskal.test(.$pc2, .$Cohort)$p.value,
-      pc3=kruskal.test(.$pc3, .$Cohort)$p.value,
-      pc4=kruskal.test(.$pc4, .$Cohort)$p.value,
-      pc5=kruskal.test(.$pc5, .$Cohort)$p.value,
-      grouping=paste0("ctrl_neo"),
-      stringsAsFactors=FALSE)
-  }) %>%
-  ungroup() %>%
-  select(-starts_with("i"))
-df_ctrl_neo
-
-sub <- df1 %>% filter(Cohort == "ColiGuard" |
-                       Cohort == "D-scour" ) 
-df_Dscour_ColiGuard <- sub %>%
-  group_by(collection_date) %>%
-  do({
-    data.frame(
-      sample_size=NROW(.),
-      unrooted_pd=kruskal.test(.$unrooted_pd, .$Cohort)$p.value,
-      bwpd=kruskal.test(.$bwpd, .$Cohort)$p.value,
-      pc1=kruskal.test(.$pc1, .$Cohort)$p.value,
-      pc2=kruskal.test(.$pc2, .$Cohort)$p.value,
-      pc3=kruskal.test(.$pc3, .$Cohort)$p.value,
-      pc4=kruskal.test(.$pc4, .$Cohort)$p.value,
-      pc5=kruskal.test(.$pc5, .$Cohort)$p.value,
-      grouping=paste0("Dscour_ColiGuard"),
-      stringsAsFactors=FALSE)
-  }) %>%
-  ungroup() %>%
-  select(-starts_with("i"))
-df_Dscour_ColiGuard
-
-sub <- df1 %>% filter(Cohort == "Neo+D" |
-                       Cohort == "Neo+C" ) 
-df_neoD_neoC <- sub %>%
-  group_by(collection_date) %>%
-  do({
-    data.frame(
-      sample_size=NROW(.),
-      unrooted_pd=kruskal.test(.$unrooted_pd, .$Cohort)$p.value,
-      bwpd=kruskal.test(.$bwpd, .$Cohort)$p.value,
-      pc1=kruskal.test(.$pc1, .$Cohort)$p.value,
-      pc2=kruskal.test(.$pc2, .$Cohort)$p.value,
-      pc3=kruskal.test(.$pc3, .$Cohort)$p.value,
-      pc4=kruskal.test(.$pc4, .$Cohort)$p.value,
-      pc5=kruskal.test(.$pc5, .$Cohort)$p.value,
-      grouping=paste0("NeoD_NeoC"),
-      stringsAsFactors=FALSE)
-  }) %>%
-  ungroup() %>%
-  select(-starts_with("i"))
-df_neoD_neoC
-
-
-
 all_pvalues <- rbind(df_breed_all, df_breed,
                      df_line_all, df_line, 
                      df_bday_all, df_bday, df_bday_DurocxLandrace, df_bday_DurocxLw, 
                      df_stig_all, df_stig, 
                      df_nurse_all, df_nurse, 
-                     df_Cohort_all, df_Cohort, 
-                     df_ctrl_neo, df_Dscour_ColiGuard, df_neoD_neoC)
+                     df_Cohort_all)
 
-# write out the normalized counts
+# write out as csv
 fwrite(x = all_pvalues, file = "out/all_pvalues.csv")
 
-# bh correction: 
+# write out in workbook
+addWorksheet(wb, "all_pvalues")
+writeData(wb, sheet = "all_pvalues", all_pvalues, rowNames = FALSE)
+saveWorkbook(wb, "out/stats.xlsx", overwrite=TRUE)
 
-capture.output(
-  paste0("#################################### BREED ##############################"),
-  dunn.test(df1$unrooted_pd, 
-            df1$breed, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1$bwpd, 
-            df1$breed, 
-            method="bh",alpha=0.05,list=TRUE),
-  paste0("#################################### LINE ##############################"),
-  dunn.test(df1$unrooted_pd, 
-            df1$LINE, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1$bwpd, 
-            df1$LINE, 
-            method="bh",alpha=0.05,list=TRUE),
-  paste0("#################################### BIRTH DAY ##############################"),
-  dunn.test(df1$unrooted_pd, 
-            df1$BIRTH_DAY, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1$bwpd, 
-            df1$BIRTH_DAY, 
-            method="bh",alpha=0.05,list=TRUE),
-  paste0("#################################### BREED ### Duroc x Landrace ############"),
-  dunn.test(df1[df1$breed=="Duroc x Landrace",]$unrooted_pd, 
-            df1[df1$breed=="Duroc x Landrace",]$BIRTH_DAY, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$breed=="Duroc x Landrace",]$bwpd, 
-            df1[df1$breed=="Duroc x Landrace",]$BIRTH_DAY, 
-            method="bh",alpha=0.05,list=TRUE),
-  paste0("#################################### BREED ### Duroc x Large white ############"),
-  dunn.test(df1[df1$breed=="Duroc x Large white",]$unrooted_pd, 
-            df1[df1$breed=="Duroc x Large white",]$BIRTH_DAY, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$breed=="Duroc x Large white",]$bwpd, 
-            df1[df1$breed=="Duroc x Large white",]$BIRTH_DAY, 
-            method="bh",alpha=0.05,list=TRUE),
-  paste0("#################################### BREED ### Large white x Duroc ############"),
-  dunn.test(df1[df1$breed=="Large white x Duroc",]$unrooted_pd, 
-            df1[df1$breed=="Large white x Duroc",]$BIRTH_DAY, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$breed=="Large white x Duroc",]$bwpd, 
-            df1[df1$breed=="Large white x Duroc",]$BIRTH_DAY, 
-            method="bh",alpha=0.05,list=TRUE),
-  # not enough timepoint for "Landrace x Cross bred (LW x D)"
-  paste0("#################################### Cohort ####################################"),
-  dunn.test(df1$unrooted_pd, 
-            df1$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1$bwpd, 
-            df1$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  paste0("#################################### Cohort i1 ##################################"),
-  dunn.test(df1[df1$collection_date=="i1",]$unrooted_pd, 
-            df1[df1$collection_date=="i1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i1",]$bwpd, 
-            df1[df1$collection_date=="i1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i1",]$pc1, 
-            df1[df1$collection_date=="i1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i1",]$pc2, 
-            df1[df1$collection_date=="i1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i1",]$pc3, 
-            df1[df1$collection_date=="i1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i1",]$pc4, 
-            df1[df1$collection_date=="i1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i1",]$pc5, 
-            df1[df1$collection_date=="i1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  paste0("#################################### Cohort i2.1 ##################################"),
-  dunn.test(df1[df1$collection_date=="i2.1",]$unrooted_pd, 
-            df1[df1$collection_date=="i2.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i2.1",]$bwpd, 
-            df1[df1$collection_date=="i2.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i2.1",]$pc1, 
-            df1[df1$collection_date=="i2.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i2.1",]$pc2, 
-            df1[df1$collection_date=="i2.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i2.1",]$pc3, 
-            df1[df1$collection_date=="i2.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i2.1",]$pc4, 
-            df1[df1$collection_date=="i2.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i2.1",]$pc5, 
-            df1[df1$collection_date=="i2.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  paste0("#################################### Cohort i2.2 ##################################"),
-  dunn.test(df1[df1$collection_date=="i2.2",]$unrooted_pd, 
-            df1[df1$collection_date=="i2.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i2.2",]$bwpd, 
-            df1[df1$collection_date=="i2.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i2.2",]$pc1, 
-            df1[df1$collection_date=="i2.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i2.2",]$pc2, 
-            df1[df1$collection_date=="i2.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i2.2",]$pc3, 
-            df1[df1$collection_date=="i2.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i2.2",]$pc4, 
-            df1[df1$collection_date=="i2.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i2.2",]$pc5, 
-            df1[df1$collection_date=="i2.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  paste0("#################################### Cohort i3.1 ##################################"),
-  dunn.test(df1[df1$collection_date=="i3.1",]$unrooted_pd, 
-            df1[df1$collection_date=="i3.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i3.1",]$bwpd, 
-            df1[df1$collection_date=="i3.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i3.1",]$pc1, 
-            df1[df1$collection_date=="i3.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i3.1",]$pc2, 
-            df1[df1$collection_date=="i3.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i3.1",]$pc3, 
-            df1[df1$collection_date=="i3.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i3.1",]$pc4, 
-            df1[df1$collection_date=="i3.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i3.1",]$pc5, 
-            df1[df1$collection_date=="i3.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  paste0("#################################### Cohort i3.2 ##################################"),
-  dunn.test(df1[df1$collection_date=="i3.2",]$unrooted_pd, 
-            df1[df1$collection_date=="i3.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i3.2",]$bwpd, 
-            df1[df1$collection_date=="i3.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i3.2",]$pc1, 
-            df1[df1$collection_date=="i3.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i3.2",]$pc2, 
-            df1[df1$collection_date=="i3.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i3.2",]$pc3, 
-            df1[df1$collection_date=="i3.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i3.2",]$pc4, 
-            df1[df1$collection_date=="i3.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i3.2",]$pc5, 
-            df1[df1$collection_date=="i3.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  paste0("#################################### Cohort i4.1 ##################################"),
-  dunn.test(df1[df1$collection_date=="i4.1",]$unrooted_pd, 
-            df1[df1$collection_date=="i4.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i4.1",]$bwpd, 
-            df1[df1$collection_date=="i4.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i4.1",]$pc1, 
-            df1[df1$collection_date=="i4.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i4.1",]$pc2, 
-            df1[df1$collection_date=="i4.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i4.1",]$pc3, 
-            df1[df1$collection_date=="i4.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i4.1",]$pc4, 
-            df1[df1$collection_date=="i4.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i4.1",]$pc5, 
-            df1[df1$collection_date=="i4.1",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  paste0("#################################### Cohort i4.2 ##################################"),
-  dunn.test(df1[df1$collection_date=="i4.2",]$unrooted_pd, 
-            df1[df1$collection_date=="i4.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i4.2",]$bwpd, 
-            df1[df1$collection_date=="i4.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i4.2",]$pc1, 
-            df1[df1$collection_date=="i4.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i4.2",]$pc2, 
-            df1[df1$collection_date=="i4.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i4.2",]$pc3, 
-            df1[df1$collection_date=="i4.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i4.2",]$pc4, 
-            df1[df1$collection_date=="i4.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i4.2",]$pc5, 
-            df1[df1$collection_date=="i4.2",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  paste0("#################################### Cohort i5.1 ##################################"),
-  dunn.test(df1[df1$collection_date=="i5",]$unrooted_pd, 
-            df1[df1$collection_date=="i5",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i5",]$bwpd, 
-            df1[df1$collection_date=="i5",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i5",]$pc1, 
-            df1[df1$collection_date=="i5",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i5",]$pc2, 
-            df1[df1$collection_date=="i5",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i5",]$pc3, 
-            df1[df1$collection_date=="i5",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i5",]$pc4, 
-            df1[df1$collection_date=="i5",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i5",]$pc5, 
-            df1[df1$collection_date=="i5",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  paste0("#################################### Cohort i6 ##################################"),
-  dunn.test(df1[df1$collection_date=="i6",]$unrooted_pd, 
-            df1[df1$collection_date=="i6",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i6",]$bwpd, 
-            df1[df1$collection_date=="i6",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i6",]$pc1, 
-            df1[df1$collection_date=="i6",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i6",]$pc2, 
-            df1[df1$collection_date=="i6",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i6",]$pc3, 
-            df1[df1$collection_date=="i6",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i6",]$pc4, 
-            df1[df1$collection_date=="i6",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  dunn.test(df1[df1$collection_date=="i6",]$pc5, 
-            df1[df1$collection_date=="i6",]$Cohort, 
-            method="bh",alpha=0.05,list=TRUE),
-  file = "out/pvalues_BH_correction.txt", append = FALSE
+
+# adjusted pvalues
+
+# chosen method is Tukey: 
+
+# When you do Tukeys test, the variance is estimated from the whole set of data 
+# (from all 4 groups) as a pooled estimate. If the population variances are the 
+# same in all groups, such a pooled estimate is much more robust and precise 
+# than the individual estimated from just a part of the whole set of data. 
+# Further, Tukeys procedure adjusts the p-values for multiple testing, so that 
+# the family-wise error rate is controlled (probability to get at least one false 
+# positive among the family of tests performed).
+
+
+# by breed
+
+aov.out = aov(unrooted_pd ~ breed, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$breed)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ breed, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$breed)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ breed, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$breed)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ breed, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$breed)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ breed, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$breed)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ breed, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$breed)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ breed, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$breed)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_breed <- rbind(aov.out1,
+      aov.out2,
+      aov.out3,
+      aov.out4,
+      aov.out5,
+      aov.out6,
+      aov.out7)
+by_breed$group = "breed"
+
+
+# by LINE
+
+# to character otherwise considered numeric
+df1$LINE <- as.character(df1$LINE)
+
+aov.out = aov(unrooted_pd ~ LINE, data=df1)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$LINE)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ LINE, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$LINE)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ LINE, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$LINE)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ LINE, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$LINE)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ LINE, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$LINE)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ LINE, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$LINE)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ LINE, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$LINE)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_LINE <- rbind(aov.out1,
+                 aov.out2,
+                 aov.out3,
+                 aov.out4,
+                 aov.out5,
+                 aov.out6,
+                 aov.out7)
+by_LINE$group = "LINE"
+
+
+
+# by BIRTH_DAY
+
+# to character otherwise considered numeric
+df1$BIRTH_DAY <- as.character(df1$BIRTH_DAY)
+
+aov.out = aov(unrooted_pd ~ BIRTH_DAY, data=df1)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ BIRTH_DAY, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ BIRTH_DAY, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ BIRTH_DAY, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ BIRTH_DAY, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ BIRTH_DAY, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ BIRTH_DAY, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_BIRTH_DAY <- rbind(aov.out1,
+                      aov.out2,
+                      aov.out3,
+                      aov.out4,
+                      aov.out5,
+                      aov.out6,
+                      aov.out7)
+by_BIRTH_DAY$group = "BIRTH_DAY"
+
+
+# by BIRTH_DAY for breed "Duroc x Landrace"
+
+df1_sub <- df1[df1$breed=="Duroc x Landrace",]
+
+# to character otherwise considered numeric
+df1_sub$BIRTH_DAY <- as.character(df1_sub$BIRTH_DAY)
+
+aov.out = aov(unrooted_pd ~ BIRTH_DAY, data=df1_sub)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_BIRTH_DAY_Duroc_x_Landrace <- rbind(aov.out1,
+                      aov.out2,
+                      aov.out3,
+                      aov.out4,
+                      aov.out5,
+                      aov.out6,
+                      aov.out7)
+by_BIRTH_DAY_Duroc_x_Landrace$group = "BIRTH_DAY_Duroc_x_Landrace"
+
+
+# by BIRTH_DAY for breed "Duroc x Large white"
+
+df1_sub <- df1[df1$breed=="Duroc x Large white",]
+
+# to character otherwise considered numeric
+df1_sub$BIRTH_DAY <- as.character(df1_sub$BIRTH_DAY)
+
+aov.out = aov(unrooted_pd ~ BIRTH_DAY, data=df1_sub)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_BIRTH_DAY_Duroc_x_Large_white <- rbind(aov.out1,
+                      aov.out2,
+                      aov.out3,
+                      aov.out4,
+                      aov.out5,
+                      aov.out6,
+                      aov.out7)
+by_BIRTH_DAY_Duroc_x_Large_white$group = "BIRTH_DAY_Duroc_x_Large_white"
+
+
+# by BIRTH_DAY for breed "Large white x Duroc"
+
+df1_sub <- df1[df1$breed=="Large white x Duroc",]
+
+# to character otherwise considered numeric
+df1_sub$BIRTH_DAY <- as.character(df1_sub$BIRTH_DAY)
+
+aov.out = aov(unrooted_pd ~ BIRTH_DAY, data=df1_sub)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ BIRTH_DAY, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$BIRTH_DAY)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_BIRTH_DAY_Large_white_x_Duroc <- rbind( 
+                      aov.out1,
+                      aov.out2,
+                      aov.out3,
+                      aov.out4,
+                      aov.out5,
+                      aov.out6,
+                      aov.out7)
+by_BIRTH_DAY_Large_white_x_Duroc$group = "BIRTH_DAY_Large_white_x_Duroc"
+
+
+# not enough timepoint for "Landrace x Cross bred (LW x D)"
+
+# by Cohort
+
+aov.out = aov(unrooted_pd ~ Cohort, data=df1)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ Cohort, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ Cohort, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ Cohort, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ Cohort, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ Cohort, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ Cohort, data=df1)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_Cohort <- rbind(aov.out1,
+                   aov.out2,
+                   aov.out3,
+                   aov.out4,
+                   aov.out5,
+                   aov.out6,
+                   aov.out7)
+by_Cohort$group = "Cohort"
+
+
+# by Cohort i1
+
+df1_sub <- df1[df1$collection_date=="i1",]
+
+aov.out = aov(unrooted_pd ~ Cohort, data=df1_sub)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_Cohort_i1 <- rbind(aov.out1,
+                   aov.out2,
+                   aov.out3,
+                   aov.out4,
+                   aov.out5,
+                   aov.out6,
+                   aov.out7)
+by_Cohort_i1$group = "Cohort_i1"
+
+
+# by Cohort i2.1
+
+df1_sub <- df1[df1$collection_date=="i2.1",]
+
+aov.out = aov(unrooted_pd ~ Cohort, data=df1_sub)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_Cohort_i2.1 <- rbind(aov.out1,
+                   aov.out2,
+                   aov.out3,
+                   aov.out4,
+                   aov.out5,
+                   aov.out6,
+                   aov.out7)
+by_Cohort_i2.1$group = "Cohort_i2.1"
+
+
+
+# by Cohort i2.2
+
+df1_sub <- df1[df1$collection_date=="i2.2",]
+
+aov.out = aov(unrooted_pd ~ Cohort, data=df1_sub)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_Cohort_i2.2 <- rbind(aov.out1,
+                   aov.out2,
+                   aov.out3,
+                   aov.out4,
+                   aov.out5,
+                   aov.out6,
+                   aov.out7)
+by_Cohort_i2.2$group = "Cohort_i2.2"
+
+
+
+# by Cohort i3.1
+
+df1_sub <- df1[df1$collection_date=="i3.1",]
+
+aov.out = aov(unrooted_pd ~ Cohort, data=df1_sub)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_Cohort_i3.1 <- rbind(aov.out1,
+                   aov.out2,
+                   aov.out3,
+                   aov.out4,
+                   aov.out5,
+                   aov.out6,
+                   aov.out7)
+by_Cohort_i3.1$group = "Cohort_i3.1"
+
+
+
+# by Cohort i3.2
+
+df1_sub <- df1[df1$collection_date=="i3.2",]
+
+aov.out = aov(unrooted_pd ~ Cohort, data=df1_sub)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_Cohort_i3.2 <- rbind(aov.out1,
+                   aov.out2,
+                   aov.out3,
+                   aov.out4,
+                   aov.out5,
+                   aov.out6,
+                   aov.out7)
+by_Cohort_i3.2$group = "Cohort_i3.2"
+
+
+
+# by Cohort i4.1
+
+df1_sub <- df1[df1$collection_date=="i4.1",]
+
+aov.out = aov(unrooted_pd ~ Cohort, data=df1_sub)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_Cohort_i4.1 <- rbind(aov.out1,
+                   aov.out2,
+                   aov.out3,
+                   aov.out4,
+                   aov.out5,
+                   aov.out6,
+                   aov.out7)
+by_Cohort_i4.1$group = "Cohort_i4.1"
+
+
+
+# by Cohort i4.2
+
+df1_sub <- df1[df1$collection_date=="i4.2",]
+
+aov.out = aov(unrooted_pd ~ Cohort, data=df1_sub)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_Cohort_i4.2 <- rbind(aov.out1,
+                   aov.out2,
+                   aov.out3,
+                   aov.out4,
+                   aov.out5,
+                   aov.out6,
+                   aov.out7)
+by_Cohort_i4.2$group = "Cohort_i4.2"
+
+
+
+# by Cohort i5
+
+df1_sub <- df1[df1$collection_date=="i5",]
+
+aov.out = aov(unrooted_pd ~ Cohort, data=df1_sub)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_Cohort_i5 <- rbind(aov.out1,
+                   aov.out2,
+                   aov.out3,
+                   aov.out4,
+                   aov.out5,
+                   aov.out6,
+                   aov.out7)
+by_Cohort_i5$group = "Cohort_i5"
+
+
+
+# by Cohort i6
+
+df1_sub <- df1[df1$collection_date=="i6",]
+
+aov.out = aov(unrooted_pd ~ Cohort, data=df1_sub)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ Cohort, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$Cohort)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_Cohort_i6 <- rbind(aov.out1,
+                   aov.out2,
+                   aov.out3,
+                   aov.out4,
+                   aov.out5,
+                   aov.out6,
+                   aov.out7)
+by_Cohort_i6$group = "Cohort_i6"
+
+
+
+
+all_Tukey <- rbind(by_breed,
+             by_LINE, 
+             by_BIRTH_DAY, 
+             by_BIRTH_DAY_Duroc_x_Landrace,
+             by_BIRTH_DAY_Duroc_x_Large_white,
+             by_BIRTH_DAY_Large_white_x_Duroc, 
+             by_Cohort, 
+             by_Cohort_i1,
+             by_Cohort_i2.1,
+             by_Cohort_i2.2,
+             by_Cohort_i3.1,
+             by_Cohort_i3.2,
+             by_Cohort_i4.1,
+             by_Cohort_i4.2,
+             by_Cohort_i5,
+             by_Cohort_i6
 )
+
+
+# write out in workbook
+addWorksheet(wb, "all_padj")
+writeData(wb, sheet = "all_padj", all_Tukey, rowNames = FALSE)
+saveWorkbook(wb, "out/stats.xlsx", overwrite=TRUE)
+
+
 
 # plot p-values for start factors
 
@@ -4090,115 +4739,11 @@ piglets_factors <- all_pvalues %>%
            grouping != "NeoD_NeoC" &
            collection_date != "all") 
 
-piglets_factors$grouping <- gsub("birth day","bday",piglets_factors$grouping)
-piglets_factors$grouping <- gsub("nurse mother","nurse",piglets_factors$grouping)
-piglets_factors$grouping <- gsub("stig mother","stig",piglets_factors$grouping)
-piglets_factors$grouping <- gsub("bday - Duroc x Large white","bday-DxLW",piglets_factors$grouping)
-piglets_factors$grouping <- gsub("bday - Duroc x Landrace","bday-DxL",piglets_factors$grouping)
+piglets_factors$grouping <- gsub("birth day - Duroc x Large white",
+                                 "bday - Duroc x Large white",piglets_factors$grouping)
+piglets_factors$grouping <- gsub("birth dday - Duroc x Landrace",
+                                 "bday - Duroc x Landrace",piglets_factors$grouping)
 
-unroo <- ggplot(piglets_factors, aes(fill=collection_date, y=unrooted_pd, x=grouping)) + 
-  geom_point(aes(colour = collection_date))+
-  labs(y="unrooted PD - p-value")+
-  ylim(0,0.06)+
-  theme(axis.text.x=element_text(hjust=1, angle=45),
-        axis.title.x=element_blank(),
-        axis.title.y=element_text(),
-        legend.position="none")+
-  geom_hline(yintercept=0.05, linetype="dashed", 
-             color = "black", size=0.5)
-
-bwpd <- ggplot(piglets_factors, aes(fill=collection_date, y=bwpd, x=grouping)) + 
-  geom_point(aes(colour = collection_date))+
-  labs(y="BWPD - p-value")+
-  ylim(0,0.06)+
-  theme(axis.text.x=element_text(hjust=1, angle=45),
-        axis.title.x=element_blank(),
-        axis.title.y=element_text(),
-        legend.position="none")+
-  geom_hline(yintercept=0.05, linetype="dashed", 
-             color = "black", size=0.5)
-
-pc1 <- ggplot(piglets_factors, aes(fill=collection_date, y=pc1, x=grouping)) + 
-  geom_point(aes(colour = collection_date))+
-  labs(y="PC1 - p-value")+
-  ylim(0,0.06)+
-  theme(axis.text.x=element_text(hjust=1, angle=45),
-        axis.title.x=element_blank(),
-        axis.title.y=element_text(),
-        legend.position="none")+
-  geom_hline(yintercept=0.05, linetype="dashed", 
-             color = "black", size=0.5)
-
-pc2 <- ggplot(piglets_factors, aes(fill=collection_date, y=pc2, x=grouping)) + 
-  geom_point(aes(colour = collection_date))+
-  labs(y="PC3 - p-value")+
-  ylim(0,0.06)+
-  theme(axis.text.x=element_text(hjust=1, angle=45),
-        axis.title.x=element_blank(),
-        axis.title.y=element_text(),
-        legend.position="none")+
-  geom_hline(yintercept=0.05, linetype="dashed", 
-             color = "black", size=0.5)
-
-pc3 <- ggplot(piglets_factors, aes(fill=collection_date, y=pc3, x=grouping)) + 
-  geom_point(aes(colour = collection_date))+
-  labs(y="PC3 - p-value")+
-  ylim(0,0.06)+
-  theme(axis.text.x=element_text(hjust=1, angle=45),
-        axis.title.x=element_blank(),
-        axis.title.y=element_text(),
-        legend.position="none")+
-  geom_hline(yintercept=0.05, linetype="dashed", 
-             color = "black", size=0.5)
-
-pc4 <- ggplot(piglets_factors, aes(fill=collection_date, y=pc4, x=grouping)) + 
-  geom_point(aes(colour = collection_date))+
-  labs(y="PC4 - p-value")+
-  ylim(0,0.06)+
-  theme(axis.text.x=element_text(hjust=1, angle=45),
-        axis.title.x=element_blank(),
-        axis.title.y=element_text(),
-        legend.position="none")+
-  geom_hline(yintercept=0.05, linetype="dashed", 
-             color = "black", size=0.5)
-
-pc5 <- ggplot(piglets_factors, aes(fill=collection_date, y=pc5, x=grouping)) + 
-  geom_point(aes(colour = collection_date))+
-  labs(y="PC5 - p-value")+
-  ylim(0,0.06)+
-  theme(axis.text.x=element_text(hjust=1, angle=45),
-        axis.title.x=element_blank(),
-        axis.title.y=element_text(),
-        legend.position="none")+
-  geom_hline(yintercept=0.05, linetype="dashed", 
-             color = "black", size=0.5)
-
-# Extract the legend. Returns a gtable
-for_legend_only <- ggplot(piglets_factors, aes(fill=collection_date, y=pc5, x=grouping)) + 
-  geom_point(aes(colour = collection_date))+
-  theme(axis.text.x=element_text(hjust=1, angle=20),
-        axis.title.x=element_blank(),
-        axis.title.y=element_text(),
-        legend.title = element_text(),
-        legend.position="right")+
-  guides(colour=guide_legend(ncol=2))
-leg <- get_legend(for_legend_only)
-
-
-pdf("out/piglets_start_factors_pvalues.pdf")
-ggarrange(
-  unroo, bwpd, pc1, pc2, pc3, pc4, pc5,leg,ncol=2,nrow=4
-)
-dev.off()
-
-
-# just plotting again two plots per page 
-
-piglets_factors$grouping <- gsub("bday","birth day",piglets_factors$grouping)
-piglets_factors$grouping <- gsub("nurse","nurse mother",piglets_factors$grouping)
-piglets_factors$grouping <- gsub("stig","stig mother",piglets_factors$grouping)
-piglets_factors$grouping <- gsub("-DxLW","- Duroc x Large white",piglets_factors$grouping)
-piglets_factors$grouping <- gsub("-DxL","- Duroc x Landrace",piglets_factors$grouping)
 
 unroo <- ggplot(piglets_factors, aes(collection_date,unrooted_pd, label = collection_date)) + 
   ylim(0,0.06)+
@@ -4285,7 +4830,7 @@ pc5 <- ggplot(piglets_factors, aes(collection_date,pc5, label = collection_date)
         axis.title.y=element_text(),
         legend.position="none")
 
-pdf("out/piglets_start_factors_pvalues_2plotsXpage.pdf")
+pdf("out/start_factors_pvalues.pdf")
 ggarrange(
   unroo, bwpd,ncol=1,nrow=2
 )
