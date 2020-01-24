@@ -27,12 +27,10 @@
 ###########################################################################################
 
 #BiocManager::install("sva")
-#Error: Bioconductor version '3.8' requires R version '3.5'; see
-#https://bioconductor.org/install
-
-
+#BiocManager::install("genefilter")
 
 # load libraries
+library(magick)
 library(tiff)
 library(rstatix)
 library(ggbiplot) # ggbiplot_0.55 
@@ -56,6 +54,8 @@ library(varhandle) # varhandle_2.0.4
 library(tibble) # tibble_2.1.3 
 library(purrr) # purrr_0.3.3
 library(openxlsx)
+library(genefilter)
+library(compareGroups)
 
 # from local 
 setwd("/Users/12705859/Desktop/metapigs_base/phylosift")
@@ -70,15 +70,16 @@ basedir = "/Users/12705859/Desktop/metapigs_base/phylosift/input_files/"
 # 0   # loading input data
 
 # tiffs (timelines)
-timeline <- image_read(paste0(basedir,"Slide1.tiff"))
-timeline_31_Jan <- image_read(paste0(basedir,"Slide2.tiff"))
-timeline_3_Feb <- image_read(paste0(basedir,"Slide3.tiff"))
-timeline_7_Feb <- image_read(paste0(basedir,"Slide4.tiff"))
-timeline_10_Feb <- image_read(paste0(basedir,"Slide5.tiff"))
-timeline_14_Feb <- image_read(paste0(basedir,"Slide6.tiff"))
-timeline_17_21_Feb <- image_read(paste0(basedir,"Slide7.tiff"))
-timeline_24_28_Feb <- image_read(paste0(basedir,"Slide8.tiff"))
-timeline_3_10_Mar <- image_read(paste0(basedir,"Slide9.tiff"))
+timeline <- image_read(paste0(basedir,"Slide01.tiff"))
+timeline_31_Jan <- image_read(paste0(basedir,"Slide02.tiff"))
+timeline_3_Feb <- image_read(paste0(basedir,"Slide03.tiff"))
+timeline_7_Feb <- image_read(paste0(basedir,"Slide04.tiff"))
+timeline_10_Feb <- image_read(paste0(basedir,"Slide05.tiff"))
+timeline_14_Feb <- image_read(paste0(basedir,"Slide06.tiff"))
+timeline_17_21_Feb <- image_read(paste0(basedir,"Slide07.tiff"))
+timeline_24_28_Feb <- image_read(paste0(basedir,"Slide08.tiff"))
+timeline_3_10_Mar <- image_read(paste0(basedir,"Slide09.tiff"))
+timeline_deltas <- image_read(paste0(basedir,"Slide10.tiff"))
 
 # load metadata 
 mdat <- read_excel(paste0(basedir,"Metagenome.environmental_20190308_2.xlsx"),
@@ -313,6 +314,21 @@ res <- TukeyHSD(aov.out7)
 aov.out7 <- as.data.frame(res$DNA_plate)
 aov.out7$type="PC5"
 
+aov.out1$type <- "unrooted_pd"
+aov.out1$comparison <- rownames(aov.out1)
+aov.out2$type <- "bwpd"
+aov.out2$comparison <- rownames(aov.out2)
+aov.out3$type <- "pc1"
+aov.out3$comparison <- rownames(aov.out3)
+aov.out4$type <- "pc2"
+aov.out4$comparison <- rownames(aov.out4)
+aov.out5$type <- "pc3"
+aov.out5$comparison <- rownames(aov.out5)
+aov.out6$type <- "pc4"
+aov.out6$comparison <- rownames(aov.out6)
+aov.out7$type <- "pc5"
+aov.out7$comparison <- rownames(aov.out7)
+
 all <- rbind(aov.out1,
       aov.out2,
       aov.out3,
@@ -320,10 +336,10 @@ all <- rbind(aov.out1,
       aov.out5,
       aov.out6,
       aov.out7)
+all$padj_method <- "TukeyHSD"
 
 addWorksheet(wb, "batch_pre_process")
 writeData(wb, sheet = "batch_pre_process", all, rowNames = FALSE)
-
 
 ###########################################################################################
 
@@ -498,6 +514,21 @@ res <- TukeyHSD(aov.out7)
 aov.out7 <- as.data.frame(res$DNA_plate)
 aov.out7$type="PC5"
 
+aov.out1$type <- "unrooted_pd"
+aov.out1$comparison <- rownames(aov.out1)
+aov.out2$type <- "bwpd"
+aov.out2$comparison <- rownames(aov.out2)
+aov.out3$type <- "pc1"
+aov.out3$comparison <- rownames(aov.out3)
+aov.out4$type <- "pc2"
+aov.out4$comparison <- rownames(aov.out4)
+aov.out5$type <- "pc3"
+aov.out5$comparison <- rownames(aov.out5)
+aov.out6$type <- "pc4"
+aov.out6$comparison <- rownames(aov.out6)
+aov.out7$type <- "pc5"
+aov.out7$comparison <- rownames(aov.out7)
+
 all <- rbind(aov.out1,
              aov.out2,
              aov.out3,
@@ -505,6 +536,7 @@ all <- rbind(aov.out1,
              aov.out5,
              aov.out6,
              aov.out7)
+all$padj_method <- "TukeyHSD"
 
 addWorksheet(wb, "batch_post_process")
 writeData(wb, sheet = "batch_post_process", all, rowNames = FALSE)
@@ -597,7 +629,7 @@ p2 <- ggplot(df1, aes(fill=DNA_plate, y=Freq, x=collection_date)) +
         axis.title.y=element_text())
 p2
 
-pdf("out/samples_distribution_DNA_plate_timeintervals.pdf")
+pdf("out/distribution_DNA_plate_time.pdf")
 ggarrange(
   p1,p2,nrow=2, labels=c("A","B")
 )
@@ -609,7 +641,7 @@ df1 <- setDT(boggo)[, .(Freq = .N), by = .(collection_date,Cohort)]
 
 df1[order(df1$collection_date)]
 
-pdf("out/samples_distribution_cohorts_timeintervals.pdf")
+pdf("out/distribution_cohorts_time.pdf")
 ggplot(df1, aes(fill=Cohort, y=Freq, x=collection_date)) + 
   geom_bar(position="dodge", stat="identity")+
   labs(x = "time interval across trial",
@@ -695,20 +727,20 @@ boggo<-inner_join(fpddat,mdat)
 boggo <- boggo %>%
   filter(!isolation_source == "NegativeControl")
 
-pdf("out/alpha_phyloentropy.pdf",width=9,height=5)
-par(mar=(c(5, 10, 4, 2) +0.1))
-boxplot(boggo$phylo_entropy~factor(boggo$Cohort,c("Control","ColiGuard","D-scour","Neomycin+ColiGuard","Neomycin+D-scour","Neomycin","Mothers","PosControl_ColiGuard","PosControl_D-scour","MockCommunity")),horizontal=TRUE,main="Alpha diversity",xlab="Phylogenetic entropy",ylab=NULL,las=1)
-dev.off()
+#pdf("out/alpha_phyloentropy.pdf",width=9,height=5)
+#par(mar=(c(5, 10, 4, 2) +0.1))
+#boxplot(boggo$phylo_entropy~factor(boggo$Cohort,c("Control","ColiGuard","D-scour","Neomycin+ColiGuard","Neomycin+D-scour","Neomycin","Mothers","PosControl_ColiGuard","PosControl_D-scour","MockCommunity")),horizontal=TRUE,main="Alpha diversity",xlab="Phylogenetic entropy",ylab=NULL,las=1)
+#dev.off()
 
-pdf("out/alpha_unrooted.pdf",width=9,height=5)
-par(mar=(c(5, 10, 4, 2) +0.1))
-boxplot(boggo$unrooted_pd~factor(boggo$Cohort,c("Control","ColiGuard","D-scour","Neomycin+ColiGuard","Neomycin+D-scour","Neomycin","Mothers","PosControl_ColiGuard","PosControl_D-scour","MockCommunity")),horizontal=TRUE,main="Alpha diversity",xlab="Unrooted PD",ylab=NULL,las=1)
-dev.off()
+#pdf("out/alpha_unrooted.pdf",width=9,height=5)
+#par(mar=(c(5, 10, 4, 2) +0.1))
+#boxplot(boggo$unrooted_pd~factor(boggo$Cohort,c("Control","ColiGuard","D-scour","Neomycin+ColiGuard","Neomycin+D-scour","Neomycin","Mothers","PosControl_ColiGuard","PosControl_D-scour","MockCommunity")),horizontal=TRUE,main="Alpha diversity",xlab="Unrooted PD",ylab=NULL,las=1)
+#dev.off()
 
-pdf("out/alpha_bwpd.pdf",width=9,height=5)
-par(mar=(c(5, 10, 4, 2) +0.1))
-boxplot(boggo$bwpd~factor(boggo$Cohort,c("Control","ColiGuard","D-scour","Neomycin+ColiGuard","Neomycin+D-scour","Neomycin","Mothers","PosControl_ColiGuard","PosControl_D-scour","MockCommunity")),horizontal=TRUE,main="Alpha diversity",xlab="Balance-weighted PD",ylab=NULL,las=1)
-dev.off()
+#pdf("out/alpha_bwpd.pdf",width=9,height=5)
+#par(mar=(c(5, 10, 4, 2) +0.1))
+#boxplot(boggo$bwpd~factor(boggo$Cohort,c("Control","ColiGuard","D-scour","Neomycin+ColiGuard","Neomycin+D-scour","Neomycin","Mothers","PosControl_ColiGuard","PosControl_D-scour","MockCommunity")),horizontal=TRUE,main="Alpha diversity",xlab="Balance-weighted PD",ylab=NULL,las=1)
+#dev.off()
 
 
 # boxplots again for alpha diversity, to be plotted in the same pdf
@@ -745,11 +777,11 @@ a <- boggo %>%
   filter(!Cohort=="PosControl_ColiGuard") %>% 
   filter(!Cohort=="NegativeControl") %>% 
   filter(!Cohort=="Mothers") %>% 
-  summarise(min = min(unrooted_pd)
+  dplyr::summarise(min = min(unrooted_pd)
             ,max = max(unrooted_pd)
             ,mean = mean(unrooted_pd)
-            ,sd = sd(unrooted_pd)
             ,n = n()
+            ,sd = sd(unrooted_pd)
             ,q25 = quantile(unrooted_pd, .25)
             ,q75 = quantile(unrooted_pd, .75)) 
 
@@ -764,11 +796,11 @@ b <- boggo %>%
   filter(!Cohort=="Neomycin") %>% 
   filter(!Cohort=="Neomycin+D-scour") %>% 
   filter(!Cohort=="Neomycin+ColiGuard") %>% 
-  summarise(min = min(unrooted_pd)
+  dplyr::summarise(min = min(unrooted_pd)
             ,max = max(unrooted_pd)
             ,mean = mean(unrooted_pd)
-            ,sd = sd(unrooted_pd)
             ,n = n()
+            ,sd = sd(unrooted_pd)
             ,q25 = quantile(unrooted_pd, .25)
             ,q75 = quantile(unrooted_pd, .75)) 
 
@@ -778,11 +810,11 @@ c <- boggo %>%
   filter(!Cohort=="PosControl_ColiGuard") %>% 
   filter(!Cohort=="NegativeControl") %>% 
   filter(!Cohort=="Mothers") %>% 
-  summarise(min = min(bwpd)
+  dplyr::summarise(min = min(bwpd)
             ,max = max(bwpd)
             ,mean = mean(bwpd)
-            ,sd = sd(bwpd)
             ,n = n()
+            ,sd = sd(bwpd)
             ,q25 = quantile(bwpd, .25)
             ,q75 = quantile(bwpd, .75)) 
 
@@ -797,29 +829,29 @@ d <- boggo %>%
   filter(!Cohort=="Neomycin") %>% 
   filter(!Cohort=="Neomycin+D-scour") %>% 
   filter(!Cohort=="Neomycin+ColiGuard") %>% 
-  summarise(min = min(bwpd)
+  dplyr::summarise(min = min(bwpd)
             ,max = max(bwpd)
             ,mean = mean(bwpd)
-            ,sd = sd(bwpd)
             ,n = n()
+            ,sd = sd(bwpd)
             ,q25 = quantile(bwpd, .25)
             ,q75 = quantile(bwpd, .75)) 
 
 e <- boggo %>% group_by(Cohort) %>% 
-  summarise(min = min(unrooted_pd)
+  dplyr::summarise(min = min(unrooted_pd)
             ,max = max(unrooted_pd)
             ,mean = mean(unrooted_pd)
-            ,sd = sd(unrooted_pd)
             ,n = n()
+            ,sd = sd(unrooted_pd)
             ,q25 = quantile(unrooted_pd, .25)
             ,q75 = quantile(unrooted_pd, .75))
 
 f <- boggo %>% group_by(Cohort) %>% 
-  summarise(min = min(bwpd)
+  dplyr::summarise(min = min(bwpd)
             ,max = max(bwpd)
             ,mean = mean(bwpd)
-            ,sd = sd(bwpd)
             ,n = n()
+            ,sd = sd(bwpd)
             ,q25 = quantile(bwpd, .25)
             ,q75 = quantile(bwpd, .75)) 
 
@@ -827,6 +859,8 @@ a$Cohort="piglets"
 b$Cohort="mothers"
 c$Cohort="piglets"
 d$Cohort="mothers"
+e$Cohort="all"
+f$Cohort="all"
 
 a$type="unrooted"
 b$type="unrooted"
@@ -873,85 +907,84 @@ my_comparisons = list( c("2017-01-31", "2017-02-07"),
 
 # general time change - unrooted
 summs_unroo <- doggo %>% group_by(collection_date,Cohort) %>% 
-  summarise(min = min(unrooted_pd)
-            ,max = max(unrooted_pd)
+  dplyr::summarise(min = min(unrooted_pd)
+                   ,max = max(unrooted_pd)
             ,mean = mean(unrooted_pd)
-            ,sd = sd(unrooted_pd)
             ,n = n()
+            ,sd = sd(unrooted_pd)
             ,q25 = quantile(unrooted_pd, .25)
             ,q75 = quantile(unrooted_pd, .75)) 
-pdf("out/time_unrooted.pdf",width=9,height=5)
+
 gen_unrooted <- ggplot(summs_unroo, aes(x=collection_date, y=mean, group=Cohort, color=Cohort)) + 
   geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.1,
                 position=position_dodge(0.5)) +
   geom_line() + geom_point()+
   theme_bw()+
   stat_compare_means(comparisons = my_comparisons)+
-  theme(legend.position="none")+
+  theme(legend.position="right")+
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) +
   labs(x = "collection date",
        y = "unrooted PD - mean")
 gen_unrooted
-dev.off()
+
 
 # general time change - unrooted
 summs_bw <- doggo %>% group_by(collection_date,Cohort) %>% 
-  summarise(min = min(bwpd)
+  dplyr::summarise(min = min(bwpd)
             ,max = max(bwpd)
             ,mean = mean(bwpd)
-            ,sd = sd(bwpd)
             ,n = n()
+            ,sd = sd(bwpd)
             ,q25 = quantile(bwpd, .25)
             ,q75 = quantile(bwpd, .75)) 
 
-pdf("out/time_bwpd.pdf",width=9,height=5)
 gen_bwpd <- ggplot(summs_bw, aes(x=collection_date, y=mean, group=Cohort, color=Cohort)) + 
   geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.1,
                 position=position_dodge(0.5)) +
   geom_line() + geom_point()+
   theme_bw()+
   stat_compare_means(comparisons = my_comparisons)+
-  theme(legend.position="none")+
+  theme(legend.position="right")+
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) +
   labs(x = "collection date",
        y = "BWPD - mean")
 gen_bwpd
-dev.off()
 
-pdf("out/time_unrooted&bwpd.pdf")
+
+pdf("out/time_alpha.pdf")
 grid.arrange(
   gen_unrooted, gen_bwpd, nrow = 2
 )
 dev.off()
 
 # unrooted pd - fill: collection date
-pdf("out/cohorts_unrooted.pdf",width=9,height=5)
-unrooted_time <- ggplot(doggo, aes(x=Cohort, y=unrooted_pd, 
-                                   fill=collection_date)) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  geom_boxplot() +
-  scale_fill_discrete(name = "collection date") + 
-  scale_y_continuous(limits = c(60, 170))
-unrooted_time
-dev.off()
+#pdf("out/cohorts_unrooted.pdf",width=9,height=5)
+# unrooted_time <- ggplot(doggo, aes(x=Cohort, y=unrooted_pd, 
+#                                    fill=collection_date)) +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+#   geom_boxplot() +
+#   scale_fill_discrete(name = "collection date") + 
+#   scale_y_continuous(limits = c(60, 170))
+# unrooted_time
+#dev.off()
 
 # bwpd - fill: collection date
-pdf("out/alpha_bwpd_fill_cohorts.pdf",width=9,height=5)
-bwpd_time <- ggplot(doggo, aes(x=Cohort, y=bwpd, 
-                               fill=collection_date)) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  geom_boxplot() +
-  scale_fill_discrete(name = "collection date") + 
-  scale_y_continuous(limits = c(1.75, 2.8))
-bwpd_time
-dev.off()
+#pdf("out/alpha_bwpd_fill_cohorts.pdf",width=9,height=5)
+# bwpd_time <- ggplot(doggo, aes(x=Cohort, y=bwpd, 
+#                                fill=collection_date)) +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+#   geom_boxplot() +
+#   scale_fill_discrete(name = "collection date") + 
+#   scale_y_continuous(limits = c(1.75, 2.8))
+# bwpd_time
+#dev.off()
 
-pdf("out/cohorts_unrooted&bwpd.pdf")
-grid.arrange(
-  unrooted_time, bwpd_time, nrow = 2,
-  top = "Alpha diversity"
-)
-dev.off()
+#pdf("out/cohorts_unrooted&bwpd.pdf")
+#grid.arrange(
+#  unrooted_time, bwpd_time, nrow = 2,
+#  top = "Alpha diversity"
+#)
+#dev.off()
 
 #########################################################################
 
@@ -959,7 +992,7 @@ dev.off()
 
 unroo <- doggo %>%
   group_by(collection_date,Cohort) %>%
-  summarise(min = min(unrooted_pd)
+  dplyr::summarise(min = min(unrooted_pd)
             ,max = max(unrooted_pd)
             ,mean = mean(unrooted_pd)
             ,sd = sd(unrooted_pd)
@@ -969,7 +1002,7 @@ unroo <- doggo %>%
 
 bw <- doggo %>%
   group_by(collection_date,Cohort) %>%
-  summarise(min = min(bwpd)
+  dplyr::summarise(min = min(bwpd)
             ,max = max(bwpd)
             ,mean = mean(bwpd)
             ,sd = sd(bwpd)
@@ -997,8 +1030,8 @@ stat.test_unroo <- doggo %>%
   mutate(y.position=rep(seq(150,250,length.out=6),6)) %>%
   mutate_if(is.numeric, round, digits = 4)
 
-pdf("out/cohorts_facets_unrooted.pdf",width=9,height=5)
-ggboxplot(doggo, x = "collection_date", y = "unrooted_pd",
+
+unroo <- ggboxplot(doggo, x = "collection_date", y = "unrooted_pd",
                color = "collection_date", palette = "jco",
                add = "jitter",facet.by = "Cohort", short.panel.labs = FALSE) +
   theme_bw()+
@@ -1008,8 +1041,6 @@ ggboxplot(doggo, x = "collection_date", y = "unrooted_pd",
                      hide.ns=TRUE,
                      bracket.size = 0.3,
                      size = 3)
-dev.off()
-
 
 #########
 
@@ -1019,10 +1050,8 @@ stat.test_bwpd <- doggo %>%
   adjust_pvalue(method="fdr") %>%
   mutate(y.position=rep(seq(2.5,2.8,length.out=6),6)) %>%
   mutate_if(is.numeric, round, digits = 4)
-max(doggo$bwpd)
 
-pdf("out/cohorts_facets_bwpd.pdf",width=9,height=5)
-ggboxplot(doggo, x = "collection_date", y = "bwpd",
+bw <- ggboxplot(doggo, x = "collection_date", y = "bwpd",
           color = "collection_date", palette = "jco",
           add = "jitter",facet.by = "Cohort", short.panel.labs = FALSE) +
   theme_bw()+
@@ -1032,6 +1061,10 @@ ggboxplot(doggo, x = "collection_date", y = "bwpd",
                      hide.ns=TRUE,
                      bracket.size = 0.3,
                      size = 3)
+
+
+pdf("out/time_alpha_cohorts.pdf")
+ggarrange(unroo,bw,nrow=2,labels=c("A","B"))
 dev.off()
 
 
@@ -1039,6 +1072,8 @@ dev.off()
 
 both <- rbind(stat.test_bwpd,
       stat.test_unroo)
+both$padj_method <- "fdr"
+
 addWorksheet(wb, "alpha_cohorts")
 writeData(wb, sheet = "alpha_cohorts", both, rowNames = FALSE)
 
@@ -1065,11 +1100,11 @@ color_legend <- function(x, y, xlen, ylen, main, tiks, colors){
   color.legend(x, y, x+xlen, y+ylen/4, legend=tiks, rect.col=colors, cex=0.8)
 }
 
-rbow <- rainbow(60, end=0.7, alpha=0.7)
+rbow <- rainbow(40, end=0.7, alpha=0.7)
 
-pdf("out/time_pca.pdf")
+pdf("out/time_beta.pdf")
 plot(coggo$pc1[coggo$Cohort!="Mothers"&coggo$Cohort!="NegativeControl"],coggo$pc2[coggo$Cohort!="Mothers"&coggo$Cohort!="NegativeControl"],main="beta diversity (phylosift edge PCA)",xlab="PC1",ylab="PC2",type="p",col=rbow[as.Date(coggo$collection_date[coggo$Cohort!="Mothers"&coggo$Cohort!="NegativeControl"])-as.Date("2017-01-29 00:00:00")])
-legvec <- c(0,15,30,45,60)
+legvec <- c(0,10,20,30,40)
 color_legend( -2.9, 4, 3.5, 1.5, "trial days:", legvec, rbow)
 dev.off()
 
@@ -1077,7 +1112,7 @@ dev.off()
 
 # timeseries within cohort 
 
-pdf("out/cohorts_pca.pdf")
+pdf("out/time_beta_cohorts.pdf") 
 par(mfrow=c(3,2), mai = c(0.4, 0.4, 0.4, 0.4))
 plot(coggo$pc1[coggo$Cohort=="Control"],
      coggo$pc2[coggo$Cohort=="Control"],
@@ -1217,11 +1252,11 @@ b <- ggplot(startDF1, aes(x=nurse, y=unrooted_pd, group=nurse)) +
         plot.subtitle = element_text(lineheight = 0.9, size=11)) +
   scale_y_continuous(limits=c(60,160))
 
-pdf("out/nurse_alpha.pdf")
-ggarrange(a, b, 
-          labels = c("A", "B"),
-          ncol = 1, nrow = 2)
-dev.off()
+#pdf("out/nurse_alpha.pdf")
+# ggarrange(a, b, 
+#           labels = c("A", "B"),
+#           ncol = 1, nrow = 2)
+#dev.off()
 
 
 ############
@@ -1252,11 +1287,11 @@ d <- ggplot(startDF1, aes(x=stig, y=unrooted_pd, group=stig)) +
   scale_y_continuous(limits=c(60,160))
 
 
-pdf("out/stig_alpha.pdf")
-ggarrange(c, d, 
-          labels = c("A", "B"),
-          ncol = 1, nrow = 2)
-dev.off()
+#pdf("out/stig_alpha.pdf")
+# ggarrange(c, d, 
+#           labels = c("A", "B"),
+#           ncol = 1, nrow = 2)
+#dev.off()
 
 
 ##################
@@ -1413,25 +1448,33 @@ my_comparisons <- list(  c("2017-01-07", "2017-01-09"),
                          c("2017-01-08", "2017-01-10"), 
                          c("2017-01-09", "2017-01-11"), 
                          c("2017-01-10", "2017-01-11") )
-pdf("out/bday_bybreed_unrooted.pdf",width=9,height=5)
-p <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "unrooted_pd",
+
+startDF2_sub <- startDF2 %>%
+  filter(!breed=="Landrace x Cross bred (LW x D)")
+startDF2_sub <- startDF2_sub %>%
+  filter(!breed=="Large white x Duroc")
+
+
+p1 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "unrooted_pd",
                color = "BIRTH_DAY", palette = "jco",
                add = "jitter",
                facet.by = "breed", short.panel.labs = FALSE) +
   theme_bw()+
   theme(axis.text.x=element_blank())+
-  ylim(50,230)
-p + stat_compare_means(comparisons = my_comparisons)
-dev.off()
-pdf("out/bday_bybreed_bwpd.pdf",width=9,height=5)
-p <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "bwpd",
+  ylim(50,230)+
+  stat_compare_means(comparisons = my_comparisons)
+
+p2 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "bwpd",
                color = "BIRTH_DAY", palette = "jco",
                add = "jitter",
                facet.by = "breed", short.panel.labs = FALSE) +
   theme_bw()+
   theme(axis.text.x=element_blank())+
-  ylim(1.6,3.4)
-p + stat_compare_means(comparisons = my_comparisons)
+  ylim(1.6,3.4)+
+  stat_compare_means(comparisons = my_comparisons)
+
+pdf("out/bday_bybreed_alpha.pdf",width=9,height=5)
+ggarrange(p1,p2,nrow=2)
 dev.off()
 
 
@@ -1467,6 +1510,21 @@ startDF1 <- merge(startDF,details, by.x="isolation_source",by.y="pig")
 startDF1 <- startDF1 %>%
   select(pc1,pc2,pc3,pc4,pc5,isolation_source,nurse,stig)
 
+theme<-theme(panel.background = element_blank(),
+             panel.border=element_rect(fill=NA),
+             panel.grid.major = element_blank(),
+             panel.grid.minor = element_blank(),
+             strip.background=element_blank(),
+             axis.title.x=element_text(colour="black",size=8),
+             axis.title.y=element_text(colour="black",size=8),
+             axis.text.x=element_text(colour="black",size=8),
+             axis.text.y=element_text(colour="black",size=8),
+             axis.ticks=element_line(colour="black"),
+             legend.position="right",
+             legend.text=element_text(size=8),
+             legend.title=element_text(size=8),
+             plot.margin=unit(c(0.3,0.3,0.3,0.3),"line"))
+
 # nurses
 
 startDF1_unique <- startDF1 %>% group_by(isolation_source) %>% slice(1)
@@ -1488,64 +1546,35 @@ startDF14 <- startDF1_unique[64:80,]
 startDF15 <- startDF1_unique[81:98,]
 startDF16 <- startDF1_unique[99:122,]
 
-moms.pca1 <- prcomp(startDF11[,1:5], center = TRUE, scale. = TRUE)
-moms.pca2 <- prcomp(startDF12[,1:5], center = TRUE, scale. = TRUE)
-moms.pca3 <- prcomp(startDF13[,1:5], center = TRUE, scale. = TRUE)
-moms.pca4 <- prcomp(startDF14[,1:5], center = TRUE, scale. = TRUE)
-moms.pca5 <- prcomp(startDF15[,1:5], center = TRUE, scale. = TRUE)
-moms.pca6 <- prcomp(startDF16[,1:5], center = TRUE, scale. = TRUE)
-
-
-nurse1 <- ggbiplot(moms.pca1, obs.scale = 1, var.scale = 1,
-                   groups = startDF11$nurse, ellipse = TRUE, circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'right',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-nurse1
-
-nurse2 <- ggbiplot(moms.pca2, obs.scale = 1, var.scale = 1,
-                   groups = startDF12$nurse, ellipse = TRUE, circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'right',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-nurse2
-
-nurse3 <- ggbiplot(moms.pca3, obs.scale = 1, var.scale = 1,
-                   groups = startDF13$nurse, ellipse = TRUE, circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'right',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-nurse3
-
-nurse4 <- ggbiplot(moms.pca4, obs.scale = 1, var.scale = 1,
-                   groups = startDF14$nurse, ellipse = TRUE, circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'right',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-nurse4
-
-nurse5 <- ggbiplot(moms.pca5, obs.scale = 1, var.scale = 1,
-                   groups = startDF15$nurse, ellipse = TRUE, circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'right',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-nurse5
-
-
-nurse6 <- ggbiplot(moms.pca6, obs.scale = 1, var.scale = 1,
-                   groups = startDF16$nurse, ellipse = TRUE, circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'right',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-nurse6
+p11<-ggplot(startDF11,aes(x=pc1,y=pc2,color=nurse ))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+p12<-ggplot(startDF12,aes(x=pc1,y=pc2,color=nurse ))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+p13<-ggplot(startDF13,aes(x=pc1,y=pc2,color=nurse ))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+p14<-ggplot(startDF14,aes(x=pc1,y=pc2,color=nurse ))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+p15<-ggplot(startDF15,aes(x=pc1,y=pc2,color=nurse ))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+p16<-ggplot(startDF16,aes(x=pc1,y=pc2,color=nurse ))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, 
+               level = 0.80)
+p16
 
 pdf("out/nurse_PC1PC2.pdf")
-grid.arrange(nurse1)
-grid.arrange(nurse2)
-grid.arrange(nurse3)
-grid.arrange(nurse4)
-grid.arrange(nurse5)
-grid.arrange(nurse6)
+grid.arrange(p11,p12,p13,p14,p15,p16, nrow=3,ncol=2)
 dev.off()
 
 ######################
@@ -1570,64 +1599,35 @@ startDF14 <- startDF1_unique[73:85,]
 startDF15 <- startDF1_unique[86:108,]
 startDF16 <- startDF1_unique[109:123,]
 
-moms.pca1 <- prcomp(startDF11[,1:5], center = TRUE, scale. = TRUE)
-moms.pca2 <- prcomp(startDF12[,1:5], center = TRUE, scale. = TRUE)
-moms.pca3 <- prcomp(startDF13[,1:5], center = TRUE, scale. = TRUE)
-moms.pca4 <- prcomp(startDF14[,1:5], center = TRUE, scale. = TRUE)
-moms.pca5 <- prcomp(startDF15[,1:5], center = TRUE, scale. = TRUE)
-moms.pca6 <- prcomp(startDF16[,1:5], center = TRUE, scale. = TRUE)
-
-
-stig1 <- ggbiplot(moms.pca1, obs.scale = 1, var.scale = 1,
-                  groups = startDF11$stig, ellipse = TRUE, circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'top',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-stig1
-
-stig2 <- ggbiplot(moms.pca2, obs.scale = 1, var.scale = 1,
-                  groups = startDF12$stig, ellipse = TRUE, circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'top',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-stig2
-
-stig3 <- ggbiplot(moms.pca3, obs.scale = 1, var.scale = 1,
-                  groups = startDF13$stig, ellipse = TRUE, circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'top',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-stig3
-
-stig4 <- ggbiplot(moms.pca4, obs.scale = 1, var.scale = 1,
-                  groups = startDF14$stig, ellipse = TRUE, circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'top',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-stig4
-
-stig5 <- ggbiplot(moms.pca5, obs.scale = 1, var.scale = 1,
-                  groups = startDF15$stig, ellipse = TRUE, circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'top',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-stig5
-
-stig6 <- ggbiplot(moms.pca6, obs.scale = 1, var.scale = 1,
-                  groups = startDF16$stig, ellipse = TRUE, circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'top',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-stig6
-
+p11<-ggplot(startDF11,aes(x=pc1,y=pc2,color=stig ))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+p12<-ggplot(startDF12,aes(x=pc1,y=pc2,color=stig ))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+p13<-ggplot(startDF13,aes(x=pc1,y=pc2,color=stig ))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+p14<-ggplot(startDF14,aes(x=pc1,y=pc2,color=stig ))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+p15<-ggplot(startDF15,aes(x=pc1,y=pc2,color=stig ))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+p16<-ggplot(startDF16,aes(x=pc1,y=pc2,color=stig ))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, 
+               level = 0.80)
+p16
 
 pdf("out/stig_PC1PC2.pdf")
-grid.arrange(stig1)
-grid.arrange(stig2)
-grid.arrange(stig3)
-grid.arrange(stig4)
-grid.arrange(stig5)
-grid.arrange(stig6)
+grid.arrange(p11,p12,p13,p14,p15,p16, nrow=3,ncol=2)
 dev.off()
 
 ##############################################
@@ -1705,35 +1705,9 @@ breed_PC5_plot <- ggboxplot(startDF2, x = "breed", y = "pc5",
   stat_compare_means(method = "kruskal.test", label.x=1, label.y=4.5)  # Add pairwise comparisons p-value
 breed_PC5_plot
 
-pdf("out/breed_PCA_bars.pdf")
+pdf("out/breed_beta.pdf")
 grid.arrange(
   breed_PC1_plot, breed_PC2_plot, breed_PC3_plot, breed_PC4_plot, breed_PC5_plot, nrow = 3, ncol=2
-)
-dev.off()
-
-# PCA breed plots
-breed_PCA <- prcomp(startDF2[,2:6], center = TRUE, scale. = TRUE)
-breedPCA12 <- ggbiplot(breed_PCA, obs.scale = 1, var.scale = 1,
-                       groups = startDF2$breed, ellipse = TRUE, choices=c(1,2), circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'right',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-breedPCA12
-breedPCA34 <- ggbiplot(breed_PCA, obs.scale = 1, var.scale = 1,
-                       groups = startDF2$breed, ellipse = TRUE, choices=c(3,4), circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'right',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-breedPCA34
-breedPCA45 <- ggbiplot(breed_PCA, obs.scale = 1, var.scale = 1,
-                       groups = startDF2$breed, ellipse = TRUE, choices=c(4,5), circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'right',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-breedPCA45
-pdf("out/breed_PCA_dots.pdf")
-grid.arrange(
-  breedPCA12, breedPCA34, breedPCA45, nrow = 3, ncol = 1
 )
 dev.off()
 
@@ -1793,36 +1767,9 @@ bday_PC5_plot <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "pc5",
   stat_compare_means(method = "kruskal.test", label.x=1, label.y=4.5)  # Add pairwise comparisons p-value
 bday_PC5_plot
 
-pdf("out/bday_PCA_bars.pdf")
+pdf("out/bday_beta.pdf")
 grid.arrange(
   bday_PC1_plot, bday_PC2_plot, bday_PC3_plot, bday_PC4_plot, bday_PC5_plot, nrow = 3, ncol=2
-)
-dev.off()
-
-# PCA bday plots
-bday_PCA <- prcomp(startDF2[,2:6], center = TRUE, scale. = TRUE)
-bdayPCA12 <- ggbiplot(breed_PCA, obs.scale = 1, var.scale = 1,
-                      groups = startDF2$BIRTH_DAY, ellipse = FALSE, choices=c(1,2), circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'right',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-bdayPCA12
-bdayPCA34 <- ggbiplot(breed_PCA, obs.scale = 1, var.scale = 1,
-                      groups = startDF2$BIRTH_DAY, ellipse = FALSE, choices=c(3,4), circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'right',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-bdayPCA34
-bdayPCA25 <- ggbiplot(breed_PCA, obs.scale = 1, var.scale = 1,
-                      groups = startDF2$BIRTH_DAY, ellipse = FALSE, choices=c(2,5), circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'right',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-bdayPCA25
-
-pdf("out/bday_PCA_dots.pdf")
-grid.arrange(
-  bdayPCA12, bdayPCA34, bdayPCA25, nrow = 3, ncol = 1
 )
 dev.off()
 
@@ -1883,40 +1830,11 @@ line_PC5_plot <- ggboxplot(startDF2, x = "LINE", y = "pc5",
   stat_compare_means(method = "kruskal.test", label.x=1, label.y=4.5)  # Add pairwise comparisons p-value
 line_PC5_plot
 
-pdf("out/line_PCA_bars.pdf")
+pdf("out/line_beta.pdf")
 grid.arrange(
   line_PC1_plot, line_PC2_plot, line_PC3_plot, line_PC4_plot, line_PC5_plot, nrow = 3, ncol=2
 )
 dev.off()
-
-
-# PCA line plots
-line_PCA <- prcomp(startDF2[,2:6], center = TRUE, scale. = TRUE)
-linePCA12 <- ggbiplot(breed_PCA, obs.scale = 1, var.scale = 1,
-                      groups = startDF2$LINE, ellipse = TRUE, choices=c(1,2), circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'right',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-linePCA12
-linePCA34 <- ggbiplot(breed_PCA, obs.scale = 1, var.scale = 1,
-                      groups = startDF2$LINE, ellipse = TRUE, choices=c(3,4), circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'right',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-linePCA34
-linePCA45 <- ggbiplot(breed_PCA, obs.scale = 1, var.scale = 1,
-                      groups = startDF2$LINE, ellipse = TRUE, choices=c(4,5), circle = TRUE) +
-  scale_color_discrete(name = '') +
-  theme(legend.position = 'right',
-        panel.background = element_rect(fill = "white", colour = "grey50"))
-linePCA45
-
-pdf("out/line_PCA_dots.pdf")
-grid.arrange(
-  linePCA12, linePCA34, linePCA45, nrow = 3, ncol = 1
-)
-dev.off()
-
 
 ##################
 
@@ -1927,118 +1845,71 @@ my_comparisons <- list(  c("2017-01-07", "2017-01-09"),
                          c("2017-01-09", "2017-01-11"), 
                          c("2017-01-10", "2017-01-11") )
 
-p1 <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "pc1",
+# need to exclude two breeds as these two breeds don't have enough
+# age groups to be plotted and compared 
+startDF2_sub <- startDF2 %>%
+  filter(!breed=="Landrace x Cross bred (LW x D)")
+startDF2_sub <- startDF2_sub %>%
+  filter(!breed=="Large white x Duroc")
+
+
+p1 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "pc1",
                 color = "BIRTH_DAY", palette = "jco",
                 add = "jitter",
                 facet.by = "breed", short.panel.labs = FALSE) +
   ylim(0,4)+
   theme_bw()+
-  theme(axis.text.x=element_blank(), legend.position = 'none')+
+  theme(axis.text.x=element_blank(), legend.position = 'right')+
   stat_compare_means(comparisons = my_comparisons)
-p2 <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "pc2",
+p2 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "pc2",
                 color = "BIRTH_DAY", palette = "jco",
                 add = "jitter",
                 facet.by = "breed", short.panel.labs = FALSE) +
   ylim(0,7)+
   theme_bw()+
-  theme(axis.text.x=element_blank(), legend.position = 'none')+
+  theme(axis.text.x=element_blank(), legend.position = 'right')+
   stat_compare_means(comparisons = my_comparisons)
-p3 <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "pc3",
+p3 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "pc3",
                 color = "BIRTH_DAY", palette = "jco",
                 add = "jitter",
                 facet.by = "breed", short.panel.labs = FALSE) +
   ylim(-2,3)+
   theme_bw()+
-  theme(axis.text.x=element_blank(), legend.position = 'none')+
+  theme(axis.text.x=element_blank(), legend.position = 'right')+
   stat_compare_means(comparisons = my_comparisons)
-p4 <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "pc4",
+p4 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "pc4",
                 color = "BIRTH_DAY", palette = "jco",
                 add = "jitter",
                 facet.by = "breed", short.panel.labs = FALSE) +
   ylim(-1,2.2)+
   theme_bw()+
-  theme(axis.text.x=element_blank(), legend.position = 'none')+
+  theme(axis.text.x=element_blank(), legend.position = 'right')+
   stat_compare_means(comparisons = my_comparisons)
-p5 <- ggboxplot(startDF2, x = "BIRTH_DAY", y = "pc5",
+p5 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "pc5",
                 color = "BIRTH_DAY", palette = "jco",
                 add = "jitter",
                 facet.by = "breed", short.panel.labs = FALSE) +
   ylim(4.7,6.6)+
   theme_bw()+
-  theme(axis.text.x=element_blank(), legend.position = 'none')+
+  theme(axis.text.x=element_blank(), legend.position = 'right')+
   stat_compare_means(comparisons = my_comparisons)
 
-pdf("out/bday_bybreed_unrooted_PCA_bars.pdf")
+pdf("out/bday_bybreed_beta.pdf")
 grid.arrange(
-  p1,p2, nrow = 1, ncol = 2
+  p1,p2, nrow = 2, ncol = 1
 )
-plot.new()
 grid.arrange(
-  p3,p4,p5, nrow = 1, ncol = 3
+  p3,p4, nrow = 2, ncol = 1
+)
+grid.arrange(
+  p5, nrow = 2, ncol = 1
 )
 dev.off()
 
 
-##############################################
+######################################################################################################
 
-# 7   # plot ALPHA & BETA diversity comparing cohorts during time
-
-
-# join alpha and beta div DFs
-# remember we have not done this before because PCA dataframe is missing some samples 
-# the pos controls: 
-
-NROW(boggo)
-unique(boggo$Cohort)
-NROW(coggo)
-unique(coggo$Cohort)
-# and 12 piglet samples
-
-# we don't care as what follows is a comparison of the pig cohorts
-finalDF <- inner_join(boggo,coggo)
-NROW(finalDF)
-
-finalDF$PigPen <- NULL
-
-# rename the cohorts to shorter names
-
-finalDF[11] <- lapply(
-  finalDF[11], 
-  gsub, 
-  pattern = "Neomycin+D-scour", 
-  replacement = "Neo+D", 
-  fixed = TRUE)
-finalDF[11] <- lapply(
-  finalDF[11], 
-  gsub, 
-  pattern = "Neomycin+ColiGuard", 
-  replacement = "Neo+C", 
-  fixed = TRUE)
-finalDF[11] <- lapply(
-  finalDF[11], 
-  gsub, 
-  pattern = "Neomycin", 
-  replacement = "Neo", 
-  fixed = TRUE)
-
-# reorder
-finalDF$Cohort <- factor(finalDF$Cohort, 
-                       levels=c("Control", 
-                                "D-scour", 
-                                "ColiGuard",
-                                "Neo",
-                                "Neo+D",
-                                "Neo+C"))
-
-# Plot
-# finalDF cohorts - finalDF values - by time interval 
-
-my_comparisons = list( c("Control", "D-scour"), 
-                        c("Control", "ColiGuard"),
-                        c("Neo", "Neo+D"),
-                        c("Neo", "Neo+C"),
-                        c("Control", "Neo") )
-
+# DELTAS
 
 #font size for pvalues 
 your_font_size <- 2 # 4 fine for tiff
@@ -2052,1266 +1923,696 @@ My_Theme = theme(
   axis.title.y = element_text(size = 9)) # 11 for tiff
 # to plot the pdfs rather than the tiffs, decrease size by 2
 
+# filtering out piglets that had dysentery
+boggo1 <- boggo %>%
+  filter(!isolation_source=="29665"|isolation_source=="29865"|isolation_source=="29702")
 
-############################### t1 ############################### 
+pigs_1 <- boggo1 %>%
+  filter(collection_date == "2017-01-31"|collection_date == "2017-02-01") %>%
+  select(isolation_source,Cohort,collection_date,unrooted_pd,bwpd)
+NROW(pigs_1)
 
-toggo <- finalDF %>% filter(
-  collection_date == "2017-01-31" |
-    collection_date == "2017-02-01" ) 
+hist(pigs_1$unrooted_pd)
+hist(pigs_1$bwpd)
 
-# unrooted
-unroo <- ggboxplot(toggo, x = "Cohort", y = "unrooted_pd", color = "Cohort", 
-                   legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(5,250)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$unrooted_pd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
+# unrooted_pd has low values indicative of spurious sample. 
+# remove those rows
+pigs_1 <- pigs_1 %>%
+  filter(!unrooted_pd < 25)
 
-# bwpd
-bw <- ggboxplot(toggo, x = "Cohort", y = "bwpd", color = "Cohort", 
+###########################
+
+pigs_2 <- boggo1 %>%
+  filter(collection_date == "2017-02-06"|collection_date == "2017-02-07") %>%
+  select(isolation_source,Cohort,collection_date,unrooted_pd,bwpd)
+NROW(pigs_2)
+
+hist(pigs_2$unrooted_pd)
+hist(pigs_2$bwpd)
+
+# unrooted_pd has low values indicative of spurious sample. 
+# remove those rows
+pigs_2 <- pigs_2 %>%
+  filter(!unrooted_pd < 25)
+
+###########################
+
+pigs_3 <- boggo1 %>%
+  filter(collection_date == "2017-02-14") %>%
+  select(isolation_source,Cohort,collection_date,unrooted_pd,bwpd)
+NROW(pigs_3)
+
+hist(pigs_3$unrooted_pd)
+hist(pigs_3$bwpd)
+
+###########################
+
+pigs_4 <- boggo1 %>%
+  filter(collection_date == "2017-02-21") %>%
+  select(isolation_source,Cohort,collection_date,unrooted_pd,bwpd)
+NROW(pigs_4)
+
+hist(pigs_4$unrooted_pd)
+hist(pigs_4$bwpd)
+
+# unrooted_pd has low values indicative of spurious sample. 
+# remove those rows
+pigs_4 <- pigs_4 %>%
+  filter(!unrooted_pd < 25)
+
+###########################
+
+pigs_5 <- boggo1 %>%
+  filter(collection_date == "2017-02-28") %>%
+  select(isolation_source,Cohort,collection_date,unrooted_pd,bwpd)
+NROW(pigs_5)
+
+hist(pigs_5$unrooted_pd)
+hist(pigs_5$bwpd)
+
+
+##############################################################################
+
+# Ja31 vs Fe7
+
+df1 <- merge(pigs_1,pigs_2, by=c("isolation_source"))
+NROW(df1)
+
+# pivot long
+df1 <- df1 %>%
+  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
+  group_by(isolation_source) %>% slice(1) %>%
+  arrange(Cohort.x, isolation_source)
+
+# does it look right? proof 1: 
+test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
+test
+
+# does it look right? proof 2:
+test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
+test
+which(test$Freq!=1)
+
+head(df1)
+
+df1$diff_unroo = df1$unrooted_pd.y-df1$unrooted_pd.x
+df1$diff_bw = df1$bwpd.y-df1$bwpd.x
+
+NROW(unique(df1$isolation_source))
+
+# reorder
+df1$Cohort.x <- factor(df1$Cohort.x, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+a1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(1.5,3.5)+
   My_Theme+
-  geom_hline(yintercept = mean(toggo$bwpd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 1.5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
+  ylab("delta unrooted PD")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size)
 
-# pc1
-pc1 <- ggboxplot(toggo, x = "Cohort", y = "pc1", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(0,4.8)+
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+a2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
+                legend = "none") +
   My_Theme+
-  geom_hline(yintercept = mean(toggo$pc1), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 0, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
+  ylab("delta BWPD")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
 
-# pc2
-pc2 <- ggboxplot(toggo, x = "Cohort", y = "pc2", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(0,6.5)+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Ja31_vs_Fe7"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Ja31_vs_Fe7"
+res2$type <- "bwpd"
+A <- rbind(res1,res2)
+
+##############################################################################
+
+
+df1 <- merge(pigs_2,pigs_3, by=c("isolation_source"))
+NROW(df1)
+
+# pivot long
+df1 <- df1 %>%
+  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
+  group_by(isolation_source) %>% slice(1) %>%
+  arrange(Cohort.x, isolation_source)
+
+# does it look right? proof 1: 
+test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
+test
+
+# does it look right? proof 2:
+test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
+test
+which(test$Freq!=1)
+
+head(df1)
+
+df1$diff_unroo = df1$unrooted_pd.y-df1$unrooted_pd.x
+df1$diff_bw = df1$bwpd.y-df1$bwpd.x
+
+NROW(unique(df1$isolation_source))
+
+# reorder
+df1$Cohort.x <- factor(df1$Cohort.x, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+b1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
+                legend = "none") +
   My_Theme+
-  geom_hline(yintercept = mean(toggo$pc2), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 0, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
+  ylab("delta unrooted PD")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
 
-# pc3
-pc3 <- ggboxplot(toggo, x = "Cohort", y = "pc3", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-2,3.4)+
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+b2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
+                legend = "none") +
   My_Theme+
-  geom_hline(yintercept = mean(toggo$pc3), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -2, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
+  ylab("delta BWPD")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size)
+b2
 
-# pc4
-pc4 <- ggboxplot(toggo, x = "Cohort", y = "pc4", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-1.5,2.6)+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Fe7_vs_Fe14"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Fe7_vs_Fe14"
+res2$type <- "bwpd"
+B <- rbind(res1,res2)
+
+##############################################################################
+
+
+df1 <- merge(pigs_3,pigs_4, by=c("isolation_source"))
+NROW(df1)
+
+# pivot long
+df1 <- df1 %>%
+  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
+  group_by(isolation_source) %>% slice(1) %>%
+  arrange(Cohort.x, isolation_source)
+
+# does it look right? proof 1: 
+test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
+test
+
+# does it look right? proof 2:
+test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
+test
+which(test$Freq!=1)
+
+head(df1)
+
+df1$diff_unroo = df1$unrooted_pd.y-df1$unrooted_pd.x
+df1$diff_bw = df1$bwpd.y-df1$bwpd.x
+
+NROW(unique(df1$isolation_source))
+
+# reorder
+df1$Cohort.x <- factor(df1$Cohort.x, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+c1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
+                legend = "none") +
   My_Theme+
-  geom_hline(yintercept = mean(toggo$pc4), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -1.5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
+  ylab("delta unrooted PD")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
 
-# pc5
-pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(5,7.2)+
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+c2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
+                legend = "none") +
   My_Theme+
-  geom_hline(yintercept = mean(toggo$pc5), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
+  ylab("delta BWPD")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
 
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Fe14_vs_Fe21"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Fe14_vs_Fe21"
+res2$type <- "bwpd"
+C <- rbind(res1,res2)
+
+##############################################################################
+
+
+df1 <- merge(pigs_4,pigs_5, by=c("isolation_source"))
+NROW(df1)
+
+# pivot long
+df1 <- df1 %>%
+  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
+  group_by(isolation_source) %>% slice(1) %>%
+  arrange(Cohort.x, isolation_source)
+
+# does it look right? proof 1: 
+test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
+test
+
+# does it look right? proof 2:
+test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
+test
+which(test$Freq!=1)
+
+head(df1)
+
+df1$diff_unroo = df1$unrooted_pd.y-df1$unrooted_pd.x
+df1$diff_bw = df1$bwpd.y-df1$bwpd.x
+
+NROW(unique(df1$isolation_source))
+
+# reorder
+df1$Cohort.x <- factor(df1$Cohort.x, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+d1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylab("delta unrooted PD")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+d2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylab("delta BWPD")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Fe21_vs_Fe28"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Fe21_vs_Fe28"
+res2$type <- "bwpd"
+D <- rbind(res1,res2)
+
+##############################################################################
+
+
+# test if the change with 2 weeks intervals is significantly different among cohorts
+
+# beginning (Ja31) vs Fe14
+
+df1 <- merge(pigs_1,pigs_3, by=c("isolation_source"))
+NROW(df1)
+
+# pivot long
+df1 <- df1 %>%
+  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
+  group_by(isolation_source) %>% slice(1) %>%
+  arrange(Cohort.x, isolation_source)
+
+# does it look right? proof 1: 
+test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
+test
+
+# does it look right? proof 2:
+test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
+test
+which(test$Freq!=1)
+
+head(df1)
+
+df1$diff_unroo = df1$unrooted_pd.y-df1$unrooted_pd.x
+df1$diff_bw = df1$bwpd.y-df1$bwpd.x
+
+NROW(unique(df1$isolation_source))
+
+# reorder
+df1$Cohort.x <- factor(df1$Cohort.x, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+e1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylab("delta unrooted PD")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+e2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylab("delta BWPD")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Ja31_vs_Fe14"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Ja31_vs_Fe14"
+res2$type <- "bwpd"
+E <- rbind(res1,res2)
+
+
+# Fe7 vs Fe21
+
+df1 <- merge(pigs_2,pigs_4, by=c("isolation_source"))
+NROW(df1)
+
+# pivot long
+df1 <- df1 %>%
+  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
+  group_by(isolation_source) %>% slice(1) %>%
+  arrange(Cohort.x, isolation_source)
+
+# does it look right? proof 1: 
+test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
+test
+
+# does it look right? proof 2:
+test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
+test
+which(test$Freq!=1)
+
+head(df1)
+
+df1$diff_unroo = df1$unrooted_pd.y-df1$unrooted_pd.x
+df1$diff_bw = df1$bwpd.y-df1$bwpd.x
+
+NROW(unique(df1$isolation_source))
+
+# reorder
+df1$Cohort.x <- factor(df1$Cohort.x, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+f1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylab("delta unrooted PD")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+f2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylab("delta BWPD")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Fe7_vs_Fe21"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Fe7_vs_Fe21"
+res2$type <- "bwpd"
+FF <- rbind(res1,res2)
+
+# Fe14 vs Fe28
+
+df1 <- merge(pigs_3,pigs_5, by=c("isolation_source"))
+NROW(df1)
+
+# pivot long
+df1 <- df1 %>%
+  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
+  group_by(isolation_source) %>% slice(1) %>%
+  arrange(Cohort.x, isolation_source)
+
+# does it look right? proof 1: 
+test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
+test
+
+# does it look right? proof 2:
+test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
+test
+which(test$Freq!=1)
+
+head(df1)
+
+df1$diff_unroo = df1$unrooted_pd.y-df1$unrooted_pd.x
+df1$diff_bw = df1$bwpd.y-df1$bwpd.x
+
+NROW(unique(df1$isolation_source))
+
+# reorder
+df1$Cohort.x <- factor(df1$Cohort.x, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+g1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylab("delta unrooted PD")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+g2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylab("delta BWPD")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Fe14_vs_Fe28"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Fe14_vs_Fe28"
+res2$type <- "bwpd"
+G <- rbind(res1,res2)
 
 # this is for extracting the legend 
-for_legend_only <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort", 
+for_legend_only <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
                              legend = "right")+
+  scale_color_manual(labels = c("Control", 
+                                "D-scour",
+                                "ColiGuard",
+                                "Neo",
+                                "Neo+D",
+                                "Neo+C"), 
+                     values = c("#F8766D", 
+                                "#B79F00",
+                                "#00BA38",
+                                "#00BFC4",
+                                "#619CFF",
+                                "#F564E3")) +
+  guides(color=guide_legend("Cohort")) +
   My_Theme
 leg <- get_legend(for_legend_only)
 
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
+
+all_plots <- plot_grid(NULL, NULL, NULL, NULL, 
+                       a1,b1,c1,d1,e1,f1,g1, leg, nrow = 3, 
+                       labels = c("", "", "","", "A", "B", "C", "D", "E", "F", "G", ""),
                        ncol = 4)
 
-pdf("out/cohorts_t1.pdf")
+pdf("out/cohorts_deltas_unrooted.pdf")
 ggdraw() +
-  draw_image(timeline_31_Jan, x = 0, y = 0.12) +
+  draw_image(timeline_deltas, x = 0, y = 0.16) +
   draw_plot(all_plots)
 dev.off()
 
 
-############################### t2.1 ############################### 
-
-toggo <- finalDF %>% filter(
-  collection_date == "2017-02-03" ) 
-
-# unrooted
-unroo <- ggboxplot(toggo, x = "Cohort", y = "unrooted_pd", color = "Cohort", 
-                   legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(5,230)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$unrooted_pd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-
-# bwpd
-bw <- ggboxplot(toggo, x = "Cohort", y = "bwpd", color = "Cohort", 
-                legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(1.7,4)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$bwpd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 1.7, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-
-# pc1
-pc1 <- ggboxplot(toggo, x = "Cohort", y = "pc1", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(0,4.8)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc1), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 0, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-
-# pc2
-pc2 <- ggboxplot(toggo, x = "Cohort", y = "pc2", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(0,7.2)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc2), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 0, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-
-# pc3
-pc3 <- ggboxplot(toggo, x = "Cohort", y = "pc3", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-2,3.4)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc3), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -2, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-
-# pc4
-pc4 <- ggboxplot(toggo, x = "Cohort", y = "pc4", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-1.5,1.4)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc4), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -1.5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-
-# pc5
-pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(5,7.7)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc5), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
+all_plots <- plot_grid(NULL, NULL, NULL, NULL, 
+                       a2,b2,c2,d2,e2,f2,g2, leg, nrow = 3, 
+                       labels = c("", "", "","", "A", "B", "C", "D", "E", "F", "G", ""),
                        ncol = 4)
 
-pdf("out/cohorts_t2.1.pdf")
+pdf("out/cohorts_deltas_bwpd.pdf")
 ggdraw() +
-  draw_image(timeline_3_Feb, x = 0, y = 0.12) +
+  draw_image(timeline_deltas, x = 0, y = 0.16) +
   draw_plot(all_plots)
 dev.off()
 
-
-############################### t2.2 ############################### 
-
-toggo <- finalDF %>% filter(
-  collection_date == "2017-02-07" )
-
-# unrooted
-unroo <- ggboxplot(toggo, x = "Cohort", y = "unrooted_pd", color = "Cohort", 
-                   legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(0,260)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$unrooted_pd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 0, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-
-# bwpd
-bw <- ggboxplot(toggo, x = "Cohort", y = "bwpd", color = "Cohort", 
-                legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(1.7,3.5)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$bwpd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 1.7, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-
-# pc1
-pc1 <- ggboxplot(toggo, x = "Cohort", y = "pc1", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-1,4.8)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc1), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -1, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-
-# pc2
-pc2 <- ggboxplot(toggo, x = "Cohort", y = "pc2", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(0,5.6)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc2), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 0, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-
-# pc3
-pc3 <- ggboxplot(toggo, x = "Cohort", y = "pc3", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-2,3)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc3), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -2, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-
-# pc4
-pc4 <- ggboxplot(toggo, x = "Cohort", y = "pc4", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-1.5,1.8)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc4), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -1.5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-
-# pc5
-pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(5,7.1)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc5), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
-                       ncol = 4)
-
-pdf("out/cohorts_t2.2.pdf")
-ggdraw() +
-  draw_image(timeline_7_Feb, x = 0, y = 0.12) +
-  draw_plot(all_plots)
-dev.off()
-
-############################### t3.1 ############################### 
-
-toggo <- finalDF %>% filter(
-  collection_date == "2017-02-10" )
-
-# unrooted
-unroo <- ggboxplot(toggo, x = "Cohort", y = "unrooted_pd", color = "Cohort", 
-                   legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(5,250)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$unrooted_pd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-unroo
-# bwpd
-bw <- ggboxplot(toggo, x = "Cohort", y = "bwpd", color = "Cohort", 
-                legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(1.7,2.8)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$bwpd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 1.7, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-bw
-# pc1
-pc1 <- ggboxplot(toggo, x = "Cohort", y = "pc1", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-3,5)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc1), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -3, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc1
-# pc2
-pc2 <- ggboxplot(toggo, x = "Cohort", y = "pc2", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(0,4.7)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc2), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 0, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc2
-# pc3
-pc3 <- ggboxplot(toggo, x = "Cohort", y = "pc3", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-2,2.2)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc3), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -2, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc3
-# pc4
-pc4 <- ggboxplot(toggo, x = "Cohort", y = "pc4", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-1.5,1)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc4), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -1.5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc4
-# pc5
-pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(5.5,6.7)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc5), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 5.5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc5
-
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
-                       ncol = 4)
-
-pdf("out/cohorts_t3.1.pdf")
-ggdraw() +
-  draw_image(timeline_10_Feb, x = 0, y = 0.12) +
-  draw_plot(all_plots)
-dev.off()
-
-
-############################### t3.2 ############################### 
-
-toggo <- finalDF %>% filter(
-  collection_date == "2017-02-14" )
-
-# unrooted
-unroo <- ggboxplot(toggo, x = "Cohort", y = "unrooted_pd", color = "Cohort", 
-                   legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(50,230)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$unrooted_pd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 50, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-unroo
-# bwpd
-bw <- ggboxplot(toggo, x = "Cohort", y = "bwpd", color = "Cohort", 
-                legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(1.7,2.7)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$bwpd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 1.7, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-bw
-# pc1
-pc1 <- ggboxplot(toggo, x = "Cohort", y = "pc1", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-2,5)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc1), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -2, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc1
-# pc2
-pc2 <- ggboxplot(toggo, x = "Cohort", y = "pc2", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(0.5,5)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc2), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 0.5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc2
-# pc3
-pc3 <- ggboxplot(toggo, x = "Cohort", y = "pc3", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  #ylim(-2,1.2)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc3), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -2, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc3
-# pc4
-pc4 <- ggboxplot(toggo, x = "Cohort", y = "pc4", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-1.7,1.2)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc4), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -1.7, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc4
-# pc5
-pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(5,6.8)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc5), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 5.5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc5
-
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
-                       ncol = 4)
-
-pdf("out/cohorts_t3.2.pdf")
-ggdraw() +
-  draw_image(timeline_14_Feb, x = 0, y = 0.12) +
-  draw_plot(all_plots)
-dev.off()
-
-############################### t4 ############################### 
-
-toggo <- finalDF %>% filter(
-  collection_date == "2017-02-16" |
-    collection_date == "2017-02-17" |
-    collection_date == "2017-02-21" )
-
-# unrooted
-unroo <- ggboxplot(toggo, x = "Cohort", y = "unrooted_pd", color = "Cohort", 
-                   legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(50,220)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$unrooted_pd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 50, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-unroo
-# bwpd
-bw <- ggboxplot(toggo, x = "Cohort", y = "bwpd", color = "Cohort", 
-                legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(1.7,2.8)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$bwpd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 1.7, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-bw
-# pc1
-pc1 <- ggboxplot(toggo, x = "Cohort", y = "pc1", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-2,4.5)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc1), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -2, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc1
-# pc2
-pc2 <- ggboxplot(toggo, x = "Cohort", y = "pc2", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  #ylim(1,5.8)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc2), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 1, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc2
-# pc3
-pc3 <- ggboxplot(toggo, x = "Cohort", y = "pc3", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  #ylim(-2,1.2)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc3), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -2, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc3
-# pc4
-pc4 <- ggboxplot(toggo, x = "Cohort", y = "pc4", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-1.5,1.3)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc4), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -1.5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc4
-# pc5
-pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(5,7)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc5), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc5
-
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
-                       ncol = 4)
-
-pdf("out/cohorts_t4.pdf")
-ggdraw() +
-  draw_image(timeline_17_21_Feb, x = 0, y = 0.12) +
-  draw_plot(all_plots)
-dev.off()
-
-############################### t5 ############################### 
-
-toggo <- finalDF %>% filter(
-  collection_date == "2017-02-24" |
-    collection_date == "2017-02-28" )
-
-# unrooted
-unroo <- ggboxplot(toggo, x = "Cohort", y = "unrooted_pd", color = "Cohort", 
-                   legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(75,180)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$unrooted_pd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 75, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-unroo
-# bwpd
-bw <- ggboxplot(toggo, x = "Cohort", y = "bwpd", color = "Cohort", 
-                legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  #ylim(1.7,2.8)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$bwpd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 1.7, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-bw
-# pc1
-pc1 <- ggboxplot(toggo, x = "Cohort", y = "pc1", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-2,4.7)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc1), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -2, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc1
-# pc2
-pc2 <- ggboxplot(toggo, x = "Cohort", y = "pc2", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(1,5.8)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc2), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 1, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc2
-# pc3
-pc3 <- ggboxplot(toggo, x = "Cohort", y = "pc3", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-2,1.1)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc3), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -2, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc3
-# pc4
-pc4 <- ggboxplot(toggo, x = "Cohort", y = "pc4", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-1.5,2)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc4), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -1.5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc4
-# pc5
-pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(5,7)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc5), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc5
-
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
-                       ncol = 4)
-
-pdf("out/cohorts_t5.pdf")
-ggdraw() +
-  draw_image(timeline_24_28_Feb, x = 0, y = 0.12) +
-  draw_plot(all_plots)
-dev.off()
-
-############################### t6 ############################### 
-
-toggo <- finalDF %>% filter(
-  collection_date == "2017-03-03" |
-    collection_date == "2017-03-06" |
-    collection_date == "2017-03-07" |
-    collection_date == "2017-03-08" |
-    collection_date == "2017-03-09" |
-    collection_date == "2017-03-10" )
-
-# unrooted
-unroo <- ggboxplot(toggo, x = "Cohort", y = "unrooted_pd", color = "Cohort", 
-                   legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(75,180)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$unrooted_pd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 75, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-unroo
-# bwpd
-bw <- ggboxplot(toggo, x = "Cohort", y = "bwpd", color = "Cohort", 
-                legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  #ylim(1.7,2.5)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$bwpd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 1.7, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-bw
-# pc1
-pc1 <- ggboxplot(toggo, x = "Cohort", y = "pc1", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-2,4.2)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc1), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -2, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc1
-# pc2
-pc2 <- ggboxplot(toggo, x = "Cohort", y = "pc2", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(2,5.5)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc2), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 2, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc2
-# pc3
-pc3 <- ggboxplot(toggo, x = "Cohort", y = "pc3", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-1,0.6)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc3), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -1, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc3
-# pc4
-pc4 <- ggboxplot(toggo, x = "Cohort", y = "pc4", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  #ylim(-1.2,1.8)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc4), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = -1.2, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc4
-# pc5
-pc5 <- ggboxplot(toggo, x = "Cohort", y = "pc5", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(5,6.8)+
-  My_Theme+
-  geom_hline(yintercept = mean(toggo$pc5), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(comparisons = my_comparisons, size = your_font_size) +
-  stat_compare_means(method = "anova", label.y = 5, size = your_font_size) +        # Add global annova p-value
-  stat_compare_means(label = "p.signif", method = "t.test",
-                     ref.group = ".all.", hide.ns = TRUE, size = your_font_size)      # Pairwise comparison against all
-pc5
-
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, unroo, bw, pc1, pc2, pc3, pc4, pc5, leg, nrow = 3, 
-                       labels = c("A", "", "","", "B", "C", "D", "E", "F", "G", "H", ""),
-                       ncol = 4)
-
-pdf("out/cohorts_t6.pdf")
-ggdraw() +
-  draw_image(timeline_3_10_Mar, x = 0, y = 0.12) +
-  draw_plot(all_plots)
-dev.off()
-
-# find out plot colors to be replicated in the timeline
-scales::show_col(scales::hue_pal()(6))
+# gather stats of the deltas: 
+deltas_stats <- rbind(A,B,C,D,E,FF,G)
+# convert rownames to first column
+deltas_stats <- setDT(deltas_stats, keep.rownames = TRUE)[]
+deltas_stats$padj_method <- "BH"
+# add data to workbook 
+addWorksheet(wb, "deltas_stats")
+writeData(wb, sheet = "deltas_stats", deltas_stats, rowNames = FALSE)
 
 ######################################################################################################
 
-# same but using facets. Looking at one measurement (unrooted, bwpd, etc)
-# at a time
-# separating by time intervals
+# distribution of breeds, birth days across cohorts
 
+finalDF <- inner_join(boggo,coggo)
+NROW(finalDF)
 
-df <- finalDF
+df <- merge(finalDF,details, by.x="isolation_source",by.y="pig")
 head(df)
-# rename collection dates to time intervals 
-# iM <- "2017-01-30"
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-01-30", 
-  replacement = "iM", 
-  fixed = TRUE)
-# i0 <- "2017-01-31" "2017-02-01" 
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-01-31", 
-  replacement = "i1", 
-  fixed = TRUE)
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-02-01", 
-  replacement = "i1", 
-  fixed = TRUE)
 
-# i1 <- "2017-02-03" 
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-02-03", 
-  replacement = "i2.1", 
-  fixed = TRUE)
+# distribution of breeds and bdays across cohorts
+df1 <- setDT(df)[, .(Freq = .N), by = .(BIRTH_DAY,breed,Cohort)]
+df1[order(df1$breed)]
 
-# i2 <- "2017-02-06" "2017-02-07" "2017-02-08"
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-02-06", 
-  replacement = "i2.2", 
-  fixed = TRUE)
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-02-07", 
-  replacement = "i2.2", 
-  fixed = TRUE)
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-02-08", 
-  replacement = "i2.2", 
-  fixed = TRUE)
+p1 <- ggplot(df1, aes(fill=BIRTH_DAY, y=Freq, x=Cohort)) + 
+  geom_bar(position="stack", stat="identity")+
+  theme(legend.position="none")+
+  facet_wrap(.~breed,scales="free")
+p1
 
-# i3 <- "2017-02-10" 
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-02-10", 
-  replacement = "i3.1", 
-  fixed = TRUE)
+# distribution of Cohorts across bdays
+df1 <- setDT(df)[, .(Freq = .N), by = .(Cohort,BIRTH_DAY)]
+df1[order(df1$Cohort)]
 
-# i4 <- "2017-02-14"
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-02-14", 
-  replacement = "i3.2", 
-  fixed = TRUE)
+p2 <- ggplot(df1, aes(fill=sort(BIRTH_DAY), y=Freq, x=Cohort)) + 
+  geom_bar(position="stack", stat="identity")+
+  labs(x = "Cohort",
+       y = "number of samples",
+       fill = "birth day") +
+  theme_bw()+
+  theme(legend.position="right",
+        axis.text.x=element_text(angle=45, hjust=1),
+        legend.title=element_text(),
+        axis.title.y=element_text())
+p2
 
-# i4 <- "2017-02-16" "2017-02-17" 
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-02-16", 
-  replacement = "i4", 
-  fixed = TRUE)
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-02-17", 
-  replacement = "i4", 
-  fixed = TRUE)
-
-# i6 <- "2017-02-21" 
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-02-21", 
-  replacement = "i4", 
-  fixed = TRUE)
-
-# i7 <- "2017-02-24" 
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-02-24", 
-  replacement = "i5", 
-  fixed = TRUE)
-
-# i8 <- "2017-02-28" 
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-02-28", 
-  replacement = "i5", 
-  fixed = TRUE)
-
-# i9 <- "2017-03-03" 
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-03-03", 
-  replacement = "i6", 
-  fixed = TRUE)
-
-# i10 <- "2017-03-06" "2017-03-07" "2017-03-08" "2017-03-09" "2017-03-10"
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-03-06", 
-  replacement = "i6", 
-  fixed = TRUE)
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-03-07", 
-  replacement = "i6", 
-  fixed = TRUE)
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-03-08", 
-  replacement = "i6", 
-  fixed = TRUE)
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-03-09", 
-  replacement = "i6", 
-  fixed = TRUE)
-df[10] <- lapply(
-  df[10], 
-  gsub, 
-  pattern = "2017-03-10", 
-  replacement = "i6",  
-  fixed = TRUE)
-
-df <- na.omit(df, cols = c("Cohort","collection_date"))
-NROW(df)
-
-#font size for pvalues 
-your_font_size <- 3
-
-# other fonts
-My_Theme = theme(
-  axis.title.x = element_blank(),
-  axis.text.x = element_blank(),
-  axis.text.y = element_text(size = 7),
-  axis.title.y = element_text(size = 9))
-
-# unrooted
-rep(seq(130,160,length.out=15),8) # deciding y.pos for signif values
-stat.test <- df %>%
-  group_by(collection_date) %>%
-  t_test(unrooted_pd ~ Cohort) %>%
-  adjust_pvalue(method="fdr") %>%
-  mutate(y.position=rep(seq(130,160,length.out=15),8))
-# any significant? 
-NROW(which(stat.test$p.adj.signif != "ns"))
-unroo <- ggboxplot(df, x = "Cohort", y = "unrooted_pd", color = "Cohort", 
-                   legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(40,200)+
-  facet_wrap(~collection_date)+
-  My_Theme+
-  geom_hline(yintercept = mean(df$unrooted_pd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(method = "anova", label.y = 40, size = your_font_size) +
-  stat_pvalue_manual(stat.test, label = "p.adj",
-                     hide.ns=TRUE,
-                     bracket.size = 0.3,
-                     size = your_font_size)
-unroo
-
-# bwpd
-rep(seq(2.5,3,length.out=15),8) # deciding y.pos for signif values
-stat.test <- df %>%
-  group_by(collection_date) %>%
-  t_test(bwpd ~ Cohort) %>%
-  adjust_pvalue(method="fdr") %>%
-  mutate(y.position=rep(seq(2.5,3,length.out=15),8))
-# any significant? 
-NROW(which(stat.test$p.adj.signif != "ns"))
-bw <- ggboxplot(df, x = "Cohort", y = "bwpd", color = "Cohort", 
-                legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(1,3.3)+
-  facet_wrap(~collection_date)+
-  My_Theme+
-  geom_hline(yintercept = mean(df$bwpd), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(method = "anova", label.y = 1, size = your_font_size) +
-  stat_pvalue_manual(stat.test, label = "p.adj",
-                     hide.ns=TRUE,
-                     bracket.size = 0.3,
-                     size = your_font_size)
-bw
-
-# pc1
-rep(seq(2.5,4,length.out=15),8) # deciding y.pos for signif values
-stat.test <- df %>%
-  group_by(collection_date) %>%
-  t_test(pc1 ~ Cohort) %>%
-  adjust_pvalue(method="fdr") %>%
-  mutate(y.position=rep(seq(2.5,4,length.out=15),8))
-# any significant? 
-NROW(which(stat.test$p.adj.signif != "ns"))
-pc1 <- ggboxplot(df, x = "Cohort", y = "pc1", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-2,4)+
-  facet_wrap(~collection_date)+
-  My_Theme+
-  geom_hline(yintercept = mean(df$pc1), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(method = "anova", label.y = -2, size = your_font_size) +
-  stat_pvalue_manual(stat.test, label = "p.adj",
-                     hide.ns=TRUE,
-                     bracket.size = 0.3,
-                     size = your_font_size)
-pc1
-
-# pc2
-rep(seq(3.5,4.5,length.out=15),8) # deciding y.pos for signif values
-stat.test <- df %>%
-  group_by(collection_date) %>%
-  t_test(pc2 ~ Cohort) %>%
-  adjust_pvalue(method="fdr") %>%
-  mutate(y.position=rep(seq(3,4,length.out=15),8))
-# any significant? 
-NROW(which(stat.test$p.adj.signif != "ns"))
-pc2 <- ggboxplot(df, x = "Cohort", y = "pc2", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(0,4.5)+
-  facet_wrap(~collection_date)+
-  My_Theme+
-  geom_hline(yintercept = mean(df$pc2), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(method = "anova", label.y = 0, size = your_font_size) +
-  stat_pvalue_manual(stat.test, label = "p.adj",
-                     hide.ns=TRUE,
-                     bracket.size = 0.3,
-                     size = your_font_size)
-pc2
-
-# pc3
-rep(seq(0.8,1.2,length.out=15),8) # deciding y.pos for signif values
-stat.test <- df %>%
-  group_by(collection_date) %>%
-  t_test(pc3 ~ Cohort) %>%
-  adjust_pvalue(method="fdr") %>%
-  mutate(y.position=rep(seq(0.8,1.2,length.out=15),8))
-# any significant? 
-NROW(which(stat.test$p.adj.signif != "ns"))
-pc3 <- ggboxplot(df, x = "Cohort", y = "pc3", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-2,1.5)+
-  facet_wrap(~collection_date)+
-  My_Theme+
-  geom_hline(yintercept = mean(df$pc3), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(method = "anova", label.y = -2, size = your_font_size) +
-  stat_pvalue_manual(stat.test, label = "p.adj",
-                     hide.ns=TRUE,
-                     bracket.size = 0.3,
-                     size = your_font_size)
-pc3
-
-# pc4
-rep(seq(0.5,1.2,length.out=15),8) # deciding y.pos for signif values
-stat.test <- df %>%
-  group_by(collection_date) %>%
-  t_test(pc4 ~ Cohort) %>%
-  adjust_pvalue(method="fdr") %>%
-  mutate(y.position=rep(seq(0.5,1.2,length.out=15),8))
-# any significant? 
-NROW(which(stat.test$p.adj.signif != "ns"))
-pc4 <- ggboxplot(df, x = "Cohort", y = "pc4", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(-1.5,1.5)+
-  facet_wrap(~collection_date)+
-  My_Theme+
-  geom_hline(yintercept = mean(df$pc4), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(method = "anova", label.y = -1.5, size = your_font_size) +
-  stat_pvalue_manual(stat.test, label = "p.adj",
-                     hide.ns=TRUE,
-                     bracket.size = 0.3,
-                     size = your_font_size)
-pc4
-
-# pc5
-rep(seq(6.3,6.8,length.out=15),8) # deciding y.pos for signif values
-stat.test <- df %>%
-  group_by(collection_date) %>%
-  t_test(pc5 ~ Cohort) %>%
-  adjust_pvalue(method="fdr") %>%
-  mutate(y.position=rep(seq(6.3,6.8,length.out=15),8))
-# any significant? 
-NROW(which(stat.test$p.adj.signif != "ns"))
-pc5 <- ggboxplot(df, x = "Cohort", y = "pc5", color = "Cohort", 
-                 legend = "none") +
-  geom_jitter(aes(colour = Cohort, x = Cohort), 
-              position = position_jitter(width = .2), alpha = 1, size=0.7)+
-  ylim(4.5,7)+
-  facet_wrap(~collection_date)+
-  My_Theme+
-  geom_hline(yintercept = mean(df$pc5), linetype = 2)+ # Add horizontal line at base mean
-  stat_compare_means(method = "anova", label.y = 4.5, size = your_font_size) +
-  stat_pvalue_manual(stat.test, label = "p.adj",
-                     hide.ns=TRUE,
-                     bracket.size = 0.3,
-                     size = your_font_size)
-pc5
-
-
-pdf("out/cohorts_by_interval.pdf")
-grid.arrange(unroo)
-grid.arrange(bw)
-grid.arrange(pc1)
-grid.arrange(pc2)
-grid.arrange(pc3)
-grid.arrange(pc4)
-grid.arrange(pc5)
+pdf("out/distribution_breeds&bday_cohorts.pdf")
+ggarrange(p1,p2,nrow=2,labels=c("A","B"))
 dev.off()
 
-######################################################################################################
+# distribution of Cohorts across DNA plates
+df1 <- setDT(df)[, .(Freq = .N), by = .(Cohort,DNA_plate)]
+df1[order(df1$Cohort)]
 
-# 7.1   # p-values cohorts
+pdf("out/distribution_cohorts_DNA_plate.pdf")
+p2 <- ggplot(df1, aes(fill=DNA_plate, y=Freq, x=Cohort)) + 
+  geom_bar(position="stack", stat="identity")+
+  scale_fill_manual(values=palette)+
+  labs(x = "Cohort",
+       y = "number of samples",
+       fill = "DNA extraction plate") +
+  theme_bw()+
+  theme(legend.position="top",
+        axis.text.x=element_text(angle=45, hjust=1),
+        legend.title=element_text(),
+        axis.title.y=element_text())
+p2
+dev.off()
 
-df1 <- df %>%
-  select(unrooted_pd,bwpd,pc1,pc2,pc3,pc4,pc5,Cohort,collection_date,isolation_source)
-NROW(df1)
-
-# aggregating by avg (unique samples kept)
-cols <- 1:7
-df1 <- setDT(df1)[, lapply(.SD, mean), by=c(names(df1)[8:10]), .SDcols=cols]
-NROW(df1)
-
-df1 <- df1 %>%
-  select(unrooted_pd,bwpd,pc1,pc2,pc3,pc4,pc5,Cohort,collection_date) %>%
-  pivot_longer(cols = unrooted_pd:pc5,
-               values_to = "value",
-               names_to = "method")
-
-stat.test2 <- df1 %>%
-  group_by(collection_date,method) %>%
-  t_test(value ~ Cohort) %>%
-  adjust_pvalue(method="fdr") %>%
-  filter(p.adj.signif != "ns")
-
-stat.test <- df1 %>% 
-  group_by(Cohort,method) %>%
-  t_test(value ~ collection_date) %>%
-  adjust_pvalue(method="fdr") %>%
-  filter(p.adj.signif != "ns")
-
-stat.test2$Cohort = "cohorts_comparison"
-stat.test$collection_date = "time_comparison"
-
-both <- rbind(stat.test2,stat.test)
-both <- as.data.frame(both)
-
-addWorksheet(wb, "cohorts_time_fdr")
-writeData(wb, sheet = "cohorts_time_fdr", both, rowNames = FALSE)
 
 ######################################################################################################
 
@@ -3701,7 +3002,6 @@ df_nurse <- df1 %>%
   select(-starts_with("i"))
 df_nurse
 
-
 df_nurse_all <- df1 %>%
   do({
     data.frame(
@@ -3774,13 +3074,52 @@ addWorksheet(wb, "all_pvalues")
 writeData(wb, sheet = "all_pvalues", all_pvalues, rowNames = FALSE)
 saveWorkbook(wb, "out/stats.xlsx", overwrite=TRUE)
 
+padj_function <- function(x, na.rm = FALSE) (p.adjust(x,method="hommel"))
+
+df_breed <- df_breed %>%
+  mutate_at(c("unrooted_pd","bwpd","pc1","pc2","pc3","pc4","pc5"),padj_function) 
+
+df_line <- df_line %>%
+  mutate_at(c("unrooted_pd","bwpd","pc1","pc2","pc3","pc4","pc5"),padj_function) 
+
+df_bday <- df_bday %>%
+  mutate_at(c("unrooted_pd","bwpd","pc1","pc2","pc3","pc4","pc5"),padj_function) 
+
+df_bday_DurocxLandrace <- df_bday_DurocxLandrace %>%
+  mutate_at(c("unrooted_pd","bwpd","pc1","pc2","pc3","pc4","pc5"),padj_function) 
+
+df_bday_DurocxLw <- df_bday_DurocxLw %>%
+  mutate_at(c("unrooted_pd","bwpd","pc1","pc2","pc3","pc4","pc5"),padj_function) 
+
+df_nurse <- df_nurse %>%
+  mutate_at(c("unrooted_pd","bwpd","pc1","pc2","pc3","pc4","pc5"),padj_function) 
+
+df_stig <- df_stig %>%
+  mutate_at(c("unrooted_pd","bwpd","pc1","pc2","pc3","pc4","pc5"),padj_function) 
+
+
+all_padj_Hommel <- rbind(df_breed,
+                         df_line, 
+                         df_bday, 
+                         df_bday_DurocxLandrace, 
+                         df_bday_DurocxLw, 
+                         df_stig, 
+                         df_nurse)
+
+all_padj_Hommel$padj_method <- "Hommel"
+
+# write out in workbook
+addWorksheet(wb, "all_padj_Hommel")
+writeData(wb, sheet = "all_padj_Hommel", all_padj_Hommel, rowNames = FALSE)
+saveWorkbook(wb, "out/stats.xlsx", overwrite=TRUE)
+
 
 # adjusted pvalues
 
 # chosen method is Tukey: 
 
 # When you do Tukeys test, the variance is estimated from the whole set of data 
-# (from all 4 groups) as a pooled estimate. If the population variances are the 
+# as a pooled estimate. If the population variances are the 
 # same in all groups, such a pooled estimate is much more robust and precise 
 # than the individual estimated from just a part of the whole set of data. 
 # Further, Tukeys procedure adjusts the p-values for multiple testing, so that 
@@ -4136,6 +3475,127 @@ by_BIRTH_DAY_Large_white_x_Duroc$group = "BIRTH_DAY_Large_white_x_Duroc"
 
 
 # not enough timepoint for "Landrace x Cross bred (LW x D)"
+
+
+# by nurse
+
+# to character otherwise considered numeric
+df1$nurse <- as.character(df1$nurse)
+
+
+aov.out = aov(unrooted_pd ~ nurse, data=df1)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$nurse)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ nurse, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$nurse)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ nurse, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$nurse)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ nurse, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$nurse)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ nurse, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$nurse)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ nurse, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$nurse)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ nurse, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$nurse)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_nurse <- rbind( 
+  aov.out1,
+  aov.out2,
+  aov.out3,
+  aov.out4,
+  aov.out5,
+  aov.out6,
+  aov.out7)
+
+by_nurse$group = "nurse"
+
+# by stig
+
+# to character otherwise considered numeric
+df1$stig <- as.character(df1$stig)
+
+
+aov.out = aov(unrooted_pd ~ stig, data=df1)   
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$stig)
+aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out1$type="unrooted_pd"
+#
+aov.out = aov(bwpd ~ stig, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$stig)
+aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out2$type="bwpd"
+#
+aov.out = aov(pc1 ~ stig, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$stig)
+aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out3$type="pc1"
+#
+aov.out = aov(pc2 ~ stig, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$stig)
+aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out4$type="pc2"
+# 
+aov.out = aov(pc3 ~ stig, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$stig)
+aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out5$type="pc3"
+#
+aov.out = aov(pc4 ~ stig, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$stig)
+aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out6$type="pc4"
+#
+aov.out = aov(pc5 ~ stig, data=df1_sub)
+res <- TukeyHSD(aov.out)
+aov.out <- as.data.frame(res$stig)
+aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out7$type="pc5"
+
+by_stig <- rbind( 
+  aov.out1,
+  aov.out2,
+  aov.out3,
+  aov.out4,
+  aov.out5,
+  aov.out6,
+  aov.out7)
+
+by_stig$group = "stig"
+
+##################
 
 # by Cohort
 
@@ -4701,15 +4161,14 @@ by_Cohort_i6 <- rbind(aov.out1,
                    aov.out7)
 by_Cohort_i6$group = "Cohort_i6"
 
-
-
-
-all_Tukey <- rbind(by_breed,
+all_padj_Tukey <- rbind(by_breed,
              by_LINE, 
              by_BIRTH_DAY, 
              by_BIRTH_DAY_Duroc_x_Landrace,
              by_BIRTH_DAY_Duroc_x_Large_white,
              by_BIRTH_DAY_Large_white_x_Duroc, 
+             by_nurse,
+             by_stig,
              by_Cohort, 
              by_Cohort_i1,
              by_Cohort_i2.1,
@@ -4722,10 +4181,11 @@ all_Tukey <- rbind(by_breed,
              by_Cohort_i6
 )
 
+all_padj_Tukey$padj_method <- "TukeyHSD"
 
 # write out in workbook
-addWorksheet(wb, "all_padj")
-writeData(wb, sheet = "all_padj", all_Tukey, rowNames = FALSE)
+addWorksheet(wb, "all_padj_Tukey")
+writeData(wb, sheet = "all_padj_Tukey", all_padj_Tukey, rowNames = FALSE)
 saveWorkbook(wb, "out/stats.xlsx", overwrite=TRUE)
 
 
@@ -4744,10 +4204,22 @@ piglets_factors$grouping <- gsub("birth day - Duroc x Large white",
 piglets_factors$grouping <- gsub("birth dday - Duroc x Landrace",
                                  "bday - Duroc x Landrace",piglets_factors$grouping)
 
+piglets_factors2 <- all_padj_Hommel %>%
+  filter(grouping != "cohorts" &
+           grouping != "ctrl_neo" &
+           grouping != "Dscour_ColiGuard" &
+           grouping != "NeoD_NeoC" &
+           collection_date != "all") 
+
+piglets_factors2$grouping <- gsub("birth day - Duroc x Large white",
+                                 "bday - Duroc x Large white",piglets_factors2$grouping)
+piglets_factors2$grouping <- gsub("birth dday - Duroc x Landrace",
+                                 "bday - Duroc x Landrace",piglets_factors2$grouping)
+
 
 unroo <- ggplot(piglets_factors, aes(collection_date,unrooted_pd, label = collection_date)) + 
   ylim(0,0.06)+
-  labs(y="unrooted PD - KW p-value",
+  labs(y="unrooted PD - p-value",
        x="")+
   geom_point(stat="identity") + 
   facet_wrap(~grouping, scales="free")+
@@ -4756,10 +4228,11 @@ unroo <- ggplot(piglets_factors, aes(collection_date,unrooted_pd, label = collec
   theme(axis.text.x=element_text(size=7),
         axis.title.x=element_text(),
         axis.title.y=element_text(),
-        legend.position="none")
+        legend.position="none")+
+  geom_point(data = piglets_factors2, color = "red", shape = 2)
 bwpd <- ggplot(piglets_factors, aes(collection_date,bwpd, label = collection_date)) + 
   ylim(0,0.06)+
-  labs(y="bwpd - KW p-value",
+  labs(y="bwpd - p-value",
        x="")+
   geom_point(stat="identity") + 
   facet_wrap(~grouping, scales="free")+
@@ -4768,10 +4241,11 @@ bwpd <- ggplot(piglets_factors, aes(collection_date,bwpd, label = collection_dat
   theme(axis.text.x=element_text(size=7),
         axis.title.x=element_text(),
         axis.title.y=element_text(),
-        legend.position="none")
+        legend.position="none")+
+  geom_point(data = piglets_factors2, color = "red", shape = 2)
 pc1 <- ggplot(piglets_factors, aes(collection_date,pc1, label = collection_date)) + 
   ylim(0,0.06)+
-  labs(y="pc1 - KW p-value",
+  labs(y="pc1 - p-value",
        x="")+
   geom_point(stat="identity") + 
   facet_wrap(~grouping, scales="free")+
@@ -4780,10 +4254,11 @@ pc1 <- ggplot(piglets_factors, aes(collection_date,pc1, label = collection_date)
   theme(axis.text.x=element_text(size=7),
         axis.title.x=element_text(),
         axis.title.y=element_text(),
-        legend.position="none")
+        legend.position="none")+
+  geom_point(data = piglets_factors2, color = "red", shape = 2)
 pc2 <- ggplot(piglets_factors, aes(collection_date,pc2, label = collection_date)) + 
   ylim(0,0.06)+
-  labs(y="pc2 - KW p-value",
+  labs(y="pc2 - p-value",
        x="")+
   geom_point(stat="identity") + 
   facet_wrap(~grouping, scales="free")+
@@ -4792,10 +4267,11 @@ pc2 <- ggplot(piglets_factors, aes(collection_date,pc2, label = collection_date)
   theme(axis.text.x=element_text(size=7),
         axis.title.x=element_text(),
         axis.title.y=element_text(),
-        legend.position="none")
+        legend.position="none")+
+  geom_point(data = piglets_factors2, color = "red", shape = 2)
 pc3 <- ggplot(piglets_factors, aes(collection_date,pc3, label = collection_date)) + 
   ylim(0,0.06)+
-  labs(y="pc3 - KW p-value",
+  labs(y="pc3 - p-value",
        x="")+
   geom_point(stat="identity") + 
   facet_wrap(~grouping, scales="free")+
@@ -4804,10 +4280,11 @@ pc3 <- ggplot(piglets_factors, aes(collection_date,pc3, label = collection_date)
   theme(axis.text.x=element_text(size=7),
         axis.title.x=element_text(),
         axis.title.y=element_text(),
-        legend.position="none")
+        legend.position="none")+
+  geom_point(data = piglets_factors2, color = "red", shape = 2)
 pc4 <- ggplot(piglets_factors, aes(collection_date,pc4, label = collection_date)) + 
   ylim(0,0.06)+
-  labs(y="pc4 - KW p-value",
+  labs(y="pc4 - p-value",
        x="")+
   geom_point(stat="identity") + 
   facet_wrap(~grouping, scales="free")+
@@ -4816,10 +4293,11 @@ pc4 <- ggplot(piglets_factors, aes(collection_date,pc4, label = collection_date)
   theme(axis.text.x=element_text(size=7),
         axis.title.x=element_text(),
         axis.title.y=element_text(),
-        legend.position="none")
+        legend.position="none")+
+  geom_point(data = piglets_factors2, color = "red", shape = 2)
 pc5 <- ggplot(piglets_factors, aes(collection_date,pc5, label = collection_date)) + 
   ylim(0,0.06)+
-  labs(y="pc5 - KW p-value",
+  labs(y="pc5 - p-value",
        x="")+
   geom_point(stat="identity") + 
   facet_wrap(~grouping, scales="free")+
@@ -4828,20 +4306,21 @@ pc5 <- ggplot(piglets_factors, aes(collection_date,pc5, label = collection_date)
   theme(axis.text.x=element_text(size=7),
         axis.title.x=element_text(),
         axis.title.y=element_text(),
-        legend.position="none")
+        legend.position="none")+
+  geom_point(data = piglets_factors2, color = "red", shape = 2)
 
 pdf("out/start_factors_pvalues.pdf")
 ggarrange(
-  unroo, bwpd,ncol=1,nrow=2
+  unroo, bwpd,ncol=1,nrow=2, labels = c("A","B")
 )
 ggarrange(
-  pc1, pc2,ncol=1,nrow=2
+  pc1, pc2,ncol=1,nrow=2, labels = c("C","D")
 )
 ggarrange(
-  pc3, pc4,ncol=1,nrow=2
+  pc3, pc4,ncol=1,nrow=2, labels = c("E","F")
 )
 ggarrange(
-  pc5,ncol=1,nrow=2
+  pc5,ncol=1,nrow=2, labels = c("G","H")
 )
 dev.off()
 
