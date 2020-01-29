@@ -2,17 +2,20 @@
 #  R version 3.6.1 (2019-07-05)
 
 # 0   # loading input data
-# 1   # batch effect
+# 1   # batch effect (plot,removal and plot again)
 # 1.1 # merge alpha div data with metadata -> boggo
 # 1.2 # merge beta div data with metadata -> coggo
-# 2   # plot samples distribution across plates (time and cohorts)
+# 2   # plot samples distribution (plate vs time; cohorts vs time)
 # 2.1 # boggo and coggo: formatting & averaging duplicates
-# 3   # plot ALPHA diversity (all timepoints)
-# 4   # plot BETA diversity (all timepoints)
-# 5   # plot ALPHA diversity (at pig trial start) 
-# 6   # plot BETA diversity (at pig trial start) 
-# 7   # plot ALPHA & BETA diversity comparing cohorts during time
-# 8   # p-values
+# 3   # DELTAS
+# 4   # plot ALPHA diversity (all timepoints)
+# 5   # plot BETA diversity (all timepoints)
+# 6   # plot ALPHA diversity (at pig trial start) 
+# 7   # plot BETA diversity (at pig trial start) 
+# 8   # plot distribution of breeds and bdays among cohorts + cohorts distr plates 
+# 9   # p-values
+# 10 # plot p-values (starting factors)
+# 11  # prepare input files for guppy (select by time interval) and plot output 
 
 ###########################################################################################
 
@@ -56,6 +59,7 @@ library(purrr) # purrr_0.3.3
 library(openxlsx)
 library(genefilter)
 library(compareGroups)
+library(splitstackshape)
 
 # from local 
 setwd("/Users/12705859/Desktop/metapigs_base/phylosift")
@@ -80,6 +84,8 @@ timeline_17_21_Feb <- image_read(paste0(basedir,"Slide07.tiff"))
 timeline_24_28_Feb <- image_read(paste0(basedir,"Slide08.tiff"))
 timeline_3_10_Mar <- image_read(paste0(basedir,"Slide09.tiff"))
 timeline_deltas <- image_read(paste0(basedir,"Slide10.tiff"))
+timeline_deltas_unroo <- image_read(paste0(basedir,"Slide11.tiff"))
+timeline_deltas_bw <- image_read(paste0(basedir,"Slide12.tiff"))
 
 # load metadata 
 mdat <- read_excel(paste0(basedir,"Metagenome.environmental_20190308_2.xlsx"),
@@ -719,6 +725,993 @@ coggo$Cohort <- factor(coggo$Cohort,
 
 ######################################################################################################
 
+# DELTAS 
+
+
+# filtering out piglets that had dysentery
+boggo1 <- boggo %>%
+  filter(!isolation_source=="29665"|isolation_source=="29865"|isolation_source=="29702")
+
+pigs_1 <- boggo1 %>%
+  filter(collection_date == "2017-01-31"|collection_date == "2017-02-01") %>%
+  select(isolation_source,Cohort,collection_date,unrooted_pd,bwpd)
+NROW(pigs_1)
+
+hist(pigs_1$unrooted_pd,breaks=100)
+hist(pigs_1$bwpd,breaks=100)
+
+# unrooted_pd has low values indicative of spurious sample. 
+# remove those rows
+pigs_1 <- pigs_1 %>%
+  filter(!unrooted_pd < 50) %>%
+  filter(!bwpd >2.6) %>%
+  filter(!bwpd <1.6)
+
+###########################
+
+pigs_2 <- boggo1 %>%
+  filter(collection_date == "2017-02-06"|collection_date == "2017-02-07") %>%
+  select(isolation_source,Cohort,collection_date,unrooted_pd,bwpd)
+NROW(pigs_2)
+
+hist(pigs_2$unrooted_pd,breaks=100)
+hist(pigs_2$bwpd,breaks=100)
+
+# unrooted_pd has low values indicative of spurious sample. 
+# remove those rows
+pigs_2 <- pigs_2 %>%
+  filter(!unrooted_pd < 90) %>%
+  filter(!bwpd >2.3) %>%
+  filter(!bwpd <1.8)
+
+###########################
+
+pigs_3 <- boggo1 %>%
+  filter(collection_date == "2017-02-14") %>%
+  select(isolation_source,Cohort,collection_date,unrooted_pd,bwpd)
+NROW(pigs_3)
+
+hist(pigs_3$unrooted_pd)
+hist(pigs_3$bwpd)
+
+###########################
+
+pigs_4 <- boggo1 %>%
+  filter(collection_date == "2017-02-21") %>%
+  select(isolation_source,Cohort,collection_date,unrooted_pd,bwpd)
+NROW(pigs_4)
+
+hist(pigs_4$unrooted_pd,breaks=100)
+hist(pigs_4$bwpd,100)
+
+# unrooted_pd has low values indicative of spurious sample. 
+# remove those rows
+pigs_4 <- pigs_4 %>%
+  filter(!unrooted_pd < 50) %>%
+  filter(!bwpd < 1.6)
+
+###########################
+
+pigs_5 <- boggo1 %>%
+  filter(collection_date == "2017-02-28") %>%
+  select(isolation_source,Cohort,collection_date,unrooted_pd,bwpd)
+NROW(pigs_5)
+
+hist(pigs_5$unrooted_pd)
+hist(pigs_5$bwpd)
+
+
+##############################################################################
+
+# settings for plots: 
+
+#font size for pvalues 
+your_font_size <- 2 
+
+My_Theme = theme(
+  axis.title.x = element_blank(),
+  axis.text.x = element_blank(), 
+  axis.title.y = element_text(size = 8),
+  axis.text.y = element_text(size = 8)) 
+
+##############################################################################
+
+# Ja31 vs Fe7
+
+df1 <- merge(pigs_1,pigs_2, by=c("isolation_source"))
+NROW(df1)
+
+# pivot long
+df1 <- df1 %>%
+  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
+  group_by(isolation_source) %>% slice(1) %>%
+  arrange(Cohort.x, isolation_source)
+
+# does it look right? proof 1: 
+test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
+test
+
+# does it look right? proof 2:
+test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
+test
+which(test$Freq!=1)
+
+head(df1)
+
+df1$diff_unroo = ((df1$unrooted_pd.y-df1$unrooted_pd.x)/df1$unrooted_pd.y)*100
+df1$diff_bw = ((df1$bwpd.y-df1$bwpd.x)/df1$bwpd.y)*100
+
+NROW(unique(df1$isolation_source))
+
+# reorder
+df1$Cohort.x <- factor(df1$Cohort.x, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
+
+A_unroo <- df1 %>%
+  group_by(Cohort.x) %>%
+  summarize(Mean = mean(diff_unroo, na.rm=TRUE),
+            sd = sd(diff_unroo, na.rm=TRUE))
+
+A_bw <- df1 %>%
+  group_by(Cohort.x) %>%
+  summarize(Mean = mean(diff_bw, na.rm=TRUE),
+            sd = sd(diff_unroo, na.rm=TRUE))
+
+
+# stats without p adjustment:
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Ja31_vs_Fe7"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Ja31_vs_Fe7"
+res2$type <- "bwpd"
+A <- rbind(res1,res2)
+
+
+# stats with p adjustment:
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Ja31_vs_Fe7"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Ja31_vs_Fe7"
+res2$type <- "bwpd"
+A_adj <- rbind(res1,res2)
+
+
+########## plots: 
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+a1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylab("unrooted PD - change (%)")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+a2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylim(-35,15)+
+  ylab("BWPD - change (%)")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+##############################################################################
+
+# Fe7 vs Fe14
+
+df1 <- merge(pigs_2,pigs_3, by=c("isolation_source"))
+NROW(df1)
+
+# pivot long
+df1 <- df1 %>%
+  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
+  group_by(isolation_source) %>% slice(1) %>%
+  arrange(Cohort.x, isolation_source)
+
+# does it look right? proof 1: 
+test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
+test
+
+# does it look right? proof 2:
+test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
+test
+which(test$Freq!=1)
+
+head(df1)
+
+df1$diff_unroo = ((df1$unrooted_pd.y-df1$unrooted_pd.x)/df1$unrooted_pd.y)*100
+df1$diff_bw = ((df1$bwpd.y-df1$bwpd.x)/df1$bwpd.y)*100
+
+NROW(unique(df1$isolation_source))
+
+# reorder
+df1$Cohort.x <- factor(df1$Cohort.x, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
+
+B_unroo <- df1 %>%
+  group_by(Cohort.x) %>%
+  summarize(Mean = mean(diff_unroo, na.rm=TRUE),
+            sd = sd(diff_unroo, na.rm=TRUE))
+
+B_bw <- df1 %>%
+  group_by(Cohort.x) %>%
+  summarize(Mean = mean(diff_bw, na.rm=TRUE),
+            sd = sd(diff_unroo, na.rm=TRUE))
+
+
+# stats without p adjustment:
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Fe7_vs_Fe14"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Fe7_vs_Fe14"
+res2$type <- "bwpd"
+B <- rbind(res1,res2)
+
+
+# stats with p adjustment:
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Fe7_vs_Fe14"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Fe7_vs_Fe14"
+res2$type <- "bwpd"
+B_adj <- rbind(res1,res2)
+
+
+########## plots: 
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+b1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylab("unrooted PD - change (%)")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+b2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylim(-35,25)+
+  ylab("BWPD - change (%)")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+##############################################################################
+
+# Fe14 vs Fe21
+
+df1 <- merge(pigs_3,pigs_4, by=c("isolation_source"))
+NROW(df1)
+
+# pivot long
+df1 <- df1 %>%
+  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
+  group_by(isolation_source) %>% slice(1) %>%
+  arrange(Cohort.x, isolation_source)
+
+# does it look right? proof 1: 
+test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
+test
+
+# does it look right? proof 2:
+test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
+test
+which(test$Freq!=1)
+
+head(df1)
+
+df1$diff_unroo = ((df1$unrooted_pd.y-df1$unrooted_pd.x)/df1$unrooted_pd.y)*100
+df1$diff_bw = ((df1$bwpd.y-df1$bwpd.x)/df1$bwpd.y)*100
+
+NROW(unique(df1$isolation_source))
+
+# reorder
+df1$Cohort.x <- factor(df1$Cohort.x, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
+
+C_unroo <- df1 %>%
+  group_by(Cohort.x) %>%
+  summarize(Mean = mean(diff_unroo, na.rm=TRUE),
+            sd = sd(diff_unroo, na.rm=TRUE))
+
+C_bw <- df1 %>%
+  group_by(Cohort.x) %>%
+  summarize(Mean = mean(diff_bw, na.rm=TRUE),
+            sd = sd(diff_unroo, na.rm=TRUE))
+
+
+# stats without p adjustment:
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Fe14_vs_Fe21"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Fe14_vs_Fe21"
+res2$type <- "bwpd"
+C <- rbind(res1,res2)
+
+
+# stats with p adjustment:
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Fe14_vs_Fe21"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Fe14_vs_Fe21"
+res2$type <- "bwpd"
+C_adj <- rbind(res1,res2)
+
+
+########## plots: 
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+c1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylim(-75,30)+
+  ylab("unrooted PD - change (%)")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+c2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylim(-23,25)+
+  ylab("BWPD - change (%)")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+##############################################################################
+
+# Fe21 vs Fe28
+
+df1 <- merge(pigs_4,pigs_5, by=c("isolation_source"))
+NROW(df1)
+
+# pivot long
+df1 <- df1 %>%
+  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
+  group_by(isolation_source) %>% slice(1) %>%
+  arrange(Cohort.x, isolation_source)
+
+# does it look right? proof 1: 
+test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
+test
+
+# does it look right? proof 2:
+test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
+test
+which(test$Freq!=1)
+
+head(df1)
+
+df1$diff_unroo = ((df1$unrooted_pd.y-df1$unrooted_pd.x)/df1$unrooted_pd.y)*100
+df1$diff_bw = ((df1$bwpd.y-df1$bwpd.x)/df1$bwpd.y)*100
+
+NROW(unique(df1$isolation_source))
+
+# reorder
+df1$Cohort.x <- factor(df1$Cohort.x, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
+
+D_unroo <- df1 %>%
+  group_by(Cohort.x) %>%
+  summarize(Mean = mean(diff_unroo, na.rm=TRUE),
+            sd = sd(diff_unroo, na.rm=TRUE))
+
+D_bw <- df1 %>%
+  group_by(Cohort.x) %>%
+  summarize(Mean = mean(diff_bw, na.rm=TRUE),
+            sd = sd(diff_unroo, na.rm=TRUE))
+
+
+# stats without p adjustment:
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Fe21_vs_Fe28"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Fe21_vs_Fe28"
+res2$type <- "bwpd"
+D <- rbind(res1,res2)
+
+
+# stats with p adjustment:
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Fe21_vs_Fe28"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Fe21_vs_Fe28"
+res2$type <- "bwpd"
+D_adj <- rbind(res1,res2)
+
+
+########## plots: 
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+d1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylim(-100,50)+
+  ylab("unrooted PD - change (%)")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+d2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylab("BWPD - change (%)")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+##############################################################################
+
+# Ja31 vs Fe14
+
+df1 <- merge(pigs_1,pigs_3, by=c("isolation_source"))
+NROW(df1)
+
+# pivot long
+df1 <- df1 %>%
+  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
+  group_by(isolation_source) %>% slice(1) %>%
+  arrange(Cohort.x, isolation_source)
+
+# does it look right? proof 1: 
+test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
+test
+
+# does it look right? proof 2:
+test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
+test
+which(test$Freq!=1)
+
+head(df1)
+
+df1$diff_unroo = ((df1$unrooted_pd.y-df1$unrooted_pd.x)/df1$unrooted_pd.y)*100
+df1$diff_bw = ((df1$bwpd.y-df1$bwpd.x)/df1$bwpd.y)*100
+
+NROW(unique(df1$isolation_source))
+
+# reorder
+df1$Cohort.x <- factor(df1$Cohort.x, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
+
+E_unroo <- df1 %>%
+  group_by(Cohort.x) %>%
+  summarize(Mean = mean(diff_unroo, na.rm=TRUE),
+            sd = sd(diff_unroo, na.rm=TRUE))
+
+E_bw <- df1 %>%
+  group_by(Cohort.x) %>%
+  summarize(Mean = mean(diff_bw, na.rm=TRUE),
+            sd = sd(diff_unroo, na.rm=TRUE))
+
+
+# stats without p adjustment:
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Ja31_vs_Fe14"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Ja31_vs_Fe14"
+res2$type <- "bwpd"
+E <- rbind(res1,res2)
+
+
+# stats with p adjustment:
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Ja31_vs_Fe14"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Ja31_vs_Fe14"
+res2$type <- "bwpd"
+E_adj <- rbind(res1,res2)
+
+
+########## plots: 
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+e1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylim(-75,30)+
+  ylab("unrooted PD - change (%)")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+e2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylab("BWPD - change (%)")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+##############################################################################
+
+# Fe7 vs Fe21
+
+df1 <- merge(pigs_2,pigs_4, by=c("isolation_source"))
+NROW(df1)
+
+# pivot long
+df1 <- df1 %>%
+  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
+  group_by(isolation_source) %>% slice(1) %>%
+  arrange(Cohort.x, isolation_source)
+
+# does it look right? proof 1: 
+test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
+test
+
+# does it look right? proof 2:
+test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
+test
+which(test$Freq!=1)
+
+head(df1)
+
+df1$diff_unroo = ((df1$unrooted_pd.y-df1$unrooted_pd.x)/df1$unrooted_pd.y)*100
+df1$diff_bw = ((df1$bwpd.y-df1$bwpd.x)/df1$bwpd.y)*100
+
+NROW(unique(df1$isolation_source))
+
+# reorder
+df1$Cohort.x <- factor(df1$Cohort.x, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
+
+F_unroo <- df1 %>%
+  group_by(Cohort.x) %>%
+  summarize(Mean = mean(diff_unroo, na.rm=TRUE),
+            sd = sd(diff_unroo, na.rm=TRUE))
+
+F_bw <- df1 %>%
+  group_by(Cohort.x) %>%
+  summarize(Mean = mean(diff_bw, na.rm=TRUE),
+            sd = sd(diff_unroo, na.rm=TRUE))
+
+
+# stats without p adjustment:
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Fe7_vs_Fe21"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Fe7_vs_Fe21"
+res2$type <- "bwpd"
+FF <- rbind(res1,res2)
+
+
+# stats with p adjustment:
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Fe7_vs_Fe21"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Fe7_vs_Fe21"
+res2$type <- "bwpd"
+F_adj <- rbind(res1,res2)
+
+
+########## plots: 
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+f1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylab("unrooted PD - change (%)")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+f2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylab("BWPD - change (%)")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+##############################################################################
+
+# Fe14 vs Fe28
+
+df1 <- merge(pigs_3,pigs_5, by=c("isolation_source"))
+NROW(df1)
+
+# pivot long
+df1 <- df1 %>%
+  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
+  group_by(isolation_source) %>% slice(1) %>%
+  arrange(Cohort.x, isolation_source)
+
+# does it look right? proof 1: 
+test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
+test
+
+# does it look right? proof 2:
+test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
+test
+which(test$Freq!=1)
+
+head(df1)
+
+df1$diff_unroo = ((df1$unrooted_pd.y-df1$unrooted_pd.x)/df1$unrooted_pd.y)*100
+df1$diff_bw = ((df1$bwpd.y-df1$bwpd.x)/df1$bwpd.y)*100
+
+NROW(unique(df1$isolation_source))
+
+# reorder
+df1$Cohort.x <- factor(df1$Cohort.x, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
+
+G_unroo <- df1 %>%
+  group_by(Cohort.x) %>%
+  summarize(Mean = mean(diff_unroo, na.rm=TRUE),
+            sd = sd(diff_unroo, na.rm=TRUE))
+
+G_bw <- df1 %>%
+  group_by(Cohort.x) %>%
+  summarize(Mean = mean(diff_bw, na.rm=TRUE),
+            sd = sd(diff_unroo, na.rm=TRUE))
+
+
+# stats without p adjustment:
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Fe14_vs_Fe28"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Fe14_vs_Fe28"
+res2$type <- "bwpd"
+G <- rbind(res1,res2)
+
+
+# stats with p adjustment:
+
+res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
+res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
+res1 <- as.data.frame(res1$p.value)
+res2 <- as.data.frame(res2$p.value)
+res1$time_delta <- "Fe14_vs_Fe28"
+res1$type <- "unrooted_pd"
+res2$time_delta <- "Fe14_vs_Fe28"
+res2$type <- "bwpd"
+G_adj <- rbind(res1,res2)
+
+
+########## plots: 
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+g1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylab("unrooted PD - change (%)")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+
+cw_summary <- df1 %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+g2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
+                legend = "none") +
+  My_Theme+
+  ylim(-20,25)+
+  ylab("BWPD - change (%)")+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+
+##############################################################################
+
+# this is for extracting the legend 
+for_legend_only <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
+                             legend = "right")+
+  scale_color_manual(labels = c("Control", 
+                                "D-scour",
+                                "ColiGuard",
+                                "Neo",
+                                "Neo+D",
+                                "Neo+C"), 
+                     values = c("#F8766D", 
+                                "#B79F00",
+                                "#00BA38",
+                                "#00BFC4",
+                                "#619CFF",
+                                "#F564E3")) +
+  guides(color=guide_legend("Cohort")) +
+  My_Theme
+leg <- get_legend(for_legend_only)
+
+##############################################################################
+
+# join the means and standard deviations ino a single dataframe : 
+
+# unrooted_PD
+
+colnames(A_unroo)[2:3] <- c("A-B_mean","A-B_sd")
+colnames(E_unroo)[2:3] <- c("A-C_mean","A-C_sd")
+colnames(B_unroo)[2:3] <- c("B-C_mean","B-C_sd")
+colnames(F_unroo)[2:3] <- c("B-D_mean","B-D_sd")
+colnames(C_unroo)[2:3] <- c("C-D_mean","C-D_sd")
+colnames(G_unroo)[2:3] <- c("C-E_mean","C-E_sd")
+colnames(D_unroo)[2:3] <- c("D-E_mean","D-E_sd")
+
+unroo_means_and_sd <- join_all(list(A_unroo,
+                                    E_unroo,
+                                    B_unroo,
+                                    F_unroo,
+                                    C_unroo,
+                                    G_unroo,
+                                    D_unroo))
+
+unroo_means_and_sd <- round_df(unroo_means_and_sd[,-1], 2)
+
+unroo_means_and_sd$Cohort = c("Control",
+                              "D-scour",
+                              "ColiGuard",
+                              "Neomycin",
+                              "Neo+D-scour",
+                              "Neo+ColiGuard")
+
+unroo_means_and_sd$type="unrooted_PD"
+
+# BWPD
+
+colnames(A_bw)[2:3] <- c("A-B_mean","A-B_sd")
+colnames(E_bw)[2:3] <- c("A-C_mean","A-C_sd")
+colnames(B_bw)[2:3] <- c("B-C_mean","B-C_sd")
+colnames(F_bw)[2:3] <- c("B-D_mean","B-D_sd")
+colnames(C_bw)[2:3] <- c("C-D_mean","C-D_sd")
+colnames(G_bw)[2:3] <- c("C-E_mean","C-E_sd")
+colnames(D_bw)[2:3] <- c("D-E_mean","D-E_sd")
+
+bwpd_means_and_sd <- join_all(list(A_bw,
+                                   E_bw,
+                                   B_bw,
+                                   F_bw,
+                                   C_bw,
+                                   G_bw,
+                                   D_bw))
+
+bwpd_means_and_sd <- round_df(bwpd_means_and_sd[,-1], 2)
+
+bwpd_means_and_sd$Cohort = c("Control",
+                             "D-scour",
+                             "ColiGuard",
+                             "Neomycin",
+                             "Neo+D-scour",
+                             "Neo+ColiGuard")
+
+bwpd_means_and_sd$type="BWPD"
+
+# join unrooted_pd (means and sd) with bwpd (means and sd)
+deltas_percent_change <- rbind(unroo_means_and_sd,bwpd_means_and_sd)
+
+# add legend
+deltas_percent_change$LEGEND <- c("NA","NA","NA",
+                                  "A-B = Ja31 vs Fe7",
+                                  "A-C = Ja31 vs Fe14",
+                                  "B-C = Fe7 vs Fe14",
+                                  "B-D = Fe7 vs Fe21",
+                                  "C-D = Fe14 vs Fe21",
+                                  "C-E = Fe14 vs Fe28",
+                                  "D-E = Fe21 vs Fe28",
+                                  "NA","NA")
+
+# add data to workbook 
+addWorksheet(wb, "deltas_percent_change")
+writeData(wb, sheet = "deltas_percent_change", deltas_percent_change, rowNames = FALSE)
+
+
+##############################################################################
+
+# DELTAS p values  WITHOUT p-adjustment
+
+# gather stats of the deltas: 
+deltas_stats <- rbind(A,B,C,D,E,FF,G)
+# convert rownames to first column
+deltas_stats <- setDT(deltas_stats, keep.rownames = TRUE)[]
+deltas_stats$test <- "pairwise t-test"
+deltas_stats$padj_method <- "none"
+# add data to workbook 
+addWorksheet(wb, "deltas_p")
+writeData(wb, sheet = "deltas_p", deltas_stats, rowNames = FALSE)
+
+##############################################################################
+
+# DELTAS p values WITH p-adjustment
+
+# gather stats of the deltas: 
+deltas_stats <- rbind(A_adj,B_adj,C_adj,D_adj,E_adj,F_adj,G_adj)
+# convert rownames to first column
+deltas_stats <- setDT(deltas_stats, keep.rownames = TRUE)[]
+deltas_stats$test <- "pairwise t-test"
+deltas_stats$padj_method <- "BH"
+# add data to workbook 
+addWorksheet(wb, "deltas_padj")
+writeData(wb, sheet = "deltas_padj", deltas_stats, rowNames = FALSE)
+
+##############################################################################
+
+# all delta plots in two figures (unrooted and bwpd):
+
+all_plots <- plot_grid(NULL, NULL, NULL, NULL, 
+                       a1,e1,b1,f1,c1,g1,d1, leg, nrow = 3, 
+                       labels = c("", "", "","", 
+                                  "A-B", 
+                                  "A-C", 
+                                  "B-C", 
+                                  "B-D", 
+                                  "C-D", 
+                                  "C-E", 
+                                  "D-E", 
+                                  ""),
+                       ncol = 4)
+
+pdf("out/cohorts_deltas_unrooted.pdf")
+ggdraw() +
+  draw_image(timeline_deltas_unroo, x = 0, y = 0.16) +
+  draw_plot(all_plots)
+dev.off()
+
+
+all_plots <- plot_grid(NULL, NULL, NULL, NULL, 
+                       a2,e2,b2,f2,c2,g2,d2, leg, nrow = 3, 
+                       labels = c("", "", "","", 
+                                  "A-B", 
+                                  "A-C", 
+                                  "B-C", 
+                                  "B-D", 
+                                  "C-D", 
+                                  "C-E", 
+                                  "D-E", 
+                                  ""),
+                       ncol = 4)
+
+pdf("out/cohorts_deltas_bwpd.pdf")
+ggdraw() +
+  draw_image(timeline_deltas_bw, x = 0, y = 0.16) +
+  draw_plot(all_plots)
+dev.off()
+
+
+######################################################################################################
+
 # 3   # plot ALPHA diversity (all timepoints)
 
 # ALPHA diversity overall (includes pos controls):
@@ -1026,7 +2019,7 @@ writeData(wb, sheet = "alpha_means", both, rowNames = FALSE)
 stat.test_unroo <- doggo %>%
   group_by(Cohort) %>%
   t_test(unrooted_pd ~ collection_date) %>%
-  adjust_pvalue(method="fdr") %>%
+  adjust_pvalue(method="BH") %>%
   mutate(y.position=rep(seq(150,250,length.out=6),6)) %>%
   mutate_if(is.numeric, round, digits = 4)
 
@@ -1047,7 +2040,7 @@ unroo <- ggboxplot(doggo, x = "collection_date", y = "unrooted_pd",
 stat.test_bwpd <- doggo %>%
   group_by(Cohort) %>%
   t_test(bwpd ~ collection_date) %>%
-  adjust_pvalue(method="fdr") %>%
+  adjust_pvalue(method="BH") %>%
   mutate(y.position=rep(seq(2.5,2.8,length.out=6),6)) %>%
   mutate_if(is.numeric, round, digits = 4)
 
@@ -1072,7 +2065,7 @@ dev.off()
 
 both <- rbind(stat.test_bwpd,
       stat.test_unroo)
-both$padj_method <- "fdr"
+both$padj_method <- "BH"
 
 addWorksheet(wb, "alpha_cohorts")
 writeData(wb, sheet = "alpha_cohorts", both, rowNames = FALSE)
@@ -1909,653 +2902,6 @@ dev.off()
 
 ######################################################################################################
 
-# DELTAS
-
-#font size for pvalues 
-your_font_size <- 2 # 4 fine for tiff
-# to plot the pdfs rather than the tiffs, decrease size by 2
-
-
-My_Theme = theme(
-  axis.title.x = element_blank(),
-  axis.text.x = element_blank(), 
-  axis.text.y = element_text(size = 7), # 9 for tiff
-  axis.title.y = element_text(size = 9)) # 11 for tiff
-# to plot the pdfs rather than the tiffs, decrease size by 2
-
-# filtering out piglets that had dysentery
-boggo1 <- boggo %>%
-  filter(!isolation_source=="29665"|isolation_source=="29865"|isolation_source=="29702")
-
-pigs_1 <- boggo1 %>%
-  filter(collection_date == "2017-01-31"|collection_date == "2017-02-01") %>%
-  select(isolation_source,Cohort,collection_date,unrooted_pd,bwpd)
-NROW(pigs_1)
-
-hist(pigs_1$unrooted_pd)
-hist(pigs_1$bwpd)
-
-# unrooted_pd has low values indicative of spurious sample. 
-# remove those rows
-pigs_1 <- pigs_1 %>%
-  filter(!unrooted_pd < 25)
-
-###########################
-
-pigs_2 <- boggo1 %>%
-  filter(collection_date == "2017-02-06"|collection_date == "2017-02-07") %>%
-  select(isolation_source,Cohort,collection_date,unrooted_pd,bwpd)
-NROW(pigs_2)
-
-hist(pigs_2$unrooted_pd)
-hist(pigs_2$bwpd)
-
-# unrooted_pd has low values indicative of spurious sample. 
-# remove those rows
-pigs_2 <- pigs_2 %>%
-  filter(!unrooted_pd < 25)
-
-###########################
-
-pigs_3 <- boggo1 %>%
-  filter(collection_date == "2017-02-14") %>%
-  select(isolation_source,Cohort,collection_date,unrooted_pd,bwpd)
-NROW(pigs_3)
-
-hist(pigs_3$unrooted_pd)
-hist(pigs_3$bwpd)
-
-###########################
-
-pigs_4 <- boggo1 %>%
-  filter(collection_date == "2017-02-21") %>%
-  select(isolation_source,Cohort,collection_date,unrooted_pd,bwpd)
-NROW(pigs_4)
-
-hist(pigs_4$unrooted_pd)
-hist(pigs_4$bwpd)
-
-# unrooted_pd has low values indicative of spurious sample. 
-# remove those rows
-pigs_4 <- pigs_4 %>%
-  filter(!unrooted_pd < 25)
-
-###########################
-
-pigs_5 <- boggo1 %>%
-  filter(collection_date == "2017-02-28") %>%
-  select(isolation_source,Cohort,collection_date,unrooted_pd,bwpd)
-NROW(pigs_5)
-
-hist(pigs_5$unrooted_pd)
-hist(pigs_5$bwpd)
-
-
-##############################################################################
-
-# Ja31 vs Fe7
-
-df1 <- merge(pigs_1,pigs_2, by=c("isolation_source"))
-NROW(df1)
-
-# pivot long
-df1 <- df1 %>%
-  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
-  group_by(isolation_source) %>% slice(1) %>%
-  arrange(Cohort.x, isolation_source)
-
-# does it look right? proof 1: 
-test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
-test
-
-# does it look right? proof 2:
-test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
-test
-which(test$Freq!=1)
-
-head(df1)
-
-df1$diff_unroo = df1$unrooted_pd.y-df1$unrooted_pd.x
-df1$diff_bw = df1$bwpd.y-df1$bwpd.x
-
-NROW(unique(df1$isolation_source))
-
-# reorder
-df1$Cohort.x <- factor(df1$Cohort.x, 
-                       levels=c("Control", 
-                                "D-scour", 
-                                "ColiGuard",
-                                "Neomycin",
-                                "Neomycin+D-scour",
-                                "Neomycin+ColiGuard"))
-
-cw_summary <- df1 %>% 
-  group_by(Cohort.x) %>% 
-  tally()
-
-a1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
-                legend = "none") +
-  My_Theme+
-  ylab("delta unrooted PD")+
-  geom_text(data = cw_summary,
-            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
-  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size)
-
-
-cw_summary <- df1 %>% 
-  group_by(Cohort.x) %>% 
-  tally()
-
-a2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
-                legend = "none") +
-  My_Theme+
-  ylab("delta BWPD")+
-  geom_text(data = cw_summary,
-            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
-  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
-
-res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
-res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
-res1$time_delta <- "Ja31_vs_Fe7"
-res1$type <- "unrooted_pd"
-res2$time_delta <- "Ja31_vs_Fe7"
-res2$type <- "bwpd"
-A <- rbind(res1,res2)
-
-##############################################################################
-
-
-df1 <- merge(pigs_2,pigs_3, by=c("isolation_source"))
-NROW(df1)
-
-# pivot long
-df1 <- df1 %>%
-  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
-  group_by(isolation_source) %>% slice(1) %>%
-  arrange(Cohort.x, isolation_source)
-
-# does it look right? proof 1: 
-test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
-test
-
-# does it look right? proof 2:
-test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
-test
-which(test$Freq!=1)
-
-head(df1)
-
-df1$diff_unroo = df1$unrooted_pd.y-df1$unrooted_pd.x
-df1$diff_bw = df1$bwpd.y-df1$bwpd.x
-
-NROW(unique(df1$isolation_source))
-
-# reorder
-df1$Cohort.x <- factor(df1$Cohort.x, 
-                       levels=c("Control", 
-                                "D-scour", 
-                                "ColiGuard",
-                                "Neomycin",
-                                "Neomycin+D-scour",
-                                "Neomycin+ColiGuard"))
-
-cw_summary <- df1 %>% 
-  group_by(Cohort.x) %>% 
-  tally()
-
-b1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
-                legend = "none") +
-  My_Theme+
-  ylab("delta unrooted PD")+
-  geom_text(data = cw_summary,
-            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
-  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
-
-
-cw_summary <- df1 %>% 
-  group_by(Cohort.x) %>% 
-  tally()
-
-b2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
-                legend = "none") +
-  My_Theme+
-  ylab("delta BWPD")+
-  geom_text(data = cw_summary,
-            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
-  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size)
-b2
-
-res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
-res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
-res1$time_delta <- "Fe7_vs_Fe14"
-res1$type <- "unrooted_pd"
-res2$time_delta <- "Fe7_vs_Fe14"
-res2$type <- "bwpd"
-B <- rbind(res1,res2)
-
-##############################################################################
-
-
-df1 <- merge(pigs_3,pigs_4, by=c("isolation_source"))
-NROW(df1)
-
-# pivot long
-df1 <- df1 %>%
-  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
-  group_by(isolation_source) %>% slice(1) %>%
-  arrange(Cohort.x, isolation_source)
-
-# does it look right? proof 1: 
-test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
-test
-
-# does it look right? proof 2:
-test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
-test
-which(test$Freq!=1)
-
-head(df1)
-
-df1$diff_unroo = df1$unrooted_pd.y-df1$unrooted_pd.x
-df1$diff_bw = df1$bwpd.y-df1$bwpd.x
-
-NROW(unique(df1$isolation_source))
-
-# reorder
-df1$Cohort.x <- factor(df1$Cohort.x, 
-                       levels=c("Control", 
-                                "D-scour", 
-                                "ColiGuard",
-                                "Neomycin",
-                                "Neomycin+D-scour",
-                                "Neomycin+ColiGuard"))
-
-cw_summary <- df1 %>% 
-  group_by(Cohort.x) %>% 
-  tally()
-
-c1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
-                legend = "none") +
-  My_Theme+
-  ylab("delta unrooted PD")+
-  geom_text(data = cw_summary,
-            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
-  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
-
-
-cw_summary <- df1 %>% 
-  group_by(Cohort.x) %>% 
-  tally()
-
-c2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
-                legend = "none") +
-  My_Theme+
-  ylab("delta BWPD")+
-  geom_text(data = cw_summary,
-            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
-  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
-
-
-res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
-res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
-res1$time_delta <- "Fe14_vs_Fe21"
-res1$type <- "unrooted_pd"
-res2$time_delta <- "Fe14_vs_Fe21"
-res2$type <- "bwpd"
-C <- rbind(res1,res2)
-
-##############################################################################
-
-
-df1 <- merge(pigs_4,pigs_5, by=c("isolation_source"))
-NROW(df1)
-
-# pivot long
-df1 <- df1 %>%
-  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
-  group_by(isolation_source) %>% slice(1) %>%
-  arrange(Cohort.x, isolation_source)
-
-# does it look right? proof 1: 
-test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
-test
-
-# does it look right? proof 2:
-test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
-test
-which(test$Freq!=1)
-
-head(df1)
-
-df1$diff_unroo = df1$unrooted_pd.y-df1$unrooted_pd.x
-df1$diff_bw = df1$bwpd.y-df1$bwpd.x
-
-NROW(unique(df1$isolation_source))
-
-# reorder
-df1$Cohort.x <- factor(df1$Cohort.x, 
-                       levels=c("Control", 
-                                "D-scour", 
-                                "ColiGuard",
-                                "Neomycin",
-                                "Neomycin+D-scour",
-                                "Neomycin+ColiGuard"))
-
-cw_summary <- df1 %>% 
-  group_by(Cohort.x) %>% 
-  tally()
-
-d1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
-                legend = "none") +
-  My_Theme+
-  ylab("delta unrooted PD")+
-  geom_text(data = cw_summary,
-            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
-  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
-
-
-cw_summary <- df1 %>% 
-  group_by(Cohort.x) %>% 
-  tally()
-
-d2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
-                legend = "none") +
-  My_Theme+
-  ylab("delta BWPD")+
-  geom_text(data = cw_summary,
-            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
-  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
-
-res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
-res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
-res1$time_delta <- "Fe21_vs_Fe28"
-res1$type <- "unrooted_pd"
-res2$time_delta <- "Fe21_vs_Fe28"
-res2$type <- "bwpd"
-D <- rbind(res1,res2)
-
-##############################################################################
-
-
-# test if the change with 2 weeks intervals is significantly different among cohorts
-
-# beginning (Ja31) vs Fe14
-
-df1 <- merge(pigs_1,pigs_3, by=c("isolation_source"))
-NROW(df1)
-
-# pivot long
-df1 <- df1 %>%
-  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
-  group_by(isolation_source) %>% slice(1) %>%
-  arrange(Cohort.x, isolation_source)
-
-# does it look right? proof 1: 
-test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
-test
-
-# does it look right? proof 2:
-test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
-test
-which(test$Freq!=1)
-
-head(df1)
-
-df1$diff_unroo = df1$unrooted_pd.y-df1$unrooted_pd.x
-df1$diff_bw = df1$bwpd.y-df1$bwpd.x
-
-NROW(unique(df1$isolation_source))
-
-# reorder
-df1$Cohort.x <- factor(df1$Cohort.x, 
-                       levels=c("Control", 
-                                "D-scour", 
-                                "ColiGuard",
-                                "Neomycin",
-                                "Neomycin+D-scour",
-                                "Neomycin+ColiGuard"))
-
-cw_summary <- df1 %>% 
-  group_by(Cohort.x) %>% 
-  tally()
-
-e1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
-                legend = "none") +
-  My_Theme+
-  ylab("delta unrooted PD")+
-  geom_text(data = cw_summary,
-            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
-  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
-
-
-cw_summary <- df1 %>% 
-  group_by(Cohort.x) %>% 
-  tally()
-
-e2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
-                legend = "none") +
-  My_Theme+
-  ylab("delta BWPD")+
-  geom_text(data = cw_summary,
-            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
-  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
-
-
-res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
-res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
-res1$time_delta <- "Ja31_vs_Fe14"
-res1$type <- "unrooted_pd"
-res2$time_delta <- "Ja31_vs_Fe14"
-res2$type <- "bwpd"
-E <- rbind(res1,res2)
-
-
-# Fe7 vs Fe21
-
-df1 <- merge(pigs_2,pigs_4, by=c("isolation_source"))
-NROW(df1)
-
-# pivot long
-df1 <- df1 %>%
-  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
-  group_by(isolation_source) %>% slice(1) %>%
-  arrange(Cohort.x, isolation_source)
-
-# does it look right? proof 1: 
-test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
-test
-
-# does it look right? proof 2:
-test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
-test
-which(test$Freq!=1)
-
-head(df1)
-
-df1$diff_unroo = df1$unrooted_pd.y-df1$unrooted_pd.x
-df1$diff_bw = df1$bwpd.y-df1$bwpd.x
-
-NROW(unique(df1$isolation_source))
-
-# reorder
-df1$Cohort.x <- factor(df1$Cohort.x, 
-                       levels=c("Control", 
-                                "D-scour", 
-                                "ColiGuard",
-                                "Neomycin",
-                                "Neomycin+D-scour",
-                                "Neomycin+ColiGuard"))
-
-cw_summary <- df1 %>% 
-  group_by(Cohort.x) %>% 
-  tally()
-
-f1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
-                legend = "none") +
-  My_Theme+
-  ylab("delta unrooted PD")+
-  geom_text(data = cw_summary,
-            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
-  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
-
-
-cw_summary <- df1 %>% 
-  group_by(Cohort.x) %>% 
-  tally()
-
-f2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
-                legend = "none") +
-  My_Theme+
-  ylab("delta BWPD")+
-  geom_text(data = cw_summary,
-            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
-  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
-
-res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
-res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
-res1$time_delta <- "Fe7_vs_Fe21"
-res1$type <- "unrooted_pd"
-res2$time_delta <- "Fe7_vs_Fe21"
-res2$type <- "bwpd"
-FF <- rbind(res1,res2)
-
-# Fe14 vs Fe28
-
-df1 <- merge(pigs_3,pigs_5, by=c("isolation_source"))
-NROW(df1)
-
-# pivot long
-df1 <- df1 %>%
-  select(isolation_source,Cohort.x,unrooted_pd.x,unrooted_pd.y,bwpd.x,bwpd.y) %>% 
-  group_by(isolation_source) %>% slice(1) %>%
-  arrange(Cohort.x, isolation_source)
-
-# does it look right? proof 1: 
-test <- setDT(df1)[, .(Freq = .N), by = .(Cohort.x)]
-test
-
-# does it look right? proof 2:
-test <- setDT(df1)[, .(Freq = .N), by = .(isolation_source)]
-test
-which(test$Freq!=1)
-
-head(df1)
-
-df1$diff_unroo = df1$unrooted_pd.y-df1$unrooted_pd.x
-df1$diff_bw = df1$bwpd.y-df1$bwpd.x
-
-NROW(unique(df1$isolation_source))
-
-# reorder
-df1$Cohort.x <- factor(df1$Cohort.x, 
-                       levels=c("Control", 
-                                "D-scour", 
-                                "ColiGuard",
-                                "Neomycin",
-                                "Neomycin+D-scour",
-                                "Neomycin+ColiGuard"))
-
-cw_summary <- df1 %>% 
-  group_by(Cohort.x) %>% 
-  tally()
-
-g1 <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
-                legend = "none") +
-  My_Theme+
-  ylab("delta unrooted PD")+
-  geom_text(data = cw_summary,
-            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
-  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
-
-
-cw_summary <- df1 %>% 
-  group_by(Cohort.x) %>% 
-  tally()
-
-g2 <- ggboxplot(df1, x = "Cohort.x", y = "diff_bw", color = "Cohort.x", 
-                legend = "none") +
-  My_Theme+
-  ylab("delta BWPD")+
-  geom_text(data = cw_summary,
-            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
-  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
-
-res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
-res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
-res1$time_delta <- "Fe14_vs_Fe28"
-res1$type <- "unrooted_pd"
-res2$time_delta <- "Fe14_vs_Fe28"
-res2$type <- "bwpd"
-G <- rbind(res1,res2)
-
-# this is for extracting the legend 
-for_legend_only <- ggboxplot(df1, x = "Cohort.x", y = "diff_unroo", color = "Cohort.x", 
-                             legend = "right")+
-  scale_color_manual(labels = c("Control", 
-                                "D-scour",
-                                "ColiGuard",
-                                "Neo",
-                                "Neo+D",
-                                "Neo+C"), 
-                     values = c("#F8766D", 
-                                "#B79F00",
-                                "#00BA38",
-                                "#00BFC4",
-                                "#619CFF",
-                                "#F564E3")) +
-  guides(color=guide_legend("Cohort")) +
-  My_Theme
-leg <- get_legend(for_legend_only)
-
-
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, 
-                       a1,b1,c1,d1,e1,f1,g1, leg, nrow = 3, 
-                       labels = c("", "", "","", "A", "B", "C", "D", "E", "F", "G", ""),
-                       ncol = 4)
-
-pdf("out/cohorts_deltas_unrooted.pdf")
-ggdraw() +
-  draw_image(timeline_deltas, x = 0, y = 0.16) +
-  draw_plot(all_plots)
-dev.off()
-
-
-all_plots <- plot_grid(NULL, NULL, NULL, NULL, 
-                       a2,b2,c2,d2,e2,f2,g2, leg, nrow = 3, 
-                       labels = c("", "", "","", "A", "B", "C", "D", "E", "F", "G", ""),
-                       ncol = 4)
-
-pdf("out/cohorts_deltas_bwpd.pdf")
-ggdraw() +
-  draw_image(timeline_deltas, x = 0, y = 0.16) +
-  draw_plot(all_plots)
-dev.off()
-
-# gather stats of the deltas: 
-deltas_stats <- rbind(A,B,C,D,E,FF,G)
-# convert rownames to first column
-deltas_stats <- setDT(deltas_stats, keep.rownames = TRUE)[]
-deltas_stats$padj_method <- "BH"
-# add data to workbook 
-addWorksheet(wb, "deltas_stats")
-writeData(wb, sheet = "deltas_stats", deltas_stats, rowNames = FALSE)
-
-######################################################################################################
-
 # distribution of breeds, birth days across cohorts
 
 finalDF <- inner_join(boggo,coggo)
@@ -3066,6 +3412,8 @@ all_pvalues <- rbind(df_breed_all, df_breed,
                      df_nurse_all, df_nurse, 
                      df_Cohort_all)
 
+all_pvalues$test <- "Kruskal-Wallis"
+
 # write out as csv
 fwrite(x = all_pvalues, file = "out/all_pvalues.csv")
 
@@ -3106,10 +3454,12 @@ all_padj_Hommel <- rbind(df_breed,
                          df_stig, 
                          df_nurse)
 
+
+all_padj_Hommel$test <- "Kruskal-Wallis"
 all_padj_Hommel$padj_method <- "Hommel"
 
 # write out in workbook
-addWorksheet(wb, "all_padj_Hommel")
+addWorksheet(wb, "all_padj")
 writeData(wb, sheet = "all_padj_Hommel", all_padj_Hommel, rowNames = FALSE)
 saveWorkbook(wb, "out/stats.xlsx", overwrite=TRUE)
 
@@ -4181,13 +4531,13 @@ all_padj_Tukey <- rbind(by_breed,
              by_Cohort_i6
 )
 
+all_padj_Tukey$test <- "anova"
 all_padj_Tukey$padj_method <- "TukeyHSD"
 
 # write out in workbook
 addWorksheet(wb, "all_padj_Tukey")
 writeData(wb, sheet = "all_padj_Tukey", all_padj_Tukey, rowNames = FALSE)
 saveWorkbook(wb, "out/stats.xlsx", overwrite=TRUE)
-
 
 
 # plot p-values for start factors
@@ -4323,4 +4673,554 @@ ggarrange(
   pc5,ncol=1,nrow=2, labels = c("G","H")
 )
 dev.off()
+
+######################################################################################################
+
+# rationale: maybe cohort clusters don't show up in beta div because the first 
+# principal components (5 we looked at) are explaining the changes with time 
+# AIM: see if clusters appear in beta diversity when running guppy on specific time intervals
+
+# 1 # prepares metadata files to feed guppy_epca.sh
+# 1 # metadata file = 1 timepoint in trial 
+
+# 2 # run guppy_epca.sh on HPC --> output
+
+# 3 # outputs: HPC -> local (/Users/12705859/Desktop/metapigs_base/phylosift/input_files/)
+# then to R 
+
+# 4 # remove batch effect
+
+# 5 # merge with metadata and average out duplicate samples -> boggo 
+
+# 6 # plot first 4 principal components 
+
+# filter out pos controls, neg controls and mothers from metadata
+mdat_sel <- mdat %>% 
+  filter(!Cohort=="MockCommunity") %>% 
+  filter(!Cohort=="PosControl_D-scour") %>% 
+  filter(!Cohort=="PosControl_ColiGuard") %>% 
+  filter(!Cohort=="NegativeControl") %>% 
+  filter(!Cohort=="Mothers")
+NROW(mdat_sel)
+unique(mdat_sel$Cohort)
+
+mdat$ID <- paste0(mdat_sel$DNA_plate,"_",mdat_sel$DNA_well,"*")
+
+mdat_Ja31 <- mdat_sel %>% 
+  filter(collection_date == "2017-01-31"|collection_date == "2017-02-01")
+
+mdat_Fe7 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-06"|collection_date == "2017-02-07")
+
+mdat_Fe14 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-14")
+
+mdat_Fe21 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-21")
+
+mdat_Fe28 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-28")
+
+all <- as.character(mdat_sel$ID)
+a <- as.character(mdat_Ja31$ID)
+b <- as.character(mdat_Fe7$ID)
+c <- as.character(mdat_Fe14$ID)
+d <- as.character(mdat_Fe21$ID)
+e <- as.character(mdat_Fe28$ID)
+
+writeLines(unlist(all), "mdat_all.txt", sep = " ")
+writeLines(unlist(a), "mdat_Ja31.txt", sep = " ")
+writeLines(unlist(b), "mdat_Fe7.txt", sep = " ")
+writeLines(unlist(c), "mdat_Fe14.txt", sep = " ")
+writeLines(unlist(d), "mdat_Fe21.txt", sep = " ")
+writeLines(unlist(e), "mdat_Fe28.txt", sep = " ")
+
+#settings for plots
+theme<-theme(panel.background = element_blank(),
+             panel.border=element_rect(fill=NA),
+             panel.grid.major = element_blank(),
+             panel.grid.minor = element_blank(),
+             strip.background=element_blank(),
+             axis.title.x=element_text(colour="black",size=8),
+             axis.title.y=element_text(colour="black",size=8),
+             axis.text.x=element_text(colour="black",size=8),
+             axis.text.y=element_text(colour="black",size=8),
+             axis.ticks=element_line(colour="black"),
+             legend.position="bottom",
+             legend.text=element_text(size=8),
+             legend.title=element_text(size=8),
+             plot.margin=unit(c(0.3,0.3,0.3,0.3),"line"))
+
+###########################################################################################
+
+# run phylosift guppy_epca.sh
+
+###########################################################################################
+
+# upload pca output file
+
+pcadat<-read_csv(paste0(basedir,"out_Ja31/pigpca.proj"),col_names = FALSE)
+
+pcadat <- cSplit(pcadat, "X1","_")
+
+pcadat$DNA_plate <- paste0(pcadat$X1_1,"_",pcadat$X1_2)
+pcadat$DNA_well <- pcadat$X1_3
+colnames(pcadat)[1:5] <- c("pc1","pc2","pc3","pc4","pc5")
+pcadat <- pcadat %>%
+  select(DNA_plate,DNA_well,pc1,pc2,pc3,pc4,pc5)
+
+###########################################################################################
+
+# remove batch effect
+
+DNA_plate <- pcadat$DNA_plate
+DNA_well <- pcadat$DNA_well
+
+pcadat<- data.matrix(pcadat[,3:7], rownames.force = NA)
+pcadat_clean<-ComBat(dat=t(as.matrix(pcadat)),DNA_plate,mod=NULL)
+
+pcadat_clean <- t(pcadat_clean)
+
+pcadat_clean <- as.data.frame(pcadat_clean)
+
+pcadat_clean <- unfactor(pcadat_clean[])
+
+pcadat <- cbind(DNA_plate,DNA_well,pcadat_clean)
+
+# checked if any batch effect still present and it seems fine
+aov.out_check = aov(pc1 ~ DNA_plate, data=pcadat)   # checked for other components too
+res <- TukeyHSD(aov.out_check)
+aov.out_check <- as.data.frame(res$DNA_plate)
+aov.out_check$`p adj`
+
+# pcadat is now ready to use 
+
+###########################################################################################
+
+# 5 # merge with metadata and average out duplicate samples -> boggo 
+
+mdat <- mdat %>%
+  select(sample_name, isolation_source, collection_date, Cohort, DNA_plate, DNA_well)
+
+# Merge alpha and div to metadata one at a time
+
+# merge metadata with alpha div 
+coggo <- inner_join(pcadat,mdat)
+NROW(coggo)
+unique(coggo$Cohort)
+
+# aggregating dups 
+# select the necessary columns
+coggo <- coggo %>%
+  select(pc1,pc2,pc3,pc4,pc5,isolation_source,
+         collection_date, Cohort)
+
+# for beta we don't need to filter out then rbind the pos controls as we don't have them
+
+# aggregate by taking the mean when subject and collection date is identical 
+cols <- 1:5
+coggo <- setDT(coggo)[, lapply(.SD, mean), by=c(names(coggo)[6:8]), .SDcols=cols]
+coggo$Cohort <- factor(coggo$Cohort, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"
+                       ))
+
+# 6 # plot first 4 principal components 
+
+Ja31_pc1pc2 <- ggplot(coggo, aes(x=pc1,y=pc2,color=Cohort))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+
+Ja31_pc3pc4 <- ggplot(coggo, aes(x=pc3,y=pc4,color=Cohort))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+
+
+###########################################################################################
+
+# upload pca output file
+
+pcadat<-read_csv(paste0(basedir,"out_Fe7/pigpca.proj"),col_names = FALSE)
+
+pcadat <- cSplit(pcadat, "X1","_")
+
+pcadat$DNA_plate <- paste0(pcadat$X1_1,"_",pcadat$X1_2)
+pcadat$DNA_well <- pcadat$X1_3
+colnames(pcadat)[1:5] <- c("pc1","pc2","pc3","pc4","pc5")
+pcadat <- pcadat %>%
+  select(DNA_plate,DNA_well,pc1,pc2,pc3,pc4,pc5)
+
+###########################################################################################
+
+# remove batch effect
+
+DNA_plate <- pcadat$DNA_plate
+DNA_well <- pcadat$DNA_well
+
+pcadat<- data.matrix(pcadat[,3:7], rownames.force = NA)
+pcadat_clean<-ComBat(dat=t(as.matrix(pcadat)),DNA_plate,mod=NULL)
+
+pcadat_clean <- t(pcadat_clean)
+
+pcadat_clean <- as.data.frame(pcadat_clean)
+
+pcadat_clean <- unfactor(pcadat_clean[])
+
+pcadat <- cbind(DNA_plate,DNA_well,pcadat_clean)
+
+# checked if any batch effect still present and it seems fine
+aov.out_check = aov(pc1 ~ DNA_plate, data=pcadat)   # checked for other components too
+res <- TukeyHSD(aov.out_check)
+aov.out_check <- as.data.frame(res$DNA_plate)
+aov.out_check$`p adj`
+
+# pcadat is now ready to use 
+
+###########################################################################################
+
+# 5 # merge with metadata and average out duplicate samples -> boggo 
+
+mdat <- mdat %>%
+  select(sample_name, isolation_source, collection_date, Cohort, DNA_plate, DNA_well)
+
+# Merge alpha and div to metadata one at a time
+
+# merge metadata with alpha div 
+coggo <- inner_join(pcadat,mdat)
+NROW(coggo)
+unique(coggo$Cohort)
+
+# aggregating dups 
+# select the necessary columns
+coggo <- coggo %>%
+  select(pc1,pc2,pc3,pc4,pc5,isolation_source,
+         collection_date, Cohort)
+
+# for beta we don't need to filter out then rbind the pos controls as we don't have them
+
+# aggregate by taking the mean when subject and collection date is identical 
+cols <- 1:5
+coggo <- setDT(coggo)[, lapply(.SD, mean), by=c(names(coggo)[6:8]), .SDcols=cols]
+coggo$Cohort <- factor(coggo$Cohort, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"
+                       ))
+
+# 6 # plot first 4 principal components 
+
+Fe7_pc1pc2 <- ggplot(coggo, aes(x=pc1,y=pc2,color=Cohort))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+
+Fe7_pc3pc4 <- ggplot(coggo, aes(x=pc3,y=pc4,color=Cohort))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+
+
+###########################################################################################
+
+# upload pca output file
+
+pcadat<-read_csv(paste0(basedir,"out_Fe14/pigpca.proj"),col_names = FALSE)
+
+pcadat <- cSplit(pcadat, "X1","_")
+
+pcadat$DNA_plate <- paste0(pcadat$X1_1,"_",pcadat$X1_2)
+pcadat$DNA_well <- pcadat$X1_3
+colnames(pcadat)[1:5] <- c("pc1","pc2","pc3","pc4","pc5")
+pcadat <- pcadat %>%
+  select(DNA_plate,DNA_well,pc1,pc2,pc3,pc4,pc5)
+
+###########################################################################################
+
+# remove batch effect
+
+DNA_plate <- pcadat$DNA_plate
+DNA_well <- pcadat$DNA_well
+
+pcadat<- data.matrix(pcadat[,3:7], rownames.force = NA)
+pcadat_clean<-ComBat(dat=t(as.matrix(pcadat)),DNA_plate,mod=NULL)
+
+pcadat_clean <- t(pcadat_clean)
+
+pcadat_clean <- as.data.frame(pcadat_clean)
+
+pcadat_clean <- unfactor(pcadat_clean[])
+
+pcadat <- cbind(DNA_plate,DNA_well,pcadat_clean)
+
+# checked if any batch effect still present and it seems fine
+aov.out_check = aov(pc1 ~ DNA_plate, data=pcadat)   # checked for other components too
+res <- TukeyHSD(aov.out_check)
+aov.out_check <- as.data.frame(res$DNA_plate)
+aov.out_check$`p adj`
+
+# pcadat is now ready to use 
+
+###########################################################################################
+
+# 5 # merge with metadata and average out duplicate samples -> boggo 
+
+mdat <- mdat %>%
+  select(sample_name, isolation_source, collection_date, Cohort, DNA_plate, DNA_well)
+
+# Merge alpha and div to metadata one at a time
+
+# merge metadata with alpha div 
+coggo <- inner_join(pcadat,mdat)
+NROW(coggo)
+unique(coggo$Cohort)
+
+# aggregating dups 
+# select the necessary columns
+coggo <- coggo %>%
+  select(pc1,pc2,pc3,pc4,pc5,isolation_source,
+         collection_date, Cohort)
+
+# for beta we don't need to filter out then rbind the pos controls as we don't have them
+
+# aggregate by taking the mean when subject and collection date is identical 
+cols <- 1:5
+coggo <- setDT(coggo)[, lapply(.SD, mean), by=c(names(coggo)[6:8]), .SDcols=cols]
+coggo$Cohort <- factor(coggo$Cohort, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"
+                       ))
+
+# 6 # plot first 4 principal components 
+
+Fe14_pc1pc2 <- ggplot(coggo, aes(x=pc1,y=pc2,color=Cohort))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+
+Fe14_pc3pc4 <- ggplot(coggo, aes(x=pc3,y=pc4,color=Cohort))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+
+
+###########################################################################################
+
+# upload pca output file
+
+pcadat<-read_csv(paste0(basedir,"out_Fe21/pigpca.proj"),col_names = FALSE)
+
+pcadat <- cSplit(pcadat, "X1","_")
+
+pcadat$DNA_plate <- paste0(pcadat$X1_1,"_",pcadat$X1_2)
+pcadat$DNA_well <- pcadat$X1_3
+colnames(pcadat)[1:5] <- c("pc1","pc2","pc3","pc4","pc5")
+pcadat <- pcadat %>%
+  select(DNA_plate,DNA_well,pc1,pc2,pc3,pc4,pc5)
+
+###########################################################################################
+
+# remove batch effect
+
+DNA_plate <- pcadat$DNA_plate
+DNA_well <- pcadat$DNA_well
+
+pcadat<- data.matrix(pcadat[,3:7], rownames.force = NA)
+pcadat_clean<-ComBat(dat=t(as.matrix(pcadat)),DNA_plate,mod=NULL)
+
+pcadat_clean <- t(pcadat_clean)
+
+pcadat_clean <- as.data.frame(pcadat_clean)
+
+pcadat_clean <- unfactor(pcadat_clean[])
+
+pcadat <- cbind(DNA_plate,DNA_well,pcadat_clean)
+
+# checked if any batch effect still present and it seems fine
+aov.out_check = aov(pc1 ~ DNA_plate, data=pcadat)   # checked for other components too
+res <- TukeyHSD(aov.out_check)
+aov.out_check <- as.data.frame(res$DNA_plate)
+aov.out_check$`p adj`
+
+# pcadat is now ready to use 
+
+###########################################################################################
+
+# 5 # merge with metadata and average out duplicate samples -> boggo 
+
+mdat <- mdat %>%
+  select(sample_name, isolation_source, collection_date, Cohort, DNA_plate, DNA_well)
+
+# Merge alpha and div to metadata one at a time
+
+# merge metadata with alpha div 
+coggo <- inner_join(pcadat,mdat)
+NROW(coggo)
+unique(coggo$Cohort)
+
+# aggregating dups 
+# select the necessary columns
+coggo <- coggo %>%
+  select(pc1,pc2,pc3,pc4,pc5,isolation_source,
+         collection_date, Cohort)
+
+# for beta we don't need to filter out then rbind the pos controls as we don't have them
+
+# aggregate by taking the mean when subject and collection date is identical 
+cols <- 1:5
+coggo <- setDT(coggo)[, lapply(.SD, mean), by=c(names(coggo)[6:8]), .SDcols=cols]
+coggo$Cohort <- factor(coggo$Cohort, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"
+                       ))
+
+# 6 # plot first 4 principal components 
+
+Fe21_pc1pc2 <- ggplot(coggo, aes(x=pc1,y=pc2,color=Cohort))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+
+Fe21_pc3pc4 <- ggplot(coggo, aes(x=pc3,y=pc4,color=Cohort))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+
+
+###########################################################################################
+
+# upload pca output file
+
+pcadat<-read_csv(paste0(basedir,"out_Fe28/pigpca.proj"),col_names = FALSE)
+
+pcadat <- cSplit(pcadat, "X1","_")
+
+pcadat$DNA_plate <- paste0(pcadat$X1_1,"_",pcadat$X1_2)
+pcadat$DNA_well <- pcadat$X1_3
+colnames(pcadat)[1:5] <- c("pc1","pc2","pc3","pc4","pc5")
+pcadat <- pcadat %>%
+  select(DNA_plate,DNA_well,pc1,pc2,pc3,pc4,pc5)
+
+###########################################################################################
+
+# remove batch effect
+
+DNA_plate <- pcadat$DNA_plate
+DNA_well <- pcadat$DNA_well
+
+pcadat<- data.matrix(pcadat[,3:7], rownames.force = NA)
+pcadat_clean<-ComBat(dat=t(as.matrix(pcadat)),DNA_plate,mod=NULL)
+
+pcadat_clean <- t(pcadat_clean)
+
+pcadat_clean <- as.data.frame(pcadat_clean)
+
+pcadat_clean <- unfactor(pcadat_clean[])
+
+pcadat <- cbind(DNA_plate,DNA_well,pcadat_clean)
+
+# checked if any batch effect still present and it seems fine
+aov.out_check = aov(pc1 ~ DNA_plate, data=pcadat)   # checked for other components too
+res <- TukeyHSD(aov.out_check)
+aov.out_check <- as.data.frame(res$DNA_plate)
+aov.out_check$`p adj`
+
+# pcadat is now ready to use 
+
+###########################################################################################
+
+# 5 # merge with metadata and average out duplicate samples -> boggo 
+
+mdat <- mdat %>%
+  select(sample_name, isolation_source, collection_date, Cohort, DNA_plate, DNA_well)
+
+# Merge alpha and div to metadata one at a time
+
+# merge metadata with alpha div 
+coggo <- inner_join(pcadat,mdat)
+NROW(coggo)
+unique(coggo$Cohort)
+
+# aggregating dups 
+# select the necessary columns
+coggo <- coggo %>%
+  select(pc1,pc2,pc3,pc4,pc5,isolation_source,
+         collection_date, Cohort)
+
+# for beta we don't need to filter out then rbind the pos controls as we don't have them
+
+# aggregate by taking the mean when subject and collection date is identical 
+cols <- 1:5
+coggo <- setDT(coggo)[, lapply(.SD, mean), by=c(names(coggo)[6:8]), .SDcols=cols]
+coggo$Cohort <- factor(coggo$Cohort, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"
+                       ))
+
+# 6 # plot first 4 principal components 
+
+Fe28_pc1pc2 <- ggplot(coggo, aes(x=pc1,y=pc2,color=Cohort))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+
+Fe28_pc3pc4 <- ggplot(coggo, aes(x=pc3,y=pc4,color=Cohort))+
+  geom_point()+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)
+
+###########################################################################################
+
+Ja31_pc1pc2
+Ja31_pc3pc4
+
+Fe7_pc1pc2 # D-scour separates slightly from other cohorts in pc1
+Fe7_pc3pc4
+
+Fe14_pc1pc2 # maybe ...? # Neo+D separate out slightly in pc2 # Neo+C separate out slightly in pc1 
+Fe14_pc3pc4 # maybe ...? # Neo+C separate out slightly in pc4 # D-scour separate out slightly in pc4
+
+Fe21_pc1pc2 # maybe ...? * # Neo+D separates out in pc2 from the Neomycin cohort # D-scour separate out slightly in pc2
+Fe21_pc3pc4 # Neomycin smallest ellipse (80% confidence) and it sepaartes slightly from others cohorts in pc4
+
+Fe28_pc1pc2
+Fe28_pc3pc4 # maybe ...? * # Neo+C separates out in pc3 and pc4 from Neomycin
+# ColiGuard separates slightly in pc4 from Control 
+# D-scour separates slightly in pc3 from Control 
+
+# saving plots that show clustering by cohort
+pdf("out/cohorts_beta.pdf")
+ggarrange(Fe7_pc1pc2, 
+          Fe14_pc1pc2, 
+          Fe14_pc3pc4,
+          Fe21_pc1pc2, 
+          Fe21_pc3pc4,
+          Fe28_pc3pc4,
+          labels=c("A","B","C","D","E","F"),
+          common.legend = TRUE, legend="bottom")
+dev.off()
+
+
+###########################################################################################
+
 
