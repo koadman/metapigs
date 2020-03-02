@@ -417,36 +417,98 @@ PC1PC2_pos_controls <- DF_positive_controls %>%
   geom_point(size=0.5)+
   theme+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_discrete(drop=FALSE)
-
+  scale_color_discrete(drop=FALSE) +
+  theme(plot.margin=unit(c(0.5,0.5,4,4),"cm"))
 PC3PC4_pos_controls <- DF_positive_controls %>%
   ggplot(., aes(x=PC3,y=PC4,color=Cohort))+
   geom_point(size=0.5)+
   theme+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_discrete(drop=FALSE)
-
+  scale_color_discrete(drop=FALSE)+
+  theme(plot.margin=unit(c(0.5,1.5,1.5,1.7),"cm"))
 PC1PC5_pos_controls <- DF_positive_controls %>%
   ggplot(., aes(x=PC1,y=PC5,color=Cohort))+
   geom_point(size=0.5)+
   theme+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_discrete(drop=FALSE)
+  scale_color_discrete(drop=FALSE)+
+  theme(plot.margin=unit(c(0.5,0.5,1.9,1.7),"cm"))
+
+##############################
 
 
-all <- ggarrange(PC1PC2_pos_controls,
-                 PC3PC4_pos_controls,
-                 PC1PC5_pos_controls,
-                 common.legend = TRUE,
-                 widths = c(1,1,1),
-                 heights=c(1,1,1))
+xmldata <- pos_controls 
 
 pdf("pos_controls.pdf")
-all
+### plot PC1PC2
 PC1PC2_pos_controls
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.4, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+grid.text(paste0(get_var(find_PC1(xmldata)),"%"), x = unit(0.65, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 8, fontface = "bold"))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.9, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.3, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+grid.text(paste0(get_var(find_PC2(xmldata)),"%"), x = unit(0.1, "npc"), 
+          y = unit(0.55, "npc"),
+          gp = gpar(fontsize = 8, fontface = "bold"))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+### plot PC3PC4 
 PC3PC4_pos_controls
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.4, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+grid.text(paste0(get_var(find_PC3(xmldata)),"%"), x = unit(0.65, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 8, fontface = "bold"))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.9, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.3, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+grid.text(paste0(get_var(find_PC4(xmldata)),"%"), x = unit(0.1, "npc"), 
+          y = unit(0.55, "npc"),
+          gp = gpar(fontsize = 8, fontface = "bold"))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+### plot PC1PC5 
 PC1PC5_pos_controls
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.4, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+grid.text(paste0(get_var(find_PC1(xmldata)),"%"), x = unit(0.65, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 8, fontface = "bold"))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.9, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+# PC5
+grid.text(PC_down(find_PC5(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.3, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+grid.text(paste0(get_var(find_PC5(xmldata)),"%"), x = unit(0.1, "npc"), 
+          y = unit(0.55, "npc"),
+          gp = gpar(fontsize = 8, fontface = "bold"))
+grid.text(PC_up(find_PC5(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
 dev.off()
+
+
 
 
 ##############################
@@ -455,15 +517,74 @@ dev.off()
 
 # piggies (all time points)
 
-DF_piggies
+DF_piggies # for plots
+xmldata <- piggies
+
+
 
 pdf("piggies.pdf")
-# time
+# plot PC1PC2
 plot(DF_piggies$PC1,DF_piggies$PC2,
-     main="beta diversity - time - (phylosift edge PCA)",
-     xlab="PC1",ylab="PC2",
+     main="guppy on all - change with time",
+     xlab=paste0("PC1  ",get_var(find_PC1(xmldata)),"%"),ylab=paste0("PC2  ",get_var(find_PC2(xmldata)),"%"),
      type="p",cex=0.8,
      col=rbow[as.Date(DF_piggies$collection_date)-as.Date("2017-01-29 00:00:00")])
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.2, "npc"), 
+          y = unit(0.05, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.8, "npc"), 
+          y = unit(0.05, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.05, "npc"), 
+          y = unit(0.3, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.05, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+
+# plot PC3PC4
+plot(DF_piggies$PC3,DF_piggies$PC4,
+     main="guppy on all - change with time",
+     xlab=paste0("PC3  ",get_var(find_PC3(xmldata)),"%"),ylab=paste0("PC4  ",get_var(find_PC4(xmldata)),"%"),
+     type="p",cex=0.8,
+     col=rbow[as.Date(DF_piggies$collection_date)-as.Date("2017-01-29 00:00:00")])
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.2, "npc"), 
+          y = unit(0.05, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.8, "npc"), 
+          y = unit(0.05, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.05, "npc"), 
+          y = unit(0.3, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.05, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+
+# plot PC1PC5
+plot(DF_piggies$PC1,DF_piggies$PC5,
+     main="guppy on all - change with time",
+     xlab=paste0("PC1  ",get_var(find_PC1(xmldata)),"%"),ylab=paste0("PC5  ",get_var(find_PC5(xmldata)),"%"),
+     type="p",cex=0.8,
+     col=rbow[as.Date(DF_piggies$collection_date)-as.Date("2017-01-29 00:00:00")])
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.2, "npc"), 
+          y = unit(0.05, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.8, "npc"), 
+          y = unit(0.05, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+# PC5
+grid.text(PC_down(find_PC5(xmldata)), x = unit(0.05, "npc"), 
+          y = unit(0.3, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
+grid.text(PC_up(find_PC5(xmldata)), x = unit(0.05, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 6, fontface = "bold"))
 # control
 par(mfrow=c(3,2), mai = c(0.4, 0.4, 0.4, 0.4))
 plot(DF_piggies$PC1[DF_piggies$Cohort=="Control"],
@@ -547,6 +668,7 @@ dev.off()
 # piggies (guppied by time point)
 
 DF_piggies_time
+xml_data <- piggies 
 
 # re-order cohort 
 DF_piggies_time$Cohort <- factor(DF_piggies_time$Cohort, 
@@ -587,7 +709,9 @@ PC1PC5_DF_piggies_time_plots <-
   
 
 pdf("piggies_time.pdf")
-PC1PC2_DF_piggies_time_plots$plots
+PC1PC2_DF_piggies_time_plots$plots[[1]]
+# xml data to add 
+# figuring out a way to do it in a cleaner way 
 PC3PC4_DF_piggies_time_plots$plots
 PC1PC5_DF_piggies_time_plots$plots
 dev.off()

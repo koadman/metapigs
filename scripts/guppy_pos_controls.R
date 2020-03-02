@@ -10,254 +10,106 @@
 # does it become better or worse? 
 
 
-# 1 # prepares metadata files to feed guppy_epca.sh:
+# 1 # groups for guppy are made in guppy_group.R 
 
-# 2 # run guppy_epca.sh on HPC --> output
+# 2 # takes in guppy output 
 
-# 3 # outputs: HPC -> local (/Users/12705859/Desktop/metapigs_base/phylosift/input_files/)
-# then to R 
+# 3 # remove batch effect (optional, plot with and without batch effect removal)
 
-# 4 # remove batch effect (optional, plot with and without batch effect removal)
+# 4 # merge with metadata 
 
-# 5 # merge with metadata 
-
-# 6 # plot first 5 principal components, coloring by positive control 
+# 5 # plot first 5 principal components, coloring by positive control 
 # if separation is seen, the xlm file can be interrogated to determine:
-# 6.1. the percentage variation explained by the principal component
-# 6.2. the tree edges read abundance (+ and -) exaplined by the principal component
+# 5.1. the percentage variation explained by the principal component
+# 5.2. the tree edges read abundance (+ and -) expalined by the principal component
 
-# let's the sanity check start! 
+# let the sanity check start! 
 
 
 ######################################################################################################
-
 
 # 0 # set working directory & load libs
 
 setwd("/Users/12705859/Desktop/metapigs_base/phylosift/guppy")
 
-library(vcd)
-library(summarytools)
-
-
-# 1 # prepares metadata files to feed guppy_epca.sh:
-# one group = one time point : 1 breed : max 2 days diff in bdays
-
-# load metadata 
-basedir = "/Users/12705859/Desktop/metapigs_base/phylosift/input_files/"
-mdat <- read_excel(paste0(basedir,"Metagenome.environmental_20190308_2.xlsx"),
-                   col_types = c("text", "numeric", "numeric", "text", "text",
-                                 "text", "date", "text","text", "text", "numeric",
-                                 "numeric", "numeric", "numeric", "numeric", "numeric",
-                                 "numeric", "text", "text","text", "text", "text", "text",
-                                 "text","text", "text", "text", "text", "text","text", "text"),
-                   skip = 12)
-
-# formatting metadata column names 
-mdat$`*collection_date` <- as.character(mdat$`*collection_date`)
-colnames(mdat)[colnames(mdat) == '*collection_date'] <- 'collection_date'
-colnames(mdat)[colnames(mdat) == '*sample_name'] <- 'sample_name'
-
-# filter out pos controls, neg controls and mother samples 
-mdat_sel <- mdat %>% 
-  filter(Cohort=="MockCommunity"|Cohort=="PosControl_D-scour"|Cohort=="PosControl_ColiGuard") %>% 
-  dplyr::select(isolation_source,DNA_plate,DNA_well)
-
-mdat_sel$ID <- paste0(mdat_sel$DNA_plate,"_",mdat_sel$DNA_well,"_*")
-
-mdat_sel$isolation_source
-# we have 9 Mock , 8 Protexin, 8 ColiGuard = 25 in total 
-
-mdat_sel <- as.character(mdat_sel$ID)
-
-writeLines(unlist(mdat_sel), "pos_controls_sel.txt", sep = " ")
-# contains 25 file IDs in total 
-
-###########################################################################################
-
-# run phylosift guppy_epca.sh : location on HPC: /shared/homes/12705859/phylosift_metapigs_20200225
-# this way: 
-# cd /shared/homes/12705859/phylosift_metapigs_20200225
-# /shared/homes/12705859/phylosift_v1.0.1/bin/guppy  epca --prefix pigpca_pos_controls_sel `cat pos_controls_sel.txt`
-# output: 4 pigpca files:
-# pigpca_pos_controls_sel.edgediff
-# pigpca_pos_controls_sel.proj
-# pigpca_pos_controls_sel.trans
-# pigpca_pos_controls_sel.xml
-# 
-# then moved to /Users/12705859/Desktop/metapigs_base/phylosift/guppy to visualise with R 
-
-# moved all pigpca* files (48 files) to /Users/12705859/Desktop/metapigs_base/phylosift/guppy
-
-###########################################################################################
-
-
-#settings for plots
-theme<-theme(panel.background = element_blank(),
-             panel.border=element_rect(fill=NA),
-             panel.grid.major = element_blank(),
-             panel.grid.minor = element_blank(),
-             strip.background=element_blank(),
-             axis.title.x=element_text(colour="black",size=8),
-             axis.title.y=element_text(colour="black",size=8),
-             axis.text.x=element_text(colour="black",size=8),
-             axis.text.y=element_text(colour="black",size=8),
-             axis.ticks=element_line(colour="black"),
-             legend.position="top",
-             plot.margin=unit(c(0.3,0.3,0.3,0.3),"line"))
-
-###########################################################################################
-
-
-# upload pca output files
-
-pcadat<-read_csv("pigpca_pos_controls_sel.proj",col_names = FALSE)
-
-
-pcadat <- cSplit(pcadat, "X1","_")
-
-pcadat$DNA_plate <- paste0(pcadat$X1_1,"_",pcadat$X1_2)
-pcadat$DNA_well <- pcadat$X1_3
-colnames(pcadat)[1:5] <- c("PC1","PC2","PC3","PC4","PC5")
-pcadat <- pcadat %>%
-  dplyr::select(DNA_plate,DNA_well,PC1,PC2,PC3,PC4,PC5)
-
-
-###########################################################################################
-
-# check significance of batch effect BEFORE batch effect removal 
-# checked if any batch effect still present and it seems fine
-aov.out_check = aov(PC1 ~ DNA_plate, data=pcadat)   # checked for other components too
-res <- TukeyHSD(aov.out_check)
-aov.out_check <- as.data.frame(res$DNA_plate)
-aov.out_check$`p adj`
-
-# no need to remove batch effect as padj is approx. 1 
-
-# pcadat is now ready to use 
-
-###########################################################################################
-
-
-# 5 # merge with metadata and average out duplicate samples -> boggo 
-
-# merge metadata with beta div 
-
-coggo <- merge(pcadat,mdat)
-coggo <- coggo %>%
-  dplyr::select(isolation_source,DNA_plate,DNA_well,PC1,PC2,PC3,PC4,PC5,sample_name)
-
-
-
-# need to re-name Protexin to D-scour for consistency
-coggo$isolation_source <- gsub("Protexin","D-scour",coggo$isolation_source)
-
-# re-order isolation_source
-coggo$isolation_source <- factor(coggo$isolation_source, 
-                                 levels=c("MockCommunity", 
-                                          "D-scour", 
-                                          "ColiGuard"))
-
-# 6 # plot first 4 principal components 
-
-PC1PC2 <- coggo %>%
-  ggplot(., aes(x=PC1,y=PC2,color=isolation_source))+
-  geom_point(size=0.5)+
-  theme+
-  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_manual(labels = c("MockCommunity", 
-                                "D-scour",
-                                "ColiGuard"), 
-                     values = c("#aaaaaa", 
-                                "#B79F00",
-                                "#00BA38")) 
-
-PC3PC4 <- coggo %>%
-  ggplot(., aes(x=PC3,y=PC4,color=isolation_source))+
-  geom_point(size=0.5)+
-  theme+
-  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_manual(labels = c("MockCommunity", 
-                                "D-scour",
-                                "ColiGuard"), 
-                     values = c("#aaaaaa", 
-                                "#B79F00",
-                                "#00BA38")) 
-
-PC1PC5 <- coggo %>%
-  ggplot(., aes(x=PC1,y=PC5,color=isolation_source))+
-  geom_point(size=0.5)+
-  geom_text(aes(label=isolation_source),hjust=0, vjust=0)+
-  theme+
-  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_discrete()
-
-all <- ggarrange(PC1PC2,PC3PC4,PC1PC5,common.legend = TRUE,
-                 widths = c(1,1,1),heights=c(1,1,1))
-
-pdf("pos_controls.pdf")
-all
-PC1PC2
-PC3PC4
-PC1PC5
-dev.off()
-
-
-# open pigpca_pos_controls.xml 
-
-# gather % for each PC and 
-# tree edges incr and decr with each PC
-
-# PC1 83.6%
-# PC2 14.1%
-# PC3 1.5%
-# PC4 0.4%
-# PC5 0.2%
-
-# 
-
-require(XML)
-data <- xmlParse("/Users/12705859/Desktop/metapigs_base/phylosift/guppy/pigpca_pos_controls_sel.xml")
-
-xml_data <- xmlToList(data)
-
-maybe_PC1 <- xml_data[1]
-
-grep("color",maybe_PC1)
-z <- as.data.frame(maybe_PC1)
-
-rownames(z)
-head(z)
-NROW(z)
-tr <- t(z)
-rownames(tr)
-head(tr,n=100)
-NROW(tr)
-View(tr)
-
-location <- as.list(xml_data[["clade"]][["branch_length"]])
-View(location)
-start_time <- unlist(xml_data[["clade"]][["branch_length"]][
-  names(xml_data[["clade"]][["branch_length"]]) == "start-valid-time"])
-
-
 
 library(readr)
+library(dplyr)
+library(tidyr)
+library(splitstackshape)
+library(grid)
 
+library(vcd)
+library(summarytools)
+library(readxl)
+library(ggplot2)
+library(ggpubr)
+library(data.table)
 
-myfile <- basename("~/Desktop/test.txt")
+###########################################################################################
 
-my.basedir <- "~/Desktop/metapigs_base/phylosift/guppy/Archeopteryx_trees"
+# run forester.jar from command line to convert the .xml file to phyloXML - R readable format (.txt) : 
+# this way: 
+# java -cp /Users/12705859/Downloads/forester_1050.jar 
+# org.forester.application.phyloxml_converter -f=dummy file.xml file.txt
 
-my.files = list.files(my.basedir,pattern=".txt")
+# or on a loop: 
+# for fpath in /Users/12705859/Desktop/metapigs_base/phylosift/guppy/guppy_output/*.xml; 
+# do java -cp /Users/12705859/Downloads/forester_1050.jar 
+# org.forester.application.phyloxml_converter -f=dummy "$fpath" 
+# "/Users/12705859/Desktop/metapigs_base/phylosift/guppy/guppy_output/$(basename "$fpath").txt"; 
+# done
+
+###########################################################################################
+
+my.basedir <- "~/Desktop/metapigs_base/phylosift/guppy/guppy_output"
+
+# construct an empty dataframe to build on 
+complete.df <- data.frame(
+  var_explained = character(),
+  branch_length = character(),
+  branch_width = character(),
+  blue = character(),
+  green = character(),
+  red = character(),
+  taxa = character(),
+  component = character(),
+  PC_position = character(),
+  file = character()
+  )
+
+my.files = list.files(my.basedir,pattern="xml.txt")
+my.files <- my.files[-9] # removing problematic file (won't parse - it's Ja31 anyway)
+
 for (textfile in my.files) {
   
   # read in file 
   my.df <- read_csv(file.path(my.basedir,textfile), col_names = FALSE)
   
-  # get info from file name to add later to dataframe 
-  PC_variation_explained <- round(as.numeric(gsub("<[^>]+>", "",my.df[4,])),4)*100
-  myfile <- basename(textfile)
+  # extract file name 
+  myfilename <- basename(textfile)
+  
+  startOFnewPC <- grep("<phylogeny rooted", my.df$X1)
+  
+  z <- split(my.df, cumsum(1:nrow(my.df) %in% startOFnewPC))
+  
+  PC1 <- as.data.frame(z$`1`)
+  PC1$component = "PC1"
+  PC1$var_explained <- as.character(z$`1`[2,])
+  PC2 <- as.data.frame(z$`2`)
+  PC2$component = "PC2"
+  PC2$var_explained <- as.character(z$`2`[2,])
+  PC3 <- as.data.frame(z$`3`)
+  PC3$component = "PC3"
+  PC3$var_explained <- as.character(z$`3`[2,])
+  PC4 <- as.data.frame(z$`4`)
+  PC4$component = "PC4"
+  PC4$var_explained <- as.character(z$`4`[2,])
+  PC5 <- as.data.frame(z$`5`)
+  PC5$component = "PC5"
+  PC5$var_explained <- as.character(z$`5`[2,])
+  
+  my.df <- rbind(PC1,PC2,PC3,PC4,PC5)
   
   # start the grepping of useful tree info 
   mylist <- grep("blue", my.df$X1)
@@ -278,31 +130,282 @@ for (textfile in my.files) {
   mysel <- as.data.frame(mysel)
   row.names(mysel) <- mysel$value
   
-  almostthere <- test[match(rownames(mysel), rownames(test), nomatch=0),]
+  almostthere <- my.df[match(rownames(mysel), rownames(my.df), nomatch=0),]
   almostthere <- cSplit(almostthere, "X1","</")
-  ofinterest <- almostthere$X1_1
-  ofinterest <- as.data.frame(ofinterest)
+  almostthere$X1_2 <- NULL
   
-  myprecious <- ofinterest %>% 
-    filter(ofinterest != '') %>%  
-    mutate(key = rep(c('taxa', 'branch_length', 'branch_width','color','red','green','blue'), n() / 7), 
+  myprecious <- almostthere %>% 
+    filter(X1_1 != '') %>%    # drop empty rows
+    mutate(key = rep(c('taxa', 'branch_length', 'branch_width', 'color','red','green','blue'), n() / 7), 
            id = cumsum(key == 'taxa')) %>% 
-    spread(key, ofinterest) 
+    spread(key, X1_1) %>%
+    dplyr::select(var_explained,branch_length,branch_width,blue,green,red,taxa,component)
   
+  # remove all the symbols derived from the xml format
   myprecious <- as.data.frame(lapply(myprecious, function(y) gsub("<[^>]+>", "", y)))
   
-  myprecious <- myprecious %>%
-    arrange(., desc(red))
+  # round the variation explained by the PC, down to two digits 
+  myprecious$var_explained <-round(as.numeric(as.character(myprecious[,1])) * 100,2)
   
-  myprecious$PC_variation_explained <- PC_variation_explained
-  myprecious$file <- myfile
+  myprecious$PC_position <- paste0(myprecious$blue,"_",myprecious$green,"_",myprecious$red)
+  # only two unique combos that make up for green or red (unique(myprecious$PC_position)
   
-  last.df <- rbind(
-    last.df, 
+  # green standing for higher up in PC, red the opposite
+  myprecious$PC_position <- gsub("165_194_102", "up",myprecious$PC_position)
+  myprecious$PC_position <- gsub("98_141_252", "down",myprecious$PC_position)
+  
+  myprecious$file <- myfilename
+  
+  complete.df <- rbind(
+    complete.df, 
     myprecious
-    )
+  )
+  
 }
 
-last.df
 
+complete <- complete.df
+
+# clean file name & parse file name 
+complete$file <- gsub('_sel.txt.xml.txt', '', complete$file)
+complete$file <- gsub('piggies_group_A', 'groupA', complete$file)
+complete$file <- gsub('piggies_group_B', 'groupB', complete$file)
+complete$file <- gsub('^piggies$', 'piggies_all', complete$file)
+complete <- cSplit(complete, "file","_")
+
+complete <- complete %>% rename(sample_type = file_1, guppied_date = file_2 )
+
+NROW(complete)
+###############
+
+# simplify taxa
+
+
+complete$taxa_simple <- complete$taxa %<>%
+  gsub('\\{|\\}', '', .) %>% # removes curly brackets
+  gsub('^_', '', .) %>% # removes the first _
+  gsub('[0-9]+', '', .) %>% # removes digits
+  gsub('_$', '', .) %>%  # removes the last _
+  gsub('.*__', '', .)  # removes everyting up to __ (keeping only the most specific)
+complete$taxa_simple
+
+unique(complete$taxa_simple)
+
+# complete$taxa_simple <- gsub('.{7}$', '', complete$taxa)
+# sub("_$", "", mysrr)   # this one removes the last 
+# sub("^_", "", mysrr)   # this one removes the first 
+
+
+###############
+
+
+# Store the minimum necessary info
+simplified <- complete %>%
+  select(sample_type, guppied_date,var_explained,component,PC_position,taxa_simple) %>%
+  distinct()
+
+# save both complete and simplified dataframes 
+fwrite(x = complete, file = "guppy_xml_complete.df")
+fwrite(x = simplified, file = "guppy_xml_simplified.df")
+
+
+# collect taxa associated with PCs:
+
+#############################
+
+# positive controls
+
+# split by component
+pos_controls <- simplified %>%
+  filter(sample_type=="pos") %>%
+  group_split(component) 
+
+
+#############################
+
+# piggies - all guppied
+
+# split by component
+piggies <- simplified %>%
+  filter(sample_type=="piggies") %>%
+  filter(guppied_date=="all") %>%
+  group_split(component) 
+
+
+#############################
+
+# piggies - guppied by time
+
+# split by component
+piggies_Ja31 <- simplified %>%
+  filter(sample_type=="piggies") %>%
+  filter(guppied_date=="Ja31") %>%
+  group_split(component) 
+piggies_Fe7 <- simplified %>%
+  filter(sample_type=="piggies") %>%
+  filter(guppied_date=="Fe7") %>%
+  group_split(component) 
+piggies_Fe14 <- simplified %>%
+  filter(sample_type=="piggies") %>%
+  filter(guppied_date=="Fe14") %>%
+  group_split(component) 
+piggies_Fe21 <- simplified %>%
+  filter(sample_type=="piggies") %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component) 
+piggies_Fe28 <- simplified %>%
+  filter(sample_type=="piggies") %>%
+  filter(guppied_date=="Fe28") %>%
+  group_split(component) 
+
+
+#############################
+
+# piggies - guppied by time
+
+# split by component
+groupA_Ja31 <- simplified %>%
+  filter(sample_type=="groupA") %>%
+  filter(guppied_date=="Ja31") %>%
+  group_split(component) 
+groupA_Fe7 <- simplified %>%
+  filter(sample_type=="groupA") %>%
+  filter(guppied_date=="Fe7") %>%
+  group_split(component) 
+groupA_Fe14 <- simplified %>%
+  filter(sample_type=="groupA") %>%
+  filter(guppied_date=="Fe14") %>%
+  group_split(component) 
+groupA_Fe21 <- simplified %>%
+  filter(sample_type=="groupA") %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component) 
+groupA_Fe28 <- simplified %>%
+  filter(sample_type=="groupA") %>%
+  filter(guppied_date=="Fe28") %>%
+  group_split(component) 
+groupA_Ma3 <- simplified %>%
+  filter(sample_type=="groupA") %>%
+  filter(guppied_date=="Ma3") %>%
+  group_split(component) 
+
+
+#############################
+
+# piggies - guppied by time
+
+# split by component
+groupB_Ja31 <- simplified %>%
+  filter(sample_type=="groupB") %>%
+  filter(guppied_date=="Ja31") %>%
+  group_split(component) 
+groupB_Fe7 <- simplified %>%
+  filter(sample_type=="groupB") %>%
+  filter(guppied_date=="Fe7") %>%
+  group_split(component) 
+groupB_Fe14 <- simplified %>%
+  filter(sample_type=="groupB") %>%
+  filter(guppied_date=="Fe14") %>%
+  group_split(component) 
+groupB_Fe21 <- simplified %>%
+  filter(sample_type=="groupB") %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component) 
+groupB_Fe28 <- simplified %>%
+  filter(sample_type=="groupB") %>%
+  filter(guppied_date=="Fe28") %>%
+  group_split(component) 
+groupB_Ma3 <- simplified %>%
+  filter(sample_type=="groupB") %>%
+  filter(guppied_date=="Ma3") %>%
+  group_split(component) 
+
+
+# how to use function created below: PC_up(find_PC5(pos_controls))
+
+# what grid.text is extpecting: e.g. : PC_up(find_PC5(df))    in this case (df = pos_controls) and derives from: 
+# ```
+# pos_controls <- simplified %>%
+#   filter(sample_type=="pos") %>%
+#   group_split(component) 
+# ```
+# and has as columns: 
+# colnames(pos_controls[[1]])
+# [1] "sample_type"   "guppied_date"  "var_explained" "component"     "PC_position"   "taxa_simple"  
+
+
+######################################################################################################
+
+
+# functions to find PC of interest
+
+
+find_PC1 <- function(x) {
+  PC1 <- x[[1]] %>%
+    group_by(taxa_simple) %>%
+    filter(n()==1) %>% # keep only taxa that appear once either up or down in PC, not both
+    arrange(PC_position,taxa_simple)
+  return(PC1)
+}
+find_PC2 <- function(x) {
+  PC1 <- x[[2]] %>%
+    group_by(taxa_simple) %>%
+    filter(n()==1) %>% # keep only taxa that appear once either up or down in PC, not both
+    arrange(PC_position,taxa_simple)
+  return(PC1)
+}
+find_PC3 <- function(x) {
+  PC1 <- x[[3]] %>%
+    group_by(taxa_simple) %>%
+    filter(n()==1) %>% # keep only taxa that appear once either up or down in PC, not both
+    arrange(PC_position,taxa_simple)
+  return(PC1)
+}
+find_PC4 <- function(x) {
+  PC1 <- x[[4]] %>%
+    group_by(taxa_simple) %>%
+    filter(n()==1) %>% # keep only taxa that appear once either up or down in PC, not both
+    arrange(PC_position,taxa_simple)
+  return(PC1)
+}
+find_PC5 <- function(x) {
+  PC1 <- x[[5]] %>%
+    group_by(taxa_simple) %>%
+    filter(n()==1) %>% # keep only taxa that appear once either up or down in PC, not both
+    arrange(PC_position,taxa_simple)
+  return(PC1)
+}
+
+######################################################################################################
+
+
+# functions to get taxa going up or down the PC
+
+PC_down <- function(x) {
+  down <- paste(as.list((x$taxa_simple[x$PC_position=="down"]),"\n"),collapse="\n")
+  return(down)
+}
+
+
+PC_up <- function(x) {
+  up <- paste(as.list((x$taxa_simple[x$PC_position=="up"]),"\n"),collapse="\n")
+  return(up)
+}
+
+# interrogate the function by typing 
+# PC_up(anydataframeyouwant)
+
+
+######################################################################################################
+
+
+# functions to get taxa going up or down the PC
+
+get_var <- function(x) {
+  var <- paste(as.list((x$var_explained)[1]))   # first item only 
+  return(var)
+}
+
+# interrogate the function by typing 
+# get_var(anydataframeyouwant)
 
