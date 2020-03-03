@@ -39,13 +39,6 @@ library(tidyr)
 library(splitstackshape)
 library(grid)
 
-library(vcd)
-library(summarytools)
-library(readxl)
-library(ggplot2)
-library(ggpubr)
-library(data.table)
-
 ###########################################################################################
 
 # run forester.jar from command line to convert the .xml file to phyloXML - R readable format (.txt) : 
@@ -187,14 +180,8 @@ complete$taxa_simple <- complete$taxa %<>%
   gsub('[0-9]+', '', .) %>% # removes digits
   gsub('_$', '', .) %>%  # removes the last _
   gsub('.*__', '', .)  # removes everyting up to __ (keeping only the most specific)
-complete$taxa_simple
 
 unique(complete$taxa_simple)
-
-# complete$taxa_simple <- gsub('.{7}$', '', complete$taxa)
-# sub("_$", "", mysrr)   # this one removes the last 
-# sub("^_", "", mysrr)   # this one removes the first 
-
 
 ###############
 
@@ -209,116 +196,10 @@ fwrite(x = complete, file = "guppy_xml_complete.df")
 fwrite(x = simplified, file = "guppy_xml_simplified.df")
 
 
-# collect taxa associated with PCs:
+
+# functions to collect taxa associated with PCs:
 
 #############################
-
-# positive controls
-
-# split by component
-pos_controls <- simplified %>%
-  filter(sample_type=="pos") %>%
-  group_split(component) 
-
-
-#############################
-
-# piggies - all guppied
-
-# split by component
-piggies <- simplified %>%
-  filter(sample_type=="piggies") %>%
-  filter(guppied_date=="all") %>%
-  group_split(component) 
-
-
-#############################
-
-# piggies - guppied by time
-
-# split by component
-piggies_Ja31 <- simplified %>%
-  filter(sample_type=="piggies") %>%
-  filter(guppied_date=="Ja31") %>%
-  group_split(component) 
-piggies_Fe7 <- simplified %>%
-  filter(sample_type=="piggies") %>%
-  filter(guppied_date=="Fe7") %>%
-  group_split(component) 
-piggies_Fe14 <- simplified %>%
-  filter(sample_type=="piggies") %>%
-  filter(guppied_date=="Fe14") %>%
-  group_split(component) 
-piggies_Fe21 <- simplified %>%
-  filter(sample_type=="piggies") %>%
-  filter(guppied_date=="Fe21") %>%
-  group_split(component) 
-piggies_Fe28 <- simplified %>%
-  filter(sample_type=="piggies") %>%
-  filter(guppied_date=="Fe28") %>%
-  group_split(component) 
-
-
-#############################
-
-# piggies - guppied by time
-
-# split by component
-groupA_Ja31 <- simplified %>%
-  filter(sample_type=="groupA") %>%
-  filter(guppied_date=="Ja31") %>%
-  group_split(component) 
-groupA_Fe7 <- simplified %>%
-  filter(sample_type=="groupA") %>%
-  filter(guppied_date=="Fe7") %>%
-  group_split(component) 
-groupA_Fe14 <- simplified %>%
-  filter(sample_type=="groupA") %>%
-  filter(guppied_date=="Fe14") %>%
-  group_split(component) 
-groupA_Fe21 <- simplified %>%
-  filter(sample_type=="groupA") %>%
-  filter(guppied_date=="Fe21") %>%
-  group_split(component) 
-groupA_Fe28 <- simplified %>%
-  filter(sample_type=="groupA") %>%
-  filter(guppied_date=="Fe28") %>%
-  group_split(component) 
-groupA_Ma3 <- simplified %>%
-  filter(sample_type=="groupA") %>%
-  filter(guppied_date=="Ma3") %>%
-  group_split(component) 
-
-
-#############################
-
-# piggies - guppied by time
-
-# split by component
-groupB_Ja31 <- simplified %>%
-  filter(sample_type=="groupB") %>%
-  filter(guppied_date=="Ja31") %>%
-  group_split(component) 
-groupB_Fe7 <- simplified %>%
-  filter(sample_type=="groupB") %>%
-  filter(guppied_date=="Fe7") %>%
-  group_split(component) 
-groupB_Fe14 <- simplified %>%
-  filter(sample_type=="groupB") %>%
-  filter(guppied_date=="Fe14") %>%
-  group_split(component) 
-groupB_Fe21 <- simplified %>%
-  filter(sample_type=="groupB") %>%
-  filter(guppied_date=="Fe21") %>%
-  group_split(component) 
-groupB_Fe28 <- simplified %>%
-  filter(sample_type=="groupB") %>%
-  filter(guppied_date=="Fe28") %>%
-  group_split(component) 
-groupB_Ma3 <- simplified %>%
-  filter(sample_type=="groupB") %>%
-  filter(guppied_date=="Ma3") %>%
-  group_split(component) 
 
 
 # how to use function created below: PC_up(find_PC5(pos_controls))
@@ -335,7 +216,7 @@ groupB_Ma3 <- simplified %>%
 
 
 ######################################################################################################
-
+######################################################################################################
 
 # functions to find PC of interest
 
@@ -377,7 +258,7 @@ find_PC5 <- function(x) {
 }
 
 ######################################################################################################
-
+######################################################################################################
 
 # functions to get taxa going up or down the PC
 
@@ -397,7 +278,7 @@ PC_up <- function(x) {
 
 
 ######################################################################################################
-
+######################################################################################################
 
 # functions to get taxa going up or down the PC
 
@@ -408,4 +289,12 @@ get_var <- function(x) {
 
 # interrogate the function by typing 
 # get_var(anydataframeyouwant)
+
+
+######################################################################################################
+######################################################################################################
+
+######################################################################################################
+######################################################################################################
+
 
