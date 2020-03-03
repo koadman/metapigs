@@ -2,28 +2,30 @@
 
 # rationale: 
 
-# as a proof of concept: 
-# run beta diversity analysis on pos controls only (all replicates) 
-# and see how they cluster (do they separate? they absolutely should!)
-
-# also check what effect the batch effect removal has on the clustering
-# does it become better or worse? 
-
+##### previous steps: 
 
 # 1 # groups for guppy are made in guppy_group.R 
 
-# 2 # takes in guppy output 
+# 2 # guppy is run 
 
-# 3 # remove batch effect (optional, plot with and without batch effect removal)
+# 3 # .xml conversion to .txt:
 
-# 4 # merge with metadata 
+# run forester.jar from command line to convert the .xml file to phyloXML - R readable format (.txt) : 
+# this way: 
+# java -cp /Users/12705859/Downloads/forester_1050.jar 
+# org.forester.application.phyloxml_converter -f=dummy file.xml file.txt
+# in a loop: 
+# for fpath in /Users/12705859/Desktop/metapigs_base/phylosift/guppy/guppy_output/*.xml; 
+# do java -cp /Users/12705859/Downloads/forester_1050.jar 
+# org.forester.application.phyloxml_converter -f=dummy "$fpath" 
+# "/Users/12705859/Desktop/metapigs_base/phylosift/guppy/guppy_output/$(basename "$fpath").txt"; 
+# done
 
-# 5 # plot first 5 principal components, coloring by positive control 
-# if separation is seen, the xlm file can be interrogated to determine:
-# 5.1. the percentage variation explained by the principal component
-# 5.2. the tree edges read abundance (+ and -) expalined by the principal component
+##### HERE : 
 
-# let the sanity check start! 
+# 1 # .xml files are read in and parsed
+
+# 2 # output can be used in gupply_plots.R
 
 
 ######################################################################################################
@@ -38,20 +40,6 @@ library(dplyr)
 library(tidyr)
 library(splitstackshape)
 library(grid)
-
-###########################################################################################
-
-# run forester.jar from command line to convert the .xml file to phyloXML - R readable format (.txt) : 
-# this way: 
-# java -cp /Users/12705859/Downloads/forester_1050.jar 
-# org.forester.application.phyloxml_converter -f=dummy file.xml file.txt
-
-# or on a loop: 
-# for fpath in /Users/12705859/Desktop/metapigs_base/phylosift/guppy/guppy_output/*.xml; 
-# do java -cp /Users/12705859/Downloads/forester_1050.jar 
-# org.forester.application.phyloxml_converter -f=dummy "$fpath" 
-# "/Users/12705859/Desktop/metapigs_base/phylosift/guppy/guppy_output/$(basename "$fpath").txt"; 
-# done
 
 ###########################################################################################
 

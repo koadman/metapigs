@@ -1,3 +1,41 @@
+######################################################################################################
+
+# rationale: 
+
+##### previous steps: 
+
+# 1 # groups for guppy are made in guppy_group.R 
+
+# 2 # guppy is run 
+
+# 3 # .xml conversion to .txt:
+
+# run forester.jar from command line to convert the .xml file to phyloXML - R readable format (.txt) : 
+# this way: 
+# java -cp /Users/12705859/Downloads/forester_1050.jar 
+# org.forester.application.phyloxml_converter -f=dummy file.xml file.txt
+# in a loop: 
+# for fpath in /Users/12705859/Desktop/metapigs_base/phylosift/guppy/guppy_output/*.xml; 
+# do java -cp /Users/12705859/Downloads/forester_1050.jar 
+# org.forester.application.phyloxml_converter -f=dummy "$fpath" 
+# "/Users/12705859/Desktop/metapigs_base/phylosift/guppy/guppy_output/$(basename "$fpath").txt"; 
+# done
+
+# 4 # .xml(txt) files are read in and parsed in guppy_XML_process.R
+
+##### HERE : 
+
+# 1 # .jplace files are read in and parsed
+
+# 2 # bach effect removal 
+
+# 3 # merges metadata
+
+# 4 # principal component are plotted, where xml data complements the meaning
+
+
+######################################################################################################
+
 
 setwd("/Users/12705859/Desktop/metapigs_base/phylosift/guppy")
 
@@ -16,8 +54,10 @@ library(sva)   # this is combat , careful not to install COMBAT instead which is
 
 # manual settings 
 
-removebatcheffect_allowed <- "yes"
+removebatcheffect_allowed <- "yes"     # if yes, it removes the batch effect only where detected
 
+
+######################################################################################################
 
 
 # load metadata 
