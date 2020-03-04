@@ -8,7 +8,7 @@
 
 # 2 # guppy is run 
 
-# 3 # .xml conversion to .txt:
+# 3 # .xml conversion to .txt:        <-  MUST RUN THIS BEFORE RUNNING THIS SCRIPT 
 
 # run forester.jar from command line to convert the .xml file to phyloXML - R readable format (.txt) : 
 # this way: 
@@ -467,7 +467,7 @@ PC1PC2_pos_controls <- DF_positive_controls %>%
   ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)+
   scale_color_discrete(drop=FALSE) +
-  theme(plot.margin=unit(c(0.5,0.5,4,4),"cm"))
+  theme(plot.margin=unit(c(0.2,0.2,2.9,2.9) ,"cm"))
 PC3PC4_pos_controls <- DF_positive_controls %>%
   ggplot(., aes(x=PC3,y=PC4,color=Cohort))+
   geom_point(size=0.5)+
@@ -475,8 +475,8 @@ PC3PC4_pos_controls <- DF_positive_controls %>%
   xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
   ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_discrete(drop=FALSE)+
-  theme(plot.margin=unit(c(0.5,1.5,1.5,1.7),"cm"))
+  scale_color_discrete(drop=FALSE) +
+  theme(plot.margin=unit(c(0.2,0.2,2.9,2.9) ,"cm"))
 PC1PC5_pos_controls <- DF_positive_controls %>%
   ggplot(., aes(x=PC1,y=PC5,color=Cohort))+
   geom_point(size=0.5)+
@@ -484,8 +484,8 @@ PC1PC5_pos_controls <- DF_positive_controls %>%
   xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
   ylab(paste0("PC5 (",get_var(find_PC5(xmldata)),"%)"))+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_discrete(drop=FALSE)+
-  theme(plot.margin=unit(c(0.5,0.5,1.9,1.7),"cm"))
+  scale_color_discrete(drop=FALSE) +
+  theme(plot.margin=unit(c(0.2,0.2,2.9,2.9) ,"cm"))
 
 
 pdf("pos_controls.pdf")
@@ -560,6 +560,14 @@ xmldata <- simplified %>%
   filter(guppied_date=="all") %>%
   group_split(component) 
 
+# legend 
+color_legend <- function(x, y, xlen, ylen, main, tiks, colors){
+  text(x, y+.55, main, adj=c(0,0), cex=1.8)
+  color.legend(x, y, x+xlen, y+ylen/4, legend=tiks, rect.col=colors, cex=0.7)
+}
+rbow <- rainbow(40, end=0.7, alpha=0.7)
+legvec <- c(0,10,20,30,40)
+
 
 pdf("piggies_guppied_all.pdf")
 # PC1PC2
@@ -570,6 +578,8 @@ plot(DF_piggies$PC1,DF_piggies$PC2,
      ylab=paste0("PC2  (",get_var(find_PC2(xmldata)),"%)"),
      type="p",cex=0.8,cex.axis=0.6,cex.lab=0.6,
      col=rbow[as.Date(DF_piggies$collection_date)-as.Date("2017-01-29 00:00:00")])
+color_legend(min(DF_piggies$PC1), max(DF_piggies$PC2)-0.6, 
+             3.5, 0.9, "trial days:", legvec, rbow)
 mtext(paste0(PC_down(find_PC1(xmldata))), side=1, line=2, adj=0.0, cex=0.5, col="blue", outer=TRUE)  # PC1 low
 mtext(paste0(PC_up(find_PC1(xmldata))), side=1, line=2, adj=1.0, cex=0.5, col="purple", outer=TRUE)  # PC1 high
 mtext(paste0(PC_down(find_PC2(xmldata))), side=2, line=1, adj=0.0, cex=0.5, col="red", outer=TRUE)   # PC2 low 
@@ -582,6 +592,8 @@ plot(DF_piggies$PC3,DF_piggies$PC4,
      ylab=paste0("PC4  (",get_var(find_PC4(xmldata)),"%)"),
      type="p",cex=0.8,cex.axis=0.6,cex.lab=0.6,
      col=rbow[as.Date(DF_piggies$collection_date)-as.Date("2017-01-29 00:00:00")])
+color_legend(min(DF_piggies$PC3), max(DF_piggies$PC4)-0.25, 
+             1.8, 0.5, "trial days:", legvec, rbow)
 mtext(paste0(PC_down(find_PC3(xmldata))), side=1, line=2, adj=0.0, cex=0.5, col="blue", outer=TRUE)
 mtext(paste0(PC_up(find_PC3(xmldata))), side=1, line=2, adj=1.0, cex=0.5, col="purple", outer=TRUE)  
 mtext(paste0(PC_down(find_PC4(xmldata))), side=2, line=1, adj=0.0, cex=0.5, col="red", outer=TRUE)    
@@ -594,12 +606,16 @@ plot(DF_piggies$PC1,DF_piggies$PC5,
      ylab=paste0("PC5  (",get_var(find_PC5(xmldata)),"%)"),
      type="p",cex=0.8,cex.axis=0.6,cex.lab=0.6,
      col=rbow[as.Date(DF_piggies$collection_date)-as.Date("2017-01-29 00:00:00")])
+color_legend(min(DF_piggies$PC1), max(DF_piggies$PC5)-0.15, 
+             2.7, 0.35, "trial days:", legvec, rbow)
 mtext(paste0(PC_down(find_PC1(xmldata))), side=1, line=2, adj=0.0, cex=0.5, col="blue", outer=TRUE)  
 mtext(paste0(PC_up(find_PC1(xmldata))), side=1, line=2, adj=1.0, cex=0.5, col="purple", outer=TRUE)  
 mtext(paste0(PC_down(find_PC5(xmldata))), side=2, line=1, adj=0.0, cex=0.5, col="red", outer=TRUE)    
 mtext(paste0(PC_up(find_PC5(xmldata))), side=2, line=1, adj=1.0, cex=0.5, col="orange", outer=TRUE)  
+#################### Cohorts separately
+par(oma=c(0,0,0,0)) # resetting the outer margins to default for the next plots
 # control groups (Control, D-scour, ColiGuard)
-par(mfrow=c(3,2), mai = c(0.3, 0.3, 0.3, 0.3))
+par(mfrow=c(3,2), mai = c(0.4, 0.4, 0.4, 0.4))
 plot(DF_piggies$PC1[DF_piggies$Cohort=="Control"],
      DF_piggies$PC2[DF_piggies$Cohort=="Control"],
      main="PC1 PC2 Control",
@@ -655,7 +671,7 @@ plot(DF_piggies$PC3[DF_piggies$Cohort=="ColiGuard"],
      type="p",col=rbow[as.Date(DF_piggies$collection_date
                                [DF_piggies$Cohort=="ColiGuard"])-as.Date("2017-01-30 00:00:00")])
 # Neo groups (Neo, Neo+D, Neo+C)
-par(mfrow=c(3,2), mai = c(0.3, 0.3, 0.3, 0.3))
+par(mfrow=c(3,2), mai = c(0.4, 0.4, 0.4, 0.4))
 plot(DF_piggies$PC1[DF_piggies$Cohort=="Neomycin"],
      DF_piggies$PC2[DF_piggies$Cohort=="Neomycin"],
      main="PC1 PC2 Neomycin",
@@ -1736,3 +1752,713 @@ grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"),
           gp = gpar(fontsize = 5))
 ###############################
 dev.off()
+
+
+###########################################################################################
+###########################################################################################
+###########################################################################################
+
+# Testing significance:
+
+
+###########################################################################################
+
+
+# create workbook to add stats 
+
+wb <- createWorkbook()
+
+
+###########################################################################################
+
+
+DF_piggies
+
+aov.out_PC1 = aov(PC1 ~ Cohort, data=DF_piggies)
+aov.out_PC2 = aov(PC2 ~ Cohort, data=DF_piggies)
+aov.out_PC3 = aov(PC3 ~ Cohort, data=DF_piggies)
+aov.out_PC4 = aov(PC4 ~ Cohort, data=DF_piggies)
+aov.out_PC5 = aov(PC5 ~ Cohort, data=DF_piggies)
+
+# TukeyHSD finds which groups (Cohorts) separate from each other ; using adjusted p-values
+res_PC1 <- TukeyHSD(aov.out_PC1)
+res_PC2 <- TukeyHSD(aov.out_PC2)
+res_PC3 <- TukeyHSD(aov.out_PC3)
+res_PC4 <- TukeyHSD(aov.out_PC4)
+res_PC5 <- TukeyHSD(aov.out_PC5)
+
+# convert to dataframe format
+aov.out_PC1 <- as.data.frame(res_PC1$Cohort)
+aov.out_PC2 <- as.data.frame(res_PC2$Cohort)
+aov.out_PC3 <- as.data.frame(res_PC3$Cohort)
+aov.out_PC4 <- as.data.frame(res_PC4$Cohort)
+aov.out_PC5 <- as.data.frame(res_PC5$Cohort)
+
+# another formatting step
+aov.out_PC1 <- tibble::rownames_to_column(aov.out_PC1, "comparison")
+aov.out_PC2 <- tibble::rownames_to_column(aov.out_PC2, "comparison")
+aov.out_PC3 <- tibble::rownames_to_column(aov.out_PC3, "comparison")
+aov.out_PC4 <- tibble::rownames_to_column(aov.out_PC4, "comparison")
+aov.out_PC5 <- tibble::rownames_to_column(aov.out_PC5, "comparison")
+
+# adding PC name as they will be bound together
+aov.out_PC1$type="PC1"
+aov.out_PC2$type="PC2"
+aov.out_PC3$type="PC3"
+aov.out_PC4$type="PC4"
+aov.out_PC5$type="PC5"
+
+# binds them to a single dataframe 
+aov.out.all <- rbind(aov.out_PC1,
+                     aov.out_PC2,
+                     aov.out_PC3,
+                     aov.out_PC4,
+                     aov.out_PC5)
+
+colnames(aov.out.all)[5] <- c("p_adj") # necessary to edit colname of col number 5 to avoid spaces
+aov.out.all$guppied_date <- as.character(item$guppied_date[1]) # greps the first item [1] of 
+
+DF_piggies_significance <- aov.out.all
+
+###########################################################################################
+###########################################################################################
+
+
+# DF_piggies_time
+
+# anova with p-adj within each guppy run (1 guppy run : 1 collection date)
+df <- split( DF_piggies_time , f = DF_piggies_time$guppied_date )
+
+# prepares the list of dataframe to feed the loop below 
+df <- as.list(df[3:8])
+
+# construct an empty dataframe to build on 
+final <- data.frame(
+  comparison = character(),
+  diff = numeric(),
+  lwr = numeric(),
+  upr = numeric(),
+  p_adj = numeric(),
+  type = character(),
+  guppied_date = character(),
+  stringsAsFactors = FALSE
+)
+
+# this loops goes over each item of list
+
+for (item in df) {
+  
+  # computes anova for each PC
+  
+  aov.out_PC1 = aov(PC1 ~ Cohort, data=item)
+  aov.out_PC2 = aov(PC2 ~ Cohort, data=item)
+  aov.out_PC3 = aov(PC3 ~ Cohort, data=item)
+  aov.out_PC4 = aov(PC4 ~ Cohort, data=item)
+  aov.out_PC5 = aov(PC5 ~ Cohort, data=item)
+  
+  # TukeyHSD finds which groups (Cohorts) separate from each other ; using adjusted p-values
+  res_PC1 <- TukeyHSD(aov.out_PC1)
+  res_PC2 <- TukeyHSD(aov.out_PC2)
+  res_PC3 <- TukeyHSD(aov.out_PC3)
+  res_PC4 <- TukeyHSD(aov.out_PC4)
+  res_PC5 <- TukeyHSD(aov.out_PC5)
+  
+  # convert to dataframe format
+  aov.out_PC1 <- as.data.frame(res_PC1$Cohort)
+  aov.out_PC2 <- as.data.frame(res_PC2$Cohort)
+  aov.out_PC3 <- as.data.frame(res_PC3$Cohort)
+  aov.out_PC4 <- as.data.frame(res_PC4$Cohort)
+  aov.out_PC5 <- as.data.frame(res_PC5$Cohort)
+  
+  # another formatting step
+  aov.out_PC1 <- tibble::rownames_to_column(aov.out_PC1, "comparison")
+  aov.out_PC2 <- tibble::rownames_to_column(aov.out_PC2, "comparison")
+  aov.out_PC3 <- tibble::rownames_to_column(aov.out_PC3, "comparison")
+  aov.out_PC4 <- tibble::rownames_to_column(aov.out_PC4, "comparison")
+  aov.out_PC5 <- tibble::rownames_to_column(aov.out_PC5, "comparison")
+  
+  # adding PC name as they will be bound together
+  aov.out_PC1$type="PC1"
+  aov.out_PC2$type="PC2"
+  aov.out_PC3$type="PC3"
+  aov.out_PC4$type="PC4"
+  aov.out_PC5$type="PC5"
+  
+  # binds them to a single dataframe 
+  aov.out.all <- rbind(aov.out_PC1,
+                       aov.out_PC2,
+                       aov.out_PC3,
+                       aov.out_PC4,
+                       aov.out_PC5)
+  
+  colnames(aov.out.all)[5] <- c("p_adj") # necessary to edit colname of col number 5 to avoid spaces
+  aov.out.all$guppied_date <- as.character(item$guppied_date[1]) # greps the first item [1] of 
+                                                                 # guppied_date and stores it in df
+  # binds them all to a single df
+  final <- rbind(final,aov.out.all)                              
+}
+
+DF_piggies_time_significance <- final
+
+
+###########################################################################################
+###########################################################################################
+
+# groupA_time
+
+# anova with p-adj within each guppy run (1 guppy run : 1 collection date)
+df <- split( groupA , f = groupA$guppied_date )
+
+# prepares the list of dataframe to feed the loop below 
+df <- as.list(df[3:8])
+
+# construct an empty dataframe to build on 
+final <- data.frame(
+  comparison = character(),
+  diff = numeric(),
+  lwr = numeric(),
+  upr = numeric(),
+  p_adj = numeric(),
+  type = character(),
+  guppied_date = character(),
+  stringsAsFactors = FALSE
+)
+
+# this loops goes over each item of list
+
+for (item in df) {
+  
+  # computes anova for each PC
+  
+  aov.out_PC1 = aov(PC1 ~ Cohort, data=item)
+  aov.out_PC2 = aov(PC2 ~ Cohort, data=item)
+  aov.out_PC3 = aov(PC3 ~ Cohort, data=item)
+  aov.out_PC4 = aov(PC4 ~ Cohort, data=item)
+  aov.out_PC5 = aov(PC5 ~ Cohort, data=item)
+  
+  # TukeyHSD finds which groups (Cohorts) separate from each other ; using adjusted p-values
+  res_PC1 <- TukeyHSD(aov.out_PC1)
+  res_PC2 <- TukeyHSD(aov.out_PC2)
+  res_PC3 <- TukeyHSD(aov.out_PC3)
+  res_PC4 <- TukeyHSD(aov.out_PC4)
+  res_PC5 <- TukeyHSD(aov.out_PC5)
+  
+  # convert to dataframe format
+  aov.out_PC1 <- as.data.frame(res_PC1$Cohort)
+  aov.out_PC2 <- as.data.frame(res_PC2$Cohort)
+  aov.out_PC3 <- as.data.frame(res_PC3$Cohort)
+  aov.out_PC4 <- as.data.frame(res_PC4$Cohort)
+  aov.out_PC5 <- as.data.frame(res_PC5$Cohort)
+  
+  # another formatting step
+  aov.out_PC1 <- tibble::rownames_to_column(aov.out_PC1, "comparison")
+  aov.out_PC2 <- tibble::rownames_to_column(aov.out_PC2, "comparison")
+  aov.out_PC3 <- tibble::rownames_to_column(aov.out_PC3, "comparison")
+  aov.out_PC4 <- tibble::rownames_to_column(aov.out_PC4, "comparison")
+  aov.out_PC5 <- tibble::rownames_to_column(aov.out_PC5, "comparison")
+  
+  # adding PC name as they will be bound together
+  aov.out_PC1$type="PC1"
+  aov.out_PC2$type="PC2"
+  aov.out_PC3$type="PC3"
+  aov.out_PC4$type="PC4"
+  aov.out_PC5$type="PC5"
+  
+  # binds them to a single dataframe 
+  aov.out.all <- rbind(aov.out_PC1,
+                       aov.out_PC2,
+                       aov.out_PC3,
+                       aov.out_PC4,
+                       aov.out_PC5)
+  
+  colnames(aov.out.all)[5] <- c("p_adj") # necessary to edit colname of col number 5 to avoid spaces
+  aov.out.all$guppied_date <- as.character(item$guppied_date[1]) # greps the first item [1] of 
+  # guppied_date and stores it in df
+  # binds them all to a single df
+  final <- rbind(final,aov.out.all)                              
+}
+
+groupA_time_significance <- final
+
+
+###########################################################################################
+###########################################################################################
+
+# groupA_time
+
+# anova with p-adj within each guppy run (1 guppy run : 1 collection date)
+df <- split( groupB , f = groupB$guppied_date )
+
+# prepares the list of dataframe to feed the loop below 
+df <- as.list(df[3:8])
+
+# construct an empty dataframe to build on 
+final <- data.frame(
+  comparison = character(),
+  diff = numeric(),
+  lwr = numeric(),
+  upr = numeric(),
+  p_adj = numeric(),
+  type = character(),
+  guppied_date = character(),
+  stringsAsFactors = FALSE
+)
+
+# this loops goes over each item of list
+
+for (item in df) {
+  
+  # computes anova for each PC
+  
+  aov.out_PC1 = aov(PC1 ~ Cohort, data=item)
+  aov.out_PC2 = aov(PC2 ~ Cohort, data=item)
+  aov.out_PC3 = aov(PC3 ~ Cohort, data=item)
+  aov.out_PC4 = aov(PC4 ~ Cohort, data=item)
+  aov.out_PC5 = aov(PC5 ~ Cohort, data=item)
+  
+  # TukeyHSD finds which groups (Cohorts) separate from each other ; using adjusted p-values
+  res_PC1 <- TukeyHSD(aov.out_PC1)
+  res_PC2 <- TukeyHSD(aov.out_PC2)
+  res_PC3 <- TukeyHSD(aov.out_PC3)
+  res_PC4 <- TukeyHSD(aov.out_PC4)
+  res_PC5 <- TukeyHSD(aov.out_PC5)
+  
+  # convert to dataframe format
+  aov.out_PC1 <- as.data.frame(res_PC1$Cohort)
+  aov.out_PC2 <- as.data.frame(res_PC2$Cohort)
+  aov.out_PC3 <- as.data.frame(res_PC3$Cohort)
+  aov.out_PC4 <- as.data.frame(res_PC4$Cohort)
+  aov.out_PC5 <- as.data.frame(res_PC5$Cohort)
+  
+  # another formatting step
+  aov.out_PC1 <- tibble::rownames_to_column(aov.out_PC1, "comparison")
+  aov.out_PC2 <- tibble::rownames_to_column(aov.out_PC2, "comparison")
+  aov.out_PC3 <- tibble::rownames_to_column(aov.out_PC3, "comparison")
+  aov.out_PC4 <- tibble::rownames_to_column(aov.out_PC4, "comparison")
+  aov.out_PC5 <- tibble::rownames_to_column(aov.out_PC5, "comparison")
+  
+  # adding PC name as they will be bound together
+  aov.out_PC1$type="PC1"
+  aov.out_PC2$type="PC2"
+  aov.out_PC3$type="PC3"
+  aov.out_PC4$type="PC4"
+  aov.out_PC5$type="PC5"
+  
+  # binds them to a single dataframe 
+  aov.out.all <- rbind(aov.out_PC1,
+                       aov.out_PC2,
+                       aov.out_PC3,
+                       aov.out_PC4,
+                       aov.out_PC5)
+  
+  colnames(aov.out.all)[5] <- c("p_adj") # necessary to edit colname of col number 5 to avoid spaces
+  aov.out.all$guppied_date <- as.character(item$guppied_date[1]) # greps the first item [1] of 
+  # guppied_date and stores it in df
+  # binds them all to a single df
+  final <- rbind(final,aov.out.all)                              
+}
+
+groupB_time_significance <- final
+
+###########################################################################################
+###########################################################################################
+
+# Looking for statistically significant and interesting clustering: 
+
+DF_piggies_significance$guppy_run_on <- "all"
+DF_piggies_time_significance$guppy_run_on <- "selected_dates"
+groupA_time_significance$guppy_run_on <- "groupA_selected_dates"
+groupB_time_significance$guppy_run_on <- "groupB_selected_dates"
+
+all_significance <- rbind(DF_piggies_significance,
+      DF_piggies_time_significance,
+      groupA_time_significance,
+      groupB_time_significance)
+
+# save stats in workbook
+addWorksheet(wb, "guppy_significance")
+writeData(wb, sheet = "guppy_significance", all_significance, rowNames = FALSE)
+
+# cherry pick from this list to choose which ones need plotting
+all_significance %>%
+  filter(p_adj<=0.05)
+
+
+###########################################################################################
+###########################################################################################
+# 
+# 
+# # Plotting only the special ones: 
+
+
+#settings for plots
+theme<-theme(panel.background = element_blank(),
+             panel.border=element_rect(fill=NA),
+             panel.grid.major = element_blank(),
+             panel.grid.minor = element_blank(),
+             strip.background=element_blank(),
+             axis.title.x=element_text(colour="black",size=8),
+             axis.title.y=element_text(colour="black",size=8),
+             axis.text.x=element_text(colour="black",size=8),
+             axis.text.y=element_text(colour="black",size=8),
+             axis.ticks=element_line(colour="black"),
+             legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) 
+
+
+
+DF_piggies$Cohort <- factor(DF_piggies$Cohort, 
+                                 levels=c("Control", 
+                                          "D-scour", 
+                                          "ColiGuard",
+                                          "Neomycin",
+                                          "Neomycin+D-scour",
+                                          "Neomycin+ColiGuard"))
+
+DF_piggies_time$Cohort <- factor(DF_piggies_time$Cohort, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
+
+groupA$Cohort <- factor(groupA$Cohort, 
+                                 levels=c("Control", 
+                                          "D-scour", 
+                                          "ColiGuard",
+                                          "Neomycin",
+                                          "Neomycin+D-scour",
+                                          "Neomycin+ColiGuard"))
+
+
+###############################
+
+
+pdf("guppy_specials.pdf")
+# small difference, plus it's PC5! accounts for small variability
+xmldata <- simplified %>%
+  filter(sample_type=="piggies") %>%
+  filter(guppied_date=="Ma3") %>%
+  group_split(component)
+a <- "2017-03-03"  
+DF_piggies %>% filter(collection_date==a) %>% 
+  filter(Cohort=="Control"|Cohort=="Neomycin") %>% 
+  ggplot(., aes(x=PC1,y=PC5,color=Cohort))+
+  geom_point(size=1.5)+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
+  scale_color_discrete(drop=FALSE) +
+  ggtitle(paste('Date ',a)) +
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC5 (",get_var(find_PC5(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC5
+grid.text(PC_down(find_PC5(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC5(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###################################
+# this one not really interesting ...
+xmldata <- simplified %>%
+  filter(sample_type=="piggies") %>%
+  filter(guppied_date=="Ma3") %>%
+  group_split(component)
+a <- "2017-03-03"  
+DF_piggies %>% filter(collection_date==a) %>% 
+  filter(Cohort=="Neomycin"|Cohort=="Neomycin+ColiGuard") %>% 
+  ggplot(., aes(x=PC1,y=PC2,color=Cohort))+
+  geom_point(size=1.5)+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
+  scale_color_discrete(drop=FALSE) +
+  ggtitle(paste('Date ',a)) +
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###################################
+xmldata <- simplified %>%
+  filter(sample_type=="piggies") %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component)
+a <- "2017-02-21"  
+DF_piggies_time %>% filter(collection_date==a) %>% 
+  filter(Cohort=="Control"|Cohort=="D-scour") %>% 
+  ggplot(., aes(x=PC1,y=PC2,color=Cohort))+
+  geom_point(size=1.5)+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
+  scale_color_discrete(drop=FALSE) +
+  ggtitle(paste('Date ',a)) +
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###################################
+xmldata <- simplified %>%
+  filter(sample_type=="piggies") %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component)
+a <- "2017-02-21"  
+DF_piggies_time %>% filter(collection_date==a) %>% 
+  filter(Cohort=="Neomycin"|Cohort=="Neomycin+D-scour") %>% 
+  ggplot(., aes(x=PC1,y=PC2,color=Cohort))+
+  geom_point(size=1.5)+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
+  scale_color_discrete(drop=FALSE) +
+  ggtitle(paste('Date ',a)) +
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###################################
+xmldata <- simplified %>%
+  filter(sample_type=="piggies") %>%
+  filter(guppied_date=="Fe28") %>%
+  group_split(component)
+a <- "2017-02-28"  
+DF_piggies_time %>% filter(collection_date==a) %>% 
+  filter(Cohort=="Control"|Cohort=="D-scour") %>% 
+  ggplot(., aes(x=PC3,y=PC4,color=Cohort))+
+  geom_point(size=1.5)+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
+  scale_color_discrete(drop=FALSE) +
+  ggtitle(paste('Date ',a)) +
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###################################
+xmldata <- simplified %>%
+  filter(sample_type=="piggies") %>%
+  filter(guppied_date=="Fe28") %>%
+  group_split(component)
+a <- "2017-02-28"   
+DF_piggies_time %>% filter(collection_date==a) %>% 
+  filter(Cohort=="Neomycin"|Cohort=="Neomycin+ColiGuard") %>% 
+  ggplot(., aes(x=PC3,y=PC4,color=Cohort))+
+  geom_point(size=1.5)+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
+  scale_color_discrete(drop=FALSE) +
+  ggtitle(paste('Date ',a)) +
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###################################
+xmldata <- simplified %>%
+  filter(sample_type=="groupA") %>%
+  filter(guppied_date=="Fe14") %>%
+  group_split(component)
+a <- "2017-02-14"   
+groupA %>% filter(collection_date==a) %>% 
+  filter(Cohort=="Neomycin"|Cohort=="Neomycin+ColiGuard") %>% 
+  ggplot(., aes(x=PC1,y=PC2,color=Cohort))+
+  geom_point(size=1.5)+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
+  scale_color_discrete(drop=FALSE) +
+  ggtitle(paste('Date ',a)) +
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###################################
+xmldata <- simplified %>%
+  filter(sample_type=="groupB") %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component)
+a <- "2017-02-21"   
+groupB %>% filter(collection_date==a) %>% 
+  filter(Cohort=="Control"|Cohort=="Neomycin") %>% 
+  ggplot(., aes(x=PC3,y=PC4,color=Cohort))+
+  geom_point(size=1.5)+
+  theme+
+  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
+  scale_color_discrete(drop=FALSE) +
+  ggtitle(paste('Date ',a)) +
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+dev.off()
+
+
+###########################################################################################
+###########################################################################################
+# 
+# 
+# # Plotting only the special ones: 
+# 
+# basedir = "/Users/12705859/Desktop/metapigs_base/phylosift/input_files/"
+# timeline_deltas_guppy <- image_read(paste0(basedir,"Slide14.tiff"))
+# 
+# 
+# # piggies_by_time (all piglets, guppied by collection date)
+# 
+# # df is: 
+# DF_piggies_time
+# 
+# # filter out PCs (e.g.:PC1PC2) and either the control OR the neo groups
+# # this way:
+# 
+# New_C_Fe28_pc1pc2 <- DF_piggies_time %>%
+#   filter(Cohort=="Control"|Cohort=="D-scour"|Cohort=="ColiGuard") %>%
+#   filter(guppied_date=="Fe28") %>%
+#   ggplot(., aes(x=PC1,y=PC2,color=Cohort))+
+#   geom_point()+
+#   theme+
+#   stat_ellipse(inherit.aes = TRUE, level = 0.80)+
+#   scale_color_discrete(drop=FALSE)
+# 
+# # extracting the legend 
+# 
+# #settings for legend plot
+# theme_leg<-theme(legend.position="right",
+#                  legend.text=element_text(size=8),
+#                  legend.title=element_text(size=8))
+# 
+# for_legend_only <- DF_piggies_time %>%
+#   filter(guppied_date=="Fe28") %>% # filter any date
+#   ggplot(., aes(x=PC3,y=PC4,color=Cohort))+
+#   geom_point()+
+#   theme+
+#   theme_leg+
+#   scale_color_discrete(drop=FALSE)
+# 
+# leg <- get_legend(for_legend_only)
+# 
+# #####################################
+# 
+# empty_space = plot_grid(NULL, NULL, NULL, NULL, ncol=4)
+# 
+# top_row = plot_grid(N_Fe14_pc1pc2, #A    <- your plots
+#                     N_Fe21_pc1pc2, #B    <- your plots
+#                     N_Fe21_pc3pc4, #C,    <- your plots
+#                     NULL,
+#                     ncol=4, 
+#                     rel_widths=c(0.25,0.25,0.25),
+#                     labels=c("A","B","C",""),
+#                     label_size = 10)
+# 
+# bottom_row = plot_grid(C_Fe28_pc1pc2, #D     <- your plots
+#                        C_Fe28_pc3pc4, #E     <- your plots
+#                        N_Fe28_pc3pc4, #F     <- your plots
+#                        leg,
+#                        ncol=4, 
+#                        rel_widths=c(0.25,0.25,0.25,0.25),
+#                        labels=c("D","E","F",""),
+#                        label_size = 10)
+# 
+# all_plots <- plot_grid(empty_space,
+#                        top_row,
+#                        bottom_row,
+#                        nrow=3)
+# 
+# pdf("out/cohorts_beta.pdf")
+# ggdraw() +
+#   draw_image(timeline_deltas_guppy, x = 0, y = 0.16) +
+#   draw_plot(all_plots) 
+# dev.off()
+# 
+# 
+
+
+# save stats in workbook
+saveWorkbook(wb, "/Users/12705859/Desktop/metapigs_base/phylosift/guppy/stats_guppy.xlsx", overwrite=TRUE)
