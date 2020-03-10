@@ -290,6 +290,13 @@ rbow <- rainbow(40, end=0.7, alpha=0.7)
 jplace_df_final$group <- jplace_df_final$file
 jplace_df_final$group <- gsub('piggies_group_A', 'groupA', jplace_df_final$group)
 jplace_df_final$group <- gsub('piggies_group_B', 'groupB', jplace_df_final$group)
+
+jplace_df_final$group <- gsub('piggies_CTRLNEO', 'groupC', jplace_df_final$group)
+jplace_df_final$group <- gsub('piggies_NEONEOD', 'groupD', jplace_df_final$group)
+jplace_df_final$group <- gsub('piggies_NEONEOC', 'groupE', jplace_df_final$group)
+jplace_df_final$group <- gsub('piggies_CTRLDs', 'groupF', jplace_df_final$group)
+jplace_df_final$group <- gsub('piggies_CTRLC', 'groupG', jplace_df_final$group)
+
 # note to self: ^ and $ for the exact (and entire) string match 
 jplace_df_final$group <- gsub('^piggies$', 'piggies_all', jplace_df_final$group)
 jplace_df_final <- cSplit(jplace_df_final, "group","_")
@@ -314,7 +321,8 @@ multi_coggo <- multi_coggo %>%
 # give some order to the variables 
 
 multi_coggo$sample_type <- factor(multi_coggo$sample_type, 
-                      levels=c("positive_controls","piggies","groupA","groupB"))
+                      levels=c("positive_controls","piggies","groupA","groupB",
+                               "groupC","groupD","groupE","groupF","groupG"))
 
 multi_coggo$guppied_date <- factor(multi_coggo$guppied_date, 
                                       levels=c("all_replicates",
@@ -437,6 +445,128 @@ groupB <- rbind(
   groupB_Fe21,
   groupB_Fe28,
   groupB_Ma3)
+
+##############################
+##############################
+
+groupC <- as.data.frame(multi_coggo$groupC)
+groupC_Ja31 <- groupC %>%
+  filter(guppied_date=="Ja31")
+groupC_Fe7 <- groupC %>%
+  filter(guppied_date=="Fe7")
+groupC_Fe14 <- groupC %>%
+  filter(guppied_date=="Fe14")
+groupC_Fe21 <- groupC %>%
+  filter(guppied_date=="Fe21")
+groupC_Fe28 <- groupC %>%
+  filter(guppied_date=="Fe28")
+groupC_Ma3 <- groupC %>%
+  filter(guppied_date=="Ma3")
+groupC <- rbind(
+  groupC_Ja31,
+  groupC_Fe7,
+  groupC_Fe14,
+  groupC_Fe21,
+  groupC_Fe28,
+  groupC_Ma3)
+
+##############################
+##############################
+
+groupD <- as.data.frame(multi_coggo$groupD)
+groupD_Ja31 <- groupD %>%
+  filter(guppied_date=="Ja31")
+groupD_Fe7 <- groupD %>%
+  filter(guppied_date=="Fe7")
+groupD_Fe14 <- groupD %>%
+  filter(guppied_date=="Fe14")
+groupD_Fe21 <- groupD %>%
+  filter(guppied_date=="Fe21")
+groupD_Fe28 <- groupD %>%
+  filter(guppied_date=="Fe28")
+groupD_Ma3 <- groupD %>%
+  filter(guppied_date=="Ma3")
+groupD <- rbind(
+  groupD_Ja31,
+  groupD_Fe7,
+  groupD_Fe14,
+  groupD_Fe21,
+  groupD_Fe28,
+  groupD_Ma3)
+
+##############################
+##############################
+
+groupE <- as.data.frame(multi_coggo$groupE)
+groupE_Ja31 <- groupE %>%
+  filter(guppied_date=="Ja31")
+groupE_Fe7 <- groupE %>%
+  filter(guppied_date=="Fe7")
+groupE_Fe14 <- groupE %>%
+  filter(guppied_date=="Fe14")
+groupE_Fe21 <- groupE %>%
+  filter(guppied_date=="Fe21")
+groupE_Fe28 <- groupE %>%
+  filter(guppied_date=="Fe28")
+groupE_Ma3 <- groupE %>%
+  filter(guppied_date=="Ma3")
+groupE <- rbind(
+  groupE_Ja31,
+  groupE_Fe7,
+  groupE_Fe14,
+  groupE_Fe21,
+  groupE_Fe28,
+  groupE_Ma3)
+
+##############################
+##############################
+
+
+groupF <- as.data.frame(multi_coggo$groupF)
+groupF_Ja31 <- groupF %>%
+  filter(guppied_date=="Ja31")
+groupF_Fe7 <- groupF %>%
+  filter(guppied_date=="Fe7")
+groupF_Fe14 <- groupF %>%
+  filter(guppied_date=="Fe14")
+groupF_Fe21 <- groupF %>%
+  filter(guppied_date=="Fe21")
+groupF_Fe28 <- groupF %>%
+  filter(guppied_date=="Fe28")
+groupF_Ma3 <- groupF %>%
+  filter(guppied_date=="Ma3")
+groupF <- rbind(
+  groupF_Ja31,
+  groupF_Fe7,
+  groupF_Fe14,
+  groupF_Fe21,
+  groupF_Fe28,
+  groupF_Ma3)
+
+##############################
+##############################
+
+
+groupG <- as.data.frame(multi_coggo$groupG)
+groupG_Ja31 <- groupG %>%
+  filter(guppied_date=="Ja31")
+groupG_Fe7 <- groupG %>%
+  filter(guppied_date=="Fe7")
+groupG_Fe14 <- groupG %>%
+  filter(guppied_date=="Fe14")
+groupG_Fe21 <- groupG %>%
+  filter(guppied_date=="Fe21")
+groupG_Fe28 <- groupG %>%
+  filter(guppied_date=="Fe28")
+groupG_Ma3 <- groupG %>%
+  filter(guppied_date=="Ma3")
+groupG <- rbind(
+  groupG_Ja31,
+  groupG_Fe7,
+  groupG_Fe14,
+  groupG_Fe21,
+  groupG_Fe28,
+  groupG_Ma3)
 
 ##############################
 ##############################
@@ -1076,7 +1206,7 @@ dev.off()
 ##############################
 
 
-# piggies (guppied by time point)
+# groupA (guppied by time point)
 
 
 
@@ -1419,7 +1549,7 @@ dev.off()
 ##############################
 
 
-# piggies (guppied by time point)
+# groupB (guppied by time point)
 
 
 
@@ -1754,631 +1884,2044 @@ grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"),
 dev.off()
 
 
+##############################
+##############################
+##############################
+
+
+# groupC (guppied by time point)
+
+
+
+df <- groupC # dataframe for plots to be used 
+a <- "groupC" # setting for xml data extraction (only sample_type necessary) 
+
+
+# re-order cohort 
+df$Cohort <- factor(df$Cohort, 
+                    levels=c("Control", 
+                             "D-scour", 
+                             "ColiGuard",
+                             "Neomycin",
+                             "Neomycin+D-scour",
+                             "Neomycin+ColiGuard"
+                    ))
+
+PC1PC2_plots <- df %>% 
+  group_by(guppied_date) %>% 
+  do(plots=ggplot(data=.) +
+       aes(x=PC1, y=PC2, color=Cohort) + 
+       geom_point(size=1.5) + 
+       theme(legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) +
+       ggtitle(unique(.$guppied_date))+
+       stat_ellipse(inherit.aes = TRUE, level = 0.80))
+
+PC3PC4_plots <- df %>% 
+  group_by(guppied_date) %>% 
+  do(plots=ggplot(data=.) +
+       aes(x=PC3, y=PC4, color=Cohort) + 
+       geom_point(size=1.5) + 
+       theme(legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) +
+       ggtitle(unique(.$guppied_date))+
+       stat_ellipse(inherit.aes = TRUE, level = 0.80))
+
+PC1PC5_plots <- df %>% 
+  group_by(guppied_date) %>% 
+  do(plots=ggplot(data=.) +
+       aes(x=PC1, y=PC5, color=Cohort) + 
+       geom_point(size=1.5) + 
+       theme(legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) +
+       ggtitle(unique(.$guppied_date))+
+       stat_ellipse(inherit.aes = TRUE, level = 0.80))
+
+
+pdf(paste0(a,"_guppied_by_time.pdf"))
+par(mar=c(4,4,0.01,0.01))
+par(oma=c(6,6,6,6))
+###############################
+Ja31 <- PC1PC2_plots$plots[[1]]
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ja31") %>%
+  group_split(component)
+Ja31 +
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe7 <- PC1PC2_plots$plots[[2]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe7") %>%
+  group_split(component) 
+Fe7 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe14 <- PC1PC2_plots$plots[[3]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe14") %>%
+  group_split(component) 
+Fe14 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe21 <- PC1PC2_plots$plots[[4]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component) 
+Fe21 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe28 <- PC1PC2_plots$plots[[5]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe28") %>%
+  group_split(component) 
+Fe28 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Ma3 <- PC1PC2_plots$plots[[6]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ma3") %>%
+  group_split(component) 
+Ma3 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+##############################
+##############################
+###############################
+Ja31 <- PC3PC4_plots$plots[[1]]
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ja31") %>%
+  group_split(component)
+Ja31 +
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe7 <- PC3PC4_plots$plots[[2]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe7") %>%
+  group_split(component) 
+Fe7 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe14 <- PC3PC4_plots$plots[[3]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe14") %>%
+  group_split(component) 
+Fe14 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe21 <- PC3PC4_plots$plots[[4]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component) 
+Fe21 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe28 <- PC3PC4_plots$plots[[5]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe28") %>%
+  group_split(component) 
+Fe28 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Ma3 <- PC3PC4_plots$plots[[6]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ma3") %>%
+  group_split(component) 
+Ma3 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+dev.off()
+
+
+##############################
+##############################
+##############################
+
+
+# groupD (guppied by time point)
+
+
+
+df <- groupD # dataframe for plots to be used 
+a <- "groupD" # setting for xml data extraction (only sample_type necessary) 
+
+
+# re-order cohort 
+df$Cohort <- factor(df$Cohort, 
+                    levels=c("Control", 
+                             "D-scour", 
+                             "ColiGuard",
+                             "Neomycin",
+                             "Neomycin+D-scour",
+                             "Neomycin+ColiGuard"
+                    ))
+
+PC1PC2_plots <- df %>% 
+  group_by(guppied_date) %>% 
+  do(plots=ggplot(data=.) +
+       aes(x=PC1, y=PC2, color=Cohort) + 
+       geom_point(size=1.5) + 
+       theme(legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) +
+       ggtitle(unique(.$guppied_date))+
+       stat_ellipse(inherit.aes = TRUE, level = 0.80))
+
+PC3PC4_plots <- df %>% 
+  group_by(guppied_date) %>% 
+  do(plots=ggplot(data=.) +
+       aes(x=PC3, y=PC4, color=Cohort) + 
+       geom_point(size=1.5) + 
+       theme(legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) +
+       ggtitle(unique(.$guppied_date))+
+       stat_ellipse(inherit.aes = TRUE, level = 0.80))
+
+PC1PC5_plots <- df %>% 
+  group_by(guppied_date) %>% 
+  do(plots=ggplot(data=.) +
+       aes(x=PC1, y=PC5, color=Cohort) + 
+       geom_point(size=1.5) + 
+       theme(legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) +
+       ggtitle(unique(.$guppied_date))+
+       stat_ellipse(inherit.aes = TRUE, level = 0.80))
+
+
+pdf(paste0(a,"_guppied_by_time.pdf"))
+par(mar=c(4,4,0.01,0.01))
+par(oma=c(6,6,6,6))
+###############################
+Ja31 <- PC1PC2_plots$plots[[1]]
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ja31") %>%
+  group_split(component)
+Ja31 +
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe7 <- PC1PC2_plots$plots[[2]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe7") %>%
+  group_split(component) 
+Fe7 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe14 <- PC1PC2_plots$plots[[3]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe14") %>%
+  group_split(component) 
+Fe14 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe21 <- PC1PC2_plots$plots[[4]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component) 
+Fe21 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe28 <- PC1PC2_plots$plots[[5]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe28") %>%
+  group_split(component) 
+Fe28 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Ma3 <- PC1PC2_plots$plots[[6]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ma3") %>%
+  group_split(component) 
+Ma3 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+##############################
+##############################
+###############################
+Ja31 <- PC3PC4_plots$plots[[1]]
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ja31") %>%
+  group_split(component)
+Ja31 +
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe7 <- PC3PC4_plots$plots[[2]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe7") %>%
+  group_split(component) 
+Fe7 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe14 <- PC3PC4_plots$plots[[3]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe14") %>%
+  group_split(component) 
+Fe14 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe21 <- PC3PC4_plots$plots[[4]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component) 
+Fe21 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe28 <- PC3PC4_plots$plots[[5]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe28") %>%
+  group_split(component) 
+Fe28 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Ma3 <- PC3PC4_plots$plots[[6]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ma3") %>%
+  group_split(component) 
+Ma3 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+dev.off()
+
+
+
+##############################
+##############################
+##############################
+
+
+# groupE (guppied by time point)
+
+
+
+df <- groupE # dataframe for plots to be used 
+a <- "groupE" # setting for xml data extraction (only sample_type necessary) 
+
+
+# re-order cohort 
+df$Cohort <- factor(df$Cohort, 
+                    levels=c("Control", 
+                             "D-scour", 
+                             "ColiGuard",
+                             "Neomycin",
+                             "Neomycin+D-scour",
+                             "Neomycin+ColiGuard"
+                    ))
+
+PC1PC2_plots <- df %>% 
+  group_by(guppied_date) %>% 
+  do(plots=ggplot(data=.) +
+       aes(x=PC1, y=PC2, color=Cohort) + 
+       geom_point(size=1.5) + 
+       theme(legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) +
+       ggtitle(unique(.$guppied_date))+
+       stat_ellipse(inherit.aes = TRUE, level = 0.80))
+
+PC3PC4_plots <- df %>% 
+  group_by(guppied_date) %>% 
+  do(plots=ggplot(data=.) +
+       aes(x=PC3, y=PC4, color=Cohort) + 
+       geom_point(size=1.5) + 
+       theme(legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) +
+       ggtitle(unique(.$guppied_date))+
+       stat_ellipse(inherit.aes = TRUE, level = 0.80))
+
+PC1PC5_plots <- df %>% 
+  group_by(guppied_date) %>% 
+  do(plots=ggplot(data=.) +
+       aes(x=PC1, y=PC5, color=Cohort) + 
+       geom_point(size=1.5) + 
+       theme(legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) +
+       ggtitle(unique(.$guppied_date))+
+       stat_ellipse(inherit.aes = TRUE, level = 0.80))
+
+
+pdf(paste0(a,"_guppied_by_time.pdf"))
+par(mar=c(4,4,0.01,0.01))
+par(oma=c(6,6,6,6))
+###############################
+Ja31 <- PC1PC2_plots$plots[[1]]
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ja31") %>%
+  group_split(component)
+Ja31 +
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe7 <- PC1PC2_plots$plots[[2]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe7") %>%
+  group_split(component) 
+Fe7 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe14 <- PC1PC2_plots$plots[[3]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe14") %>%
+  group_split(component) 
+Fe14 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe21 <- PC1PC2_plots$plots[[4]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component) 
+Fe21 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe28 <- PC1PC2_plots$plots[[5]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe28") %>%
+  group_split(component) 
+Fe28 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Ma3 <- PC1PC2_plots$plots[[6]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ma3") %>%
+  group_split(component) 
+Ma3 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+##############################
+##############################
+###############################
+Ja31 <- PC3PC4_plots$plots[[1]]
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ja31") %>%
+  group_split(component)
+Ja31 +
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe7 <- PC3PC4_plots$plots[[2]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe7") %>%
+  group_split(component) 
+Fe7 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe14 <- PC3PC4_plots$plots[[3]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe14") %>%
+  group_split(component) 
+Fe14 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe21 <- PC3PC4_plots$plots[[4]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component) 
+Fe21 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe28 <- PC3PC4_plots$plots[[5]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe28") %>%
+  group_split(component) 
+Fe28 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Ma3 <- PC3PC4_plots$plots[[6]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ma3") %>%
+  group_split(component) 
+Ma3 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+dev.off()
+
+
+
+##############################
+##############################
+##############################
+
+
+# groupF (guppied by time point)
+
+
+
+df <- groupF # dataframe for plots to be used 
+a <- "groupF" # setting for xml data extraction (only sample_type necessary) 
+
+
+# re-order cohort 
+df$Cohort <- factor(df$Cohort, 
+                    levels=c("Control", 
+                             "D-scour", 
+                             "ColiGuard",
+                             "Neomycin",
+                             "Neomycin+D-scour",
+                             "Neomycin+ColiGuard"
+                    ))
+
+PC1PC2_plots <- df %>% 
+  group_by(guppied_date) %>% 
+  do(plots=ggplot(data=.) +
+       aes(x=PC1, y=PC2, color=Cohort) + 
+       geom_point(size=1.5) + 
+       theme(legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) +
+       ggtitle(unique(.$guppied_date))+
+       stat_ellipse(inherit.aes = TRUE, level = 0.80))
+
+PC3PC4_plots <- df %>% 
+  group_by(guppied_date) %>% 
+  do(plots=ggplot(data=.) +
+       aes(x=PC3, y=PC4, color=Cohort) + 
+       geom_point(size=1.5) + 
+       theme(legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) +
+       ggtitle(unique(.$guppied_date))+
+       stat_ellipse(inherit.aes = TRUE, level = 0.80))
+
+PC1PC5_plots <- df %>% 
+  group_by(guppied_date) %>% 
+  do(plots=ggplot(data=.) +
+       aes(x=PC1, y=PC5, color=Cohort) + 
+       geom_point(size=1.5) + 
+       theme(legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) +
+       ggtitle(unique(.$guppied_date))+
+       stat_ellipse(inherit.aes = TRUE, level = 0.80))
+
+
+pdf(paste0(a,"_guppied_by_time.pdf"))
+par(mar=c(4,4,0.01,0.01))
+par(oma=c(6,6,6,6))
+###############################
+Ja31 <- PC1PC2_plots$plots[[1]]
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ja31") %>%
+  group_split(component)
+Ja31 +
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe7 <- PC1PC2_plots$plots[[2]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe7") %>%
+  group_split(component) 
+Fe7 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe14 <- PC1PC2_plots$plots[[3]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe14") %>%
+  group_split(component) 
+Fe14 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe21 <- PC1PC2_plots$plots[[4]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component) 
+Fe21 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe28 <- PC1PC2_plots$plots[[5]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe28") %>%
+  group_split(component) 
+Fe28 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Ma3 <- PC1PC2_plots$plots[[6]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ma3") %>%
+  group_split(component) 
+Ma3 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+##############################
+##############################
+###############################
+Ja31 <- PC3PC4_plots$plots[[1]]
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ja31") %>%
+  group_split(component)
+Ja31 +
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe7 <- PC3PC4_plots$plots[[2]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe7") %>%
+  group_split(component) 
+Fe7 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe14 <- PC3PC4_plots$plots[[3]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe14") %>%
+  group_split(component) 
+Fe14 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe21 <- PC3PC4_plots$plots[[4]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component) 
+Fe21 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe28 <- PC3PC4_plots$plots[[5]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe28") %>%
+  group_split(component) 
+Fe28 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Ma3 <- PC3PC4_plots$plots[[6]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ma3") %>%
+  group_split(component) 
+Ma3 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+dev.off()
+
+##############################
+##############################
+##############################
+
+##############################
+##############################
+##############################
+
+
+# groupG (guppied by time point)
+
+
+
+df <- groupG # dataframe for plots to be used 
+a <- "groupG" # setting for xml data extraction (only sample_type necessary) 
+
+
+# re-order cohort 
+df$Cohort <- factor(df$Cohort, 
+                    levels=c("Control", 
+                             "D-scour", 
+                             "ColiGuard",
+                             "Neomycin",
+                             "Neomycin+D-scour",
+                             "Neomycin+ColiGuard"
+                    ))
+
+PC1PC2_plots <- df %>% 
+  group_by(guppied_date) %>% 
+  do(plots=ggplot(data=.) +
+       aes(x=PC1, y=PC2, color=Cohort) + 
+       geom_point(size=1.5) + 
+       theme(legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) +
+       ggtitle(unique(.$guppied_date))+
+       stat_ellipse(inherit.aes = TRUE, level = 0.80))
+
+PC3PC4_plots <- df %>% 
+  group_by(guppied_date) %>% 
+  do(plots=ggplot(data=.) +
+       aes(x=PC3, y=PC4, color=Cohort) + 
+       geom_point(size=1.5) + 
+       theme(legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) +
+       ggtitle(unique(.$guppied_date))+
+       stat_ellipse(inherit.aes = TRUE, level = 0.80))
+
+PC1PC5_plots <- df %>% 
+  group_by(guppied_date) %>% 
+  do(plots=ggplot(data=.) +
+       aes(x=PC1, y=PC5, color=Cohort) + 
+       geom_point(size=1.5) + 
+       theme(legend.position="top",
+             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) +
+       ggtitle(unique(.$guppied_date))+
+       stat_ellipse(inherit.aes = TRUE, level = 0.80))
+
+
+pdf(paste0(a,"_guppied_by_time.pdf"))
+par(mar=c(4,4,0.01,0.01))
+par(oma=c(6,6,6,6))
+###############################
+Ja31 <- PC1PC2_plots$plots[[1]]
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ja31") %>%
+  group_split(component)
+Ja31 +
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe7 <- PC1PC2_plots$plots[[2]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe7") %>%
+  group_split(component) 
+Fe7 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe14 <- PC1PC2_plots$plots[[3]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe14") %>%
+  group_split(component) 
+Fe14 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe21 <- PC1PC2_plots$plots[[4]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component) 
+Fe21 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe28 <- PC1PC2_plots$plots[[5]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe28") %>%
+  group_split(component) 
+Fe28 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Ma3 <- PC1PC2_plots$plots[[6]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ma3") %>%
+  group_split(component) 
+Ma3 + 
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
+  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+# PC1
+grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC2
+grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+##############################
+##############################
+###############################
+Ja31 <- PC3PC4_plots$plots[[1]]
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ja31") %>%
+  group_split(component)
+Ja31 +
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"),
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"),
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe7 <- PC3PC4_plots$plots[[2]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe7") %>%
+  group_split(component) 
+Fe7 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe14 <- PC3PC4_plots$plots[[3]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe14") %>%
+  group_split(component) 
+Fe14 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe21 <- PC3PC4_plots$plots[[4]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe21") %>%
+  group_split(component) 
+Fe21 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Fe28 <- PC3PC4_plots$plots[[5]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Fe28") %>%
+  group_split(component) 
+Fe28 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+Ma3 <- PC3PC4_plots$plots[[6]] 
+xmldata <- simplified %>%
+  filter(sample_type==a) %>%
+  filter(guppied_date=="Ma3") %>%
+  group_split(component) 
+Ma3 + 
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
+  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+# PC3
+grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"), 
+          y = unit(0.1, "npc"),
+          gp = gpar(fontsize = 5))
+# PC4
+grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.25, "npc"),
+          gp = gpar(fontsize = 5))
+grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"), 
+          y = unit(0.8, "npc"),
+          gp = gpar(fontsize = 5))
+###############################
+dev.off()
+
+
+##############################
+##############################
+##############################
+
 ###########################################################################################
 ###########################################################################################
 ###########################################################################################
 
-# Testing significance:
+# Checking significance and plotting based on significance: 
 
 
 ###########################################################################################
-
 
 # create workbook to add stats 
 
 wb <- createWorkbook()
 
-
 ###########################################################################################
 
 
-DF_piggies
-
-aov.out_PC1 = aov(PC1 ~ Cohort, data=DF_piggies)
-aov.out_PC2 = aov(PC2 ~ Cohort, data=DF_piggies)
-aov.out_PC3 = aov(PC3 ~ Cohort, data=DF_piggies)
-aov.out_PC4 = aov(PC4 ~ Cohort, data=DF_piggies)
-aov.out_PC5 = aov(PC5 ~ Cohort, data=DF_piggies)
-
-# TukeyHSD finds which groups (Cohorts) separate from each other ; using adjusted p-values
-res_PC1 <- TukeyHSD(aov.out_PC1)
-res_PC2 <- TukeyHSD(aov.out_PC2)
-res_PC3 <- TukeyHSD(aov.out_PC3)
-res_PC4 <- TukeyHSD(aov.out_PC4)
-res_PC5 <- TukeyHSD(aov.out_PC5)
-
-# convert to dataframe format
-aov.out_PC1 <- as.data.frame(res_PC1$Cohort)
-aov.out_PC2 <- as.data.frame(res_PC2$Cohort)
-aov.out_PC3 <- as.data.frame(res_PC3$Cohort)
-aov.out_PC4 <- as.data.frame(res_PC4$Cohort)
-aov.out_PC5 <- as.data.frame(res_PC5$Cohort)
-
-# another formatting step
-aov.out_PC1 <- tibble::rownames_to_column(aov.out_PC1, "comparison")
-aov.out_PC2 <- tibble::rownames_to_column(aov.out_PC2, "comparison")
-aov.out_PC3 <- tibble::rownames_to_column(aov.out_PC3, "comparison")
-aov.out_PC4 <- tibble::rownames_to_column(aov.out_PC4, "comparison")
-aov.out_PC5 <- tibble::rownames_to_column(aov.out_PC5, "comparison")
-
-# adding PC name as they will be bound together
-aov.out_PC1$type="PC1"
-aov.out_PC2$type="PC2"
-aov.out_PC3$type="PC3"
-aov.out_PC4$type="PC4"
-aov.out_PC5$type="PC5"
-
-# binds them to a single dataframe 
-aov.out.all <- rbind(aov.out_PC1,
-                     aov.out_PC2,
-                     aov.out_PC3,
-                     aov.out_PC4,
-                     aov.out_PC5)
-
-colnames(aov.out.all)[5] <- c("p_adj") # necessary to edit colname of col number 5 to avoid spaces
-aov.out.all$guppied_date <- as.character(item$guppied_date[1]) # greps the first item [1] of 
-
-DF_piggies_significance <- aov.out.all
-
-###########################################################################################
-###########################################################################################
+###################################
+###################################
 
 
-# DF_piggies_time
+# function 1. : takes dataframe, filters less than n observations, per component, per collection date, per cohort 
 
-# anova with p-adj within each guppy run (1 guppy run : 1 collection date)
-df <- split( DF_piggies_time , f = DF_piggies_time$guppied_date )
+myfun_pvalue_df_prep1 <- function(df1_here,n) {
+  # first, join the PCs to be in one columns, so you can easily apply the t.test function to one column only 
+  a <- df1_here %>%
+    select(PC1,PC2,PC3,PC4,PC5,Cohort,collection_date,guppied_date,sample_type) %>%
+    pivot_longer(
+      cols = 1:5,
+      names_to = "component",
+      values_to = "value",
+      values_drop_na = FALSE
+    )
+  
+  # look at distribution - filter out if less than n observations, per component, per collection date, per cohort 
+  df1 <- setDT(a)[, .(Freq = .N), by = .(collection_date,Cohort,component)]
+  df1 <- df1 %>% filter(!Freq<n)
+  a <- merge(a,df1)
+  a <- a %>% 
+    select(Cohort,collection_date,guppied_date,sample_type,component,value)
+  return(a)
+}
 
-# prepares the list of dataframe to feed the loop below 
-df <- as.list(df[3:8])
+###################################
+###################################
 
-# construct an empty dataframe to build on 
-final <- data.frame(
+# function 2. : takes dataframe, computes t.test of PC values between Cohorts (within same date,group)
+
+myfun_pvalue_df_prep2 <- function(df2_here) {
+  
+  # create an empty df to build on
+  df_pval <- data.frame(
+    group_2 = character(),
+    group_1 = character(),
+    p_value = numeric(),
+    which_PC = character(),
+    which_colldate = character()
+  )
+  
+  a <- df2_here
+  
+  # for each of the components (PC1 to PC5) ...
+  listcompos <- unique(a$component)
+  
+  for (compo in listcompos) {
+    df <- a %>% filter(component==compo)
+    
+    listcoldates <- unique(df$guppied_date)
+    
+    for (colldate in listcoldates) {
+      
+      z <- pairwise.t.test(df$value[df$guppied_date==colldate], df$Cohort[df$guppied_date==colldate], p.adjust = "none")$p.value
+      z <- as.data.frame(z)
+      z
+      z$group_2 <- rownames(z)
+      rownames(z) <- NULL
+      z <- z %>%
+        pivot_longer(
+          cols = -group_2,
+          names_to = "group_1",
+          values_to = "p_value",
+          values_drop_na = TRUE
+        ) 
+      
+      z <- z %>% mutate(which_colldate = colldate,
+                        which_PC = compo)
+      df_pval <- rbind(df_pval,z) 
+    }
+  }
+  return(df_pval)
+}
+
+###################################
+###################################
+
+# function 3. : takes p-values, removes unnecessary comparisons 
+
+myfun_pvalues_filtering <- function(df_pval) {
+  
+  # Final adjustments 
+  
+  df_pval <- df_pval %>%
+    # join the two groups for which the p-value has been computed
+    mutate(comparison=paste0(group_1,"_vs_",group_2)) %>%
+    select(p_value,which_colldate,which_PC,comparison,group_1,group_2)
+  
+  
+  # filtering to keep only meaningful comparisons 
+  # to be kept: 
+  meaningfulcomparisons <- c("Control_vs_ColiGuard", "ColiGuard_vs_Control",
+                             "Control_vs_D-scour", "D-scour_vs_Control",
+                             "Control_vs_Neomycin", "Neomycin_vs_Control",
+                             "Neomycin_vs_Neomycin+D-scour", "Neomycin+D-scour_vs_Neomycin",
+                             "Neomycin_vs_Neomycin+ColiGuard", "Neomycin+ColiGuard_vs_Neomycin")
+  
+  # eliminate useless comparisons
+  df_pval <- df_pval[df_pval$comparison %in% meaningfulcomparisons,]
+  
+  return(df_pval)
+  
+}
+
+###################################
+###################################
+
+# binding all dataframes except the one where all samples (irrespective of dates) where guppied in one run 
+
+# DF_piggies_time,groupA,groupB,groupC,groupD,groupE,groupF,groupG
+
+all <- rbind(DF_piggies_time, 
+             groupA, 
+             groupB, 
+             groupC, 
+             groupD,
+             groupE,
+             groupF,
+             groupG)
+
+all$groupsplit <- paste0(all$sample_type,"_",all$guppied_date)
+
+# splitting into multiple dataframes (by file name)
+multi_DFs <- split( all , f = all$groupsplit )
+
+# prep empty df to build on 
+significant <- data.frame(
+  group_1 = character(),
+  group_2 = character(),
+  p_value = numeric(),
+  which_colldate = character(),
+  which_PC = character(),
   comparison = character(),
-  diff = numeric(),
-  lwr = numeric(),
-  upr = numeric(),
-  p_adj = numeric(),
-  type = character(),
-  guppied_date = character(),
+  pval.adj = numeric(),
+  groupsplit = character(),
   stringsAsFactors = FALSE
 )
 
-# this loops goes over each item of list
 
-for (item in df) {
+###################################
+###################################
+
+
+# runs single dataframe (one df : one guppy run) through functions; returns all p-values 
+
+
+for (singl_DF in multi_DFs) {
   
-  # computes anova for each PC
+  # function 1 
+  a1 <- myfun_pvalue_df_prep1(singl_DF,2)
   
-  aov.out_PC1 = aov(PC1 ~ Cohort, data=item)
-  aov.out_PC2 = aov(PC2 ~ Cohort, data=item)
-  aov.out_PC3 = aov(PC3 ~ Cohort, data=item)
-  aov.out_PC4 = aov(PC4 ~ Cohort, data=item)
-  aov.out_PC5 = aov(PC5 ~ Cohort, data=item)
+  # function 2
+  a2 <- myfun_pvalue_df_prep2(a1)
   
-  # TukeyHSD finds which groups (Cohorts) separate from each other ; using adjusted p-values
-  res_PC1 <- TukeyHSD(aov.out_PC1)
-  res_PC2 <- TukeyHSD(aov.out_PC2)
-  res_PC3 <- TukeyHSD(aov.out_PC3)
-  res_PC4 <- TukeyHSD(aov.out_PC4)
-  res_PC5 <- TukeyHSD(aov.out_PC5)
+  # function 3
+  a3 <- myfun_pvalues_filtering(a2)
   
-  # convert to dataframe format
-  aov.out_PC1 <- as.data.frame(res_PC1$Cohort)
-  aov.out_PC2 <- as.data.frame(res_PC2$Cohort)
-  aov.out_PC3 <- as.data.frame(res_PC3$Cohort)
-  aov.out_PC4 <- as.data.frame(res_PC4$Cohort)
-  aov.out_PC5 <- as.data.frame(res_PC5$Cohort)
+  # convert to class dataframe
+  a4 <- as.data.frame(a3)
   
-  # another formatting step
-  aov.out_PC1 <- tibble::rownames_to_column(aov.out_PC1, "comparison")
-  aov.out_PC2 <- tibble::rownames_to_column(aov.out_PC2, "comparison")
-  aov.out_PC3 <- tibble::rownames_to_column(aov.out_PC3, "comparison")
-  aov.out_PC4 <- tibble::rownames_to_column(aov.out_PC4, "comparison")
-  aov.out_PC5 <- tibble::rownames_to_column(aov.out_PC5, "comparison")
+  # assign name of dataframe to dataframe (useful for later rbinding)
+  a5 <- a4 %>% 
+    mutate(groupsplit = singl_DF$groupsplit[1])
   
-  # adding PC name as they will be bound together
-  aov.out_PC1$type="PC1"
-  aov.out_PC2$type="PC2"
-  aov.out_PC3$type="PC3"
-  aov.out_PC4$type="PC4"
-  aov.out_PC5$type="PC5"
+  # rbind all
+  significant <- rbind(
+    significant,
+    a5)
   
-  # binds them to a single dataframe 
-  aov.out.all <- rbind(aov.out_PC1,
-                       aov.out_PC2,
-                       aov.out_PC3,
-                       aov.out_PC4,
-                       aov.out_PC5)
-  
-  colnames(aov.out.all)[5] <- c("p_adj") # necessary to edit colname of col number 5 to avoid spaces
-  aov.out.all$guppied_date <- as.character(item$guppied_date[1]) # greps the first item [1] of 
-                                                                 # guppied_date and stores it in df
-  # binds them all to a single df
-  final <- rbind(final,aov.out.all)                              
 }
 
-DF_piggies_time_significance <- final
+which(significant$p_value<0.05)
+
+###################################
+###################################
+
+# save stats
+addWorksheet(wb, "p_values")
+writeData(wb, sheet = "p_values", significant, rowNames = FALSE)
 
 
-###########################################################################################
-###########################################################################################
+###################################
+###################################
 
-# groupA_time
 
-# anova with p-adj within each guppy run (1 guppy run : 1 collection date)
-df <- split( groupA , f = groupA$guppied_date )
+# Post-hoc correction: 
+final <- significant %>% 
+  group_by(groupsplit) %>%
+  add_tally() %>%
+  mutate(threshold = 0.05/n) %>%
+  filter(p_value<threshold) 
+final
 
-# prepares the list of dataframe to feed the loop below 
-df <- as.list(df[3:8])
 
-# construct an empty dataframe to build on 
-final <- data.frame(
-  comparison = character(),
-  diff = numeric(),
-  lwr = numeric(),
-  upr = numeric(),
-  p_adj = numeric(),
-  type = character(),
-  guppied_date = character(),
-  stringsAsFactors = FALSE
-)
+# final <- significant %>% 
+#   mutate(pval.adj = p.adjust (p_value, method='fdr')) %>% 
+#   filter(pval.adj<0.05) 
+# final
 
-# this loops goes over each item of list
+###################################
+###################################
 
-for (item in df) {
+# save stats
+addWorksheet(wb, "p_adj")
+writeData(wb, sheet = "p_adj", final, rowNames = FALSE)
+
+
+###################################
+###################################
+
+final <- cSplit(final, "groupsplit","_")
+colnames(final)[colnames(final)=="groupsplit_1"] <- "dataframe"
+colnames(final)[colnames(final)=="groupsplit_2"] <- "guppied_date"
+
+
+# keep only useful cols & keep only observations passing the padj threshold (to be plotted)
+final <- final %>%
+  select(guppied_date,which_PC,group_1,group_2,dataframe,pval.adj)  %>% 
+  filter(pval.adj<0.05) 
+
+
+
+# dummy df to associate guppied_date with collection_date
+dummy <- data.frame(guppied_date = as.character(c("Ja31","Fe7","Fe14","Fe21","Fe28","Ma3")),
+                    collection_date = as.character(c("2017-01-31","2017-02-07","2017-02-14","2017-02-21","2017-02-28","2017-03-03")))
+
+
+
+# adding collection_date to dataframe
+df <- inner_join(final,dummy) 
+
+
+
+# string replacement (as we haven't included DF_piggies (single guppy run), 
+# for coherence we need to specify that this data comes from DF_piggies_time (multiple guppy runs))
+df$dataframe <- gsub("piggies","DF_piggies_time",df$dataframe)
+
+
+
+############
+
+# XML data extract
+
+# taking all along except the guppy run with all the samples from all time points 
+simplified2 <- simplified %>%
+  filter(!guppied_date == "all")  
+# now the only piggies are from the DF_piggies_time guppy runs
+simplified2$sample_type <- gsub("piggies","DF_piggies_time",simplified2$sample_type)
+
+
+###################################
+###################################
+
+
+
+# Plots only statistically significant observations,
+# reporting xml data and dataframe (guppy run) it comes from
+
+
+l <- list()
+pdf("guppy_sign_plots.pdf", onefile = TRUE)
+for (A in rownames(df)) {
+  A <- as.numeric(A) # dataframes rownames must be taken as numeric
   
-  # computes anova for each PC
+  # subsetting of original dataframe based on what is statistically significant (rows of df)
+  pp <- eval(as.name(paste(df$dataframe[A])))  %>%
+    filter(collection_date==as.character(df$collection_date[A])) %>%
+    filter(Cohort==as.character(df$group_1[A])|Cohort==as.character(df$group_2[A])) %>%
+    select(PC1,PC2,PC3,PC4,PC5,Cohort,collection_date,guppied_date,sample_type) %>%
+    pivot_longer(
+      cols = 1:5,
+      names_to = "component",
+      values_to = "value",
+      values_drop_na = FALSE
+    ) %>%
+    filter(component==as.name(paste(df$which_PC[A])))
   
-  aov.out_PC1 = aov(PC1 ~ Cohort, data=item)
-  aov.out_PC2 = aov(PC2 ~ Cohort, data=item)
-  aov.out_PC3 = aov(PC3 ~ Cohort, data=item)
-  aov.out_PC4 = aov(PC4 ~ Cohort, data=item)
-  aov.out_PC5 = aov(PC5 ~ Cohort, data=item)
+  # save some parameters to report on plot
+  title1 <- unique(pp$guppied_date)
+  title2 <- unique(pp$sample_type)
+  PC_lab <- unique(pp$component)
   
-  # TukeyHSD finds which groups (Cohorts) separate from each other ; using adjusted p-values
-  res_PC1 <- TukeyHSD(aov.out_PC1)
-  res_PC2 <- TukeyHSD(aov.out_PC2)
-  res_PC3 <- TukeyHSD(aov.out_PC3)
-  res_PC4 <- TukeyHSD(aov.out_PC4)
-  res_PC5 <- TukeyHSD(aov.out_PC5)
+  # add xml data 
+  # subsetting the xml data based on the significant observations dataframe
+  a <- df$dataframe[A]
+  b <- df$guppied_date[A]
+  c <- df$which_PC[A]
+  xmldata <- simplified2 %>%
+    filter(sample_type==a) %>%
+    filter(guppied_date==b) %>%
+    filter(component==c)
   
-  # convert to dataframe format
-  aov.out_PC1 <- as.data.frame(res_PC1$Cohort)
-  aov.out_PC2 <- as.data.frame(res_PC2$Cohort)
-  aov.out_PC3 <- as.data.frame(res_PC3$Cohort)
-  aov.out_PC4 <- as.data.frame(res_PC4$Cohort)
-  aov.out_PC5 <- as.data.frame(res_PC5$Cohort)
+  # build plot 
+  p <- ggplot(pp, aes(x=value, fill=Cohort)) +
+    geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity')+
+    ggtitle(paste0(title1,"_",title2)) +
+    theme(legend.position="top")+
+    xlab(paste0(PC_lab," (",get_var(xmldata),"%)"))
   
-  # another formatting step
-  aov.out_PC1 <- tibble::rownames_to_column(aov.out_PC1, "comparison")
-  aov.out_PC2 <- tibble::rownames_to_column(aov.out_PC2, "comparison")
-  aov.out_PC3 <- tibble::rownames_to_column(aov.out_PC3, "comparison")
-  aov.out_PC4 <- tibble::rownames_to_column(aov.out_PC4, "comparison")
-  aov.out_PC5 <- tibble::rownames_to_column(aov.out_PC5, "comparison")
+  g1 <- text_grob(paste0(PC_down(xmldata)),size=7,lineheight = 1)
+  g2 <- text_grob(paste0(PC_up(xmldata)),size=7,lineheight = 1)
   
-  # adding PC name as they will be bound together
-  aov.out_PC1$type="PC1"
-  aov.out_PC2$type="PC2"
-  aov.out_PC3$type="PC3"
-  aov.out_PC4$type="PC4"
-  aov.out_PC5$type="PC5"
+  lay <- rbind(c(1,1,1,1,1),
+               c(1,1,1,1,1),
+               c(2,2,2,3,3))
   
-  # binds them to a single dataframe 
-  aov.out.all <- rbind(aov.out_PC1,
-                       aov.out_PC2,
-                       aov.out_PC3,
-                       aov.out_PC4,
-                       aov.out_PC5)
+  grid.arrange(p,g1,g2, layout_matrix = lay)
   
-  colnames(aov.out.all)[5] <- c("p_adj") # necessary to edit colname of col number 5 to avoid spaces
-  aov.out.all$guppied_date <- as.character(item$guppied_date[1]) # greps the first item [1] of 
-  # guppied_date and stores it in df
-  # binds them all to a single df
-  final <- rbind(final,aov.out.all)                              
 }
-
-groupA_time_significance <- final
-
-
-###########################################################################################
-###########################################################################################
-
-# groupA_time
-
-# anova with p-adj within each guppy run (1 guppy run : 1 collection date)
-df <- split( groupB , f = groupB$guppied_date )
-
-# prepares the list of dataframe to feed the loop below 
-df <- as.list(df[3:8])
-
-# construct an empty dataframe to build on 
-final <- data.frame(
-  comparison = character(),
-  diff = numeric(),
-  lwr = numeric(),
-  upr = numeric(),
-  p_adj = numeric(),
-  type = character(),
-  guppied_date = character(),
-  stringsAsFactors = FALSE
-)
-
-# this loops goes over each item of list
-
-for (item in df) {
-  
-  # computes anova for each PC
-  
-  aov.out_PC1 = aov(PC1 ~ Cohort, data=item)
-  aov.out_PC2 = aov(PC2 ~ Cohort, data=item)
-  aov.out_PC3 = aov(PC3 ~ Cohort, data=item)
-  aov.out_PC4 = aov(PC4 ~ Cohort, data=item)
-  aov.out_PC5 = aov(PC5 ~ Cohort, data=item)
-  
-  # TukeyHSD finds which groups (Cohorts) separate from each other ; using adjusted p-values
-  res_PC1 <- TukeyHSD(aov.out_PC1)
-  res_PC2 <- TukeyHSD(aov.out_PC2)
-  res_PC3 <- TukeyHSD(aov.out_PC3)
-  res_PC4 <- TukeyHSD(aov.out_PC4)
-  res_PC5 <- TukeyHSD(aov.out_PC5)
-  
-  # convert to dataframe format
-  aov.out_PC1 <- as.data.frame(res_PC1$Cohort)
-  aov.out_PC2 <- as.data.frame(res_PC2$Cohort)
-  aov.out_PC3 <- as.data.frame(res_PC3$Cohort)
-  aov.out_PC4 <- as.data.frame(res_PC4$Cohort)
-  aov.out_PC5 <- as.data.frame(res_PC5$Cohort)
-  
-  # another formatting step
-  aov.out_PC1 <- tibble::rownames_to_column(aov.out_PC1, "comparison")
-  aov.out_PC2 <- tibble::rownames_to_column(aov.out_PC2, "comparison")
-  aov.out_PC3 <- tibble::rownames_to_column(aov.out_PC3, "comparison")
-  aov.out_PC4 <- tibble::rownames_to_column(aov.out_PC4, "comparison")
-  aov.out_PC5 <- tibble::rownames_to_column(aov.out_PC5, "comparison")
-  
-  # adding PC name as they will be bound together
-  aov.out_PC1$type="PC1"
-  aov.out_PC2$type="PC2"
-  aov.out_PC3$type="PC3"
-  aov.out_PC4$type="PC4"
-  aov.out_PC5$type="PC5"
-  
-  # binds them to a single dataframe 
-  aov.out.all <- rbind(aov.out_PC1,
-                       aov.out_PC2,
-                       aov.out_PC3,
-                       aov.out_PC4,
-                       aov.out_PC5)
-  
-  colnames(aov.out.all)[5] <- c("p_adj") # necessary to edit colname of col number 5 to avoid spaces
-  aov.out.all$guppied_date <- as.character(item$guppied_date[1]) # greps the first item [1] of 
-  # guppied_date and stores it in df
-  # binds them all to a single df
-  final <- rbind(final,aov.out.all)                              
-}
-
-groupB_time_significance <- final
-
-###########################################################################################
-###########################################################################################
-
-# Looking for statistically significant and interesting clustering: 
-
-DF_piggies_significance$guppy_run_on <- "all"
-DF_piggies_time_significance$guppy_run_on <- "selected_dates"
-groupA_time_significance$guppy_run_on <- "groupA_selected_dates"
-groupB_time_significance$guppy_run_on <- "groupB_selected_dates"
-
-all_significance <- rbind(DF_piggies_significance,
-      DF_piggies_time_significance,
-      groupA_time_significance,
-      groupB_time_significance)
-
-# save stats in workbook
-addWorksheet(wb, "guppy_significance")
-writeData(wb, sheet = "guppy_significance", all_significance, rowNames = FALSE)
-
-# cherry pick from this list to choose which ones need plotting
-all_significance %>%
-  filter(p_adj<=0.05)
-
-
-###########################################################################################
-###########################################################################################
-# 
-# 
-# # Plotting only the special ones: 
-
-
-#settings for plots
-theme<-theme(panel.background = element_blank(),
-             panel.border=element_rect(fill=NA),
-             panel.grid.major = element_blank(),
-             panel.grid.minor = element_blank(),
-             strip.background=element_blank(),
-             axis.title.x=element_text(colour="black",size=8),
-             axis.title.y=element_text(colour="black",size=8),
-             axis.text.x=element_text(colour="black",size=8),
-             axis.text.y=element_text(colour="black",size=8),
-             axis.ticks=element_line(colour="black"),
-             legend.position="top",
-             plot.margin=unit(c(0.2,0.2,2.9,2.9),"cm")) 
-
-
-
-DF_piggies$Cohort <- factor(DF_piggies$Cohort, 
-                                 levels=c("Control", 
-                                          "D-scour", 
-                                          "ColiGuard",
-                                          "Neomycin",
-                                          "Neomycin+D-scour",
-                                          "Neomycin+ColiGuard"))
-
-DF_piggies_time$Cohort <- factor(DF_piggies_time$Cohort, 
-                       levels=c("Control", 
-                                "D-scour", 
-                                "ColiGuard",
-                                "Neomycin",
-                                "Neomycin+D-scour",
-                                "Neomycin+ColiGuard"))
-
-groupA$Cohort <- factor(groupA$Cohort, 
-                                 levels=c("Control", 
-                                          "D-scour", 
-                                          "ColiGuard",
-                                          "Neomycin",
-                                          "Neomycin+D-scour",
-                                          "Neomycin+ColiGuard"))
-
-
-###############################
-
-
-pdf("guppy_specials.pdf")
-# small difference, plus it's PC5! accounts for small variability
-xmldata <- simplified %>%
-  filter(sample_type=="piggies") %>%
-  filter(guppied_date=="Ma3") %>%
-  group_split(component)
-a <- "2017-03-03"  
-DF_piggies %>% filter(collection_date==a) %>% 
-  filter(Cohort=="Control"|Cohort=="Neomycin") %>% 
-  ggplot(., aes(x=PC1,y=PC5,color=Cohort))+
-  geom_point(size=1.5)+
-  theme+
-  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_discrete(drop=FALSE) +
-  ggtitle(paste('Date ',a)) +
-  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
-  ylab(paste0("PC5 (",get_var(find_PC5(xmldata)),"%)"))
-# PC1
-grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-# PC5
-grid.text(PC_down(find_PC5(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.25, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC5(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.8, "npc"),
-          gp = gpar(fontsize = 5))
-###################################
-# this one not really interesting ...
-xmldata <- simplified %>%
-  filter(sample_type=="piggies") %>%
-  filter(guppied_date=="Ma3") %>%
-  group_split(component)
-a <- "2017-03-03"  
-DF_piggies %>% filter(collection_date==a) %>% 
-  filter(Cohort=="Neomycin"|Cohort=="Neomycin+ColiGuard") %>% 
-  ggplot(., aes(x=PC1,y=PC2,color=Cohort))+
-  geom_point(size=1.5)+
-  theme+
-  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_discrete(drop=FALSE) +
-  ggtitle(paste('Date ',a)) +
-  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
-  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
-# PC1
-grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-# PC2
-grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.25, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.8, "npc"),
-          gp = gpar(fontsize = 5))
-###################################
-xmldata <- simplified %>%
-  filter(sample_type=="piggies") %>%
-  filter(guppied_date=="Fe21") %>%
-  group_split(component)
-a <- "2017-02-21"  
-DF_piggies_time %>% filter(collection_date==a) %>% 
-  filter(Cohort=="Control"|Cohort=="D-scour") %>% 
-  ggplot(., aes(x=PC1,y=PC2,color=Cohort))+
-  geom_point(size=1.5)+
-  theme+
-  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_discrete(drop=FALSE) +
-  ggtitle(paste('Date ',a)) +
-  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
-  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
-# PC1
-grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-# PC2
-grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.25, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.8, "npc"),
-          gp = gpar(fontsize = 5))
-###################################
-xmldata <- simplified %>%
-  filter(sample_type=="piggies") %>%
-  filter(guppied_date=="Fe21") %>%
-  group_split(component)
-a <- "2017-02-21"  
-DF_piggies_time %>% filter(collection_date==a) %>% 
-  filter(Cohort=="Neomycin"|Cohort=="Neomycin+D-scour") %>% 
-  ggplot(., aes(x=PC1,y=PC2,color=Cohort))+
-  geom_point(size=1.5)+
-  theme+
-  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_discrete(drop=FALSE) +
-  ggtitle(paste('Date ',a)) +
-  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
-  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
-# PC1
-grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-# PC2
-grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.25, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.8, "npc"),
-          gp = gpar(fontsize = 5))
-###################################
-xmldata <- simplified %>%
-  filter(sample_type=="piggies") %>%
-  filter(guppied_date=="Fe28") %>%
-  group_split(component)
-a <- "2017-02-28"  
-DF_piggies_time %>% filter(collection_date==a) %>% 
-  filter(Cohort=="Control"|Cohort=="D-scour") %>% 
-  ggplot(., aes(x=PC3,y=PC4,color=Cohort))+
-  geom_point(size=1.5)+
-  theme+
-  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_discrete(drop=FALSE) +
-  ggtitle(paste('Date ',a)) +
-  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
-  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
-# PC3
-grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-# PC4
-grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.25, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.8, "npc"),
-          gp = gpar(fontsize = 5))
-###################################
-xmldata <- simplified %>%
-  filter(sample_type=="piggies") %>%
-  filter(guppied_date=="Fe28") %>%
-  group_split(component)
-a <- "2017-02-28"   
-DF_piggies_time %>% filter(collection_date==a) %>% 
-  filter(Cohort=="Neomycin"|Cohort=="Neomycin+ColiGuard") %>% 
-  ggplot(., aes(x=PC3,y=PC4,color=Cohort))+
-  geom_point(size=1.5)+
-  theme+
-  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_discrete(drop=FALSE) +
-  ggtitle(paste('Date ',a)) +
-  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
-  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
-# PC3
-grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-# PC4
-grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.25, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.8, "npc"),
-          gp = gpar(fontsize = 5))
-###################################
-xmldata <- simplified %>%
-  filter(sample_type=="groupA") %>%
-  filter(guppied_date=="Fe14") %>%
-  group_split(component)
-a <- "2017-02-14"   
-groupA %>% filter(collection_date==a) %>% 
-  filter(Cohort=="Neomycin"|Cohort=="Neomycin+ColiGuard") %>% 
-  ggplot(., aes(x=PC1,y=PC2,color=Cohort))+
-  geom_point(size=1.5)+
-  theme+
-  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_discrete(drop=FALSE) +
-  ggtitle(paste('Date ',a)) +
-  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))+
-  ylab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
-# PC1
-grid.text(PC_down(find_PC1(xmldata)), x = unit(0.3, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC1(xmldata)), x = unit(0.85, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-# PC2
-grid.text(PC_down(find_PC2(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.25, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC2(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.8, "npc"),
-          gp = gpar(fontsize = 5))
-###################################
-xmldata <- simplified %>%
-  filter(sample_type=="groupB") %>%
-  filter(guppied_date=="Fe21") %>%
-  group_split(component)
-a <- "2017-02-21"   
-groupB %>% filter(collection_date==a) %>% 
-  filter(Cohort=="Control"|Cohort=="Neomycin") %>% 
-  ggplot(., aes(x=PC3,y=PC4,color=Cohort))+
-  geom_point(size=1.5)+
-  theme+
-  stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-  scale_color_discrete(drop=FALSE) +
-  ggtitle(paste('Date ',a)) +
-  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))+
-  ylab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
-# PC3
-grid.text(PC_down(find_PC3(xmldata)), x = unit(0.3, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC3(xmldata)), x = unit(0.85, "npc"),
-          y = unit(0.1, "npc"),
-          gp = gpar(fontsize = 5))
-# PC4
-grid.text(PC_down(find_PC4(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.25, "npc"),
-          gp = gpar(fontsize = 5))
-grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"),
-          y = unit(0.8, "npc"),
-          gp = gpar(fontsize = 5))
 dev.off()
 
+################################################################################################
 
 ###########################################################################################
 ###########################################################################################
@@ -2462,3 +4005,10 @@ dev.off()
 
 # save stats in workbook
 saveWorkbook(wb, "/Users/12705859/Desktop/metapigs_base/phylosift/guppy/stats_guppy.xlsx", overwrite=TRUE)
+
+
+
+
+
+
+
