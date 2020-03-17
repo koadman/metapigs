@@ -2016,7 +2016,6 @@ df_a_c$interval <- "Ja31-Fe14"
 
 df1 <- merge(pigs_2,pigs_4, by=c("isolation_source"))
 NROW(df1)
-View(df1)
 
 # pivot long
 df1 <- df1 %>%
@@ -5114,112 +5113,55 @@ piglets_factors2$grouping <- gsub("birth dday - Duroc x Landrace",
                                  "bday - Duroc x Landrace",piglets_factors2$grouping)
 
 
-unroo <- ggplot(piglets_factors, aes(collection_date,unrooted_pd, label = collection_date)) + 
+# alpha
+df <- piglets_factors %>%
+  pivot_longer(cols=c('unrooted_pd','bwpd'))
+colnames(df)[colnames(df)=="name"] <- "parameter"
+df2 <- piglets_factors2 %>%
+  pivot_longer(cols=c('unrooted_pd','bwpd'))
+colnames(df2)[colnames(df2)=="name"] <- "parameter"
+alpha_plot <- ggplot(df, aes(x=collection_date,y=value)) + 
   ylim(0,0.06)+
-  labs(y="unrooted PD - p-value",
+  labs(y="unrooted_pd & BWPD - p-value",
        x="")+
-  geom_point(stat="identity") + 
-  facet_wrap(~grouping, scales="free")+
-  geom_hline(yintercept=0.05, linetype="dashed", 
-             color = "black", size=0.5)+
+  geom_point(data=df2,aes(shape=parameter), color="red", size=2)+
+  geom_point(aes(shape=parameter), color="black", size=2)+
   theme(axis.text.x=element_text(size=7),
         axis.title.x=element_text(),
         axis.title.y=element_text(),
-        legend.position="none")+
-  geom_point(data = piglets_factors2, color = "red", shape = 2)
-bwpd <- ggplot(piglets_factors, aes(collection_date,bwpd, label = collection_date)) + 
-  ylim(0,0.06)+
-  labs(y="bwpd - p-value",
-       x="")+
-  geom_point(stat="identity") + 
-  facet_wrap(~grouping, scales="free")+
+        legend.position="right")+
+  facet_wrap(~grouping)+
   geom_hline(yintercept=0.05, linetype="dashed", 
-             color = "black", size=0.5)+
+             color = "black", size=0.5)
+# beta 
+df <- piglets_factors %>%
+  pivot_longer(cols=c(contains('pc')))
+colnames(df)[colnames(df)=="name"] <- "parameter"
+df2 <- piglets_factors2 %>%
+  pivot_longer(cols=c(contains('pc')))
+colnames(df2)[colnames(df2)=="name"] <- "parameter"
+beta_plot <- ggplot(df, aes(x=collection_date,y=value)) + 
+  ylim(0,0.06)+
+  labs(y="PC1 to PC5 - p-value",
+       x="")+
+  geom_point(data=df2,aes(shape=parameter), color="red", size=2)+
+  geom_point(aes(shape=parameter), color="black", size=2)+
   theme(axis.text.x=element_text(size=7),
         axis.title.x=element_text(),
         axis.title.y=element_text(),
-        legend.position="none")+
-  geom_point(data = piglets_factors2, color = "red", shape = 2)
-pc1 <- ggplot(piglets_factors, aes(collection_date,pc1, label = collection_date)) + 
-  ylim(0,0.06)+
-  labs(y="pc1 - p-value",
-       x="")+
-  geom_point(stat="identity") + 
-  facet_wrap(~grouping, scales="free")+
+        legend.position="right")+
+  facet_wrap(~grouping)+
   geom_hline(yintercept=0.05, linetype="dashed", 
-             color = "black", size=0.5)+
-  theme(axis.text.x=element_text(size=7),
-        axis.title.x=element_text(),
-        axis.title.y=element_text(),
-        legend.position="none")+
-  geom_point(data = piglets_factors2, color = "red", shape = 2)
-pc2 <- ggplot(piglets_factors, aes(collection_date,pc2, label = collection_date)) + 
-  ylim(0,0.06)+
-  labs(y="pc2 - p-value",
-       x="")+
-  geom_point(stat="identity") + 
-  facet_wrap(~grouping, scales="free")+
-  geom_hline(yintercept=0.05, linetype="dashed", 
-             color = "black", size=0.5)+
-  theme(axis.text.x=element_text(size=7),
-        axis.title.x=element_text(),
-        axis.title.y=element_text(),
-        legend.position="none")+
-  geom_point(data = piglets_factors2, color = "red", shape = 2)
-pc3 <- ggplot(piglets_factors, aes(collection_date,pc3, label = collection_date)) + 
-  ylim(0,0.06)+
-  labs(y="pc3 - p-value",
-       x="")+
-  geom_point(stat="identity") + 
-  facet_wrap(~grouping, scales="free")+
-  geom_hline(yintercept=0.05, linetype="dashed", 
-             color = "black", size=0.5)+
-  theme(axis.text.x=element_text(size=7),
-        axis.title.x=element_text(),
-        axis.title.y=element_text(),
-        legend.position="none")+
-  geom_point(data = piglets_factors2, color = "red", shape = 2)
-pc4 <- ggplot(piglets_factors, aes(collection_date,pc4, label = collection_date)) + 
-  ylim(0,0.06)+
-  labs(y="pc4 - p-value",
-       x="")+
-  geom_point(stat="identity") + 
-  facet_wrap(~grouping, scales="free")+
-  geom_hline(yintercept=0.05, linetype="dashed", 
-             color = "black", size=0.5)+
-  theme(axis.text.x=element_text(size=7),
-        axis.title.x=element_text(),
-        axis.title.y=element_text(),
-        legend.position="none")+
-  geom_point(data = piglets_factors2, color = "red", shape = 2)
-pc5 <- ggplot(piglets_factors, aes(collection_date,pc5, label = collection_date)) + 
-  ylim(0,0.06)+
-  labs(y="pc5 - p-value",
-       x="")+
-  geom_point(stat="identity") + 
-  facet_wrap(~grouping, scales="free")+
-  geom_hline(yintercept=0.05, linetype="dashed", 
-             color = "black", size=0.5)+
-  theme(axis.text.x=element_text(size=7),
-        axis.title.x=element_text(),
-        axis.title.y=element_text(),
-        legend.position="none")+
-  geom_point(data = piglets_factors2, color = "red", shape = 2)
+             color = "black", size=0.5)
+
+
 
 pdf("out/start_factors_pvalues.pdf")
 ggarrange(
-  unroo, bwpd,ncol=1,nrow=2, labels = c("A","B")
-)
-ggarrange(
-  pc1, pc2,ncol=1,nrow=2, labels = c("C","D")
-)
-ggarrange(
-  pc3, pc4,ncol=1,nrow=2, labels = c("E","F")
-)
-ggarrange(
-  pc5,ncol=1,nrow=2, labels = c("G","H")
+  alpha_plot, beta_plot,ncol=1,nrow=2, labels = c("A","B")
 )
 dev.off()
+
 
 
 
@@ -5229,7 +5171,7 @@ dev.off()
 
 
 # save stats in workbook
-saveWorkbook(wb, "/Users/12705859/Desktop/metapigs_base/phylosift/out/stats.xlsx", overwrite=TRUE)
+#saveWorkbook(wb, "/Users/12705859/Desktop/metapigs_base/phylosift/out/stats.xlsx", overwrite=TRUE)
 
 
 ###########################################################################################
@@ -5241,3 +5183,11 @@ out <- sapply(names(sessionInfo()$otherPkgs),
               function(x) print(citation(x), style = "Bibtex"))
 
 closeAllConnections()
+
+
+
+
+  
+  
+  
+  

@@ -25,7 +25,7 @@
 
 # 1 # .xml files are read in and parsed
 
-# 2 # output can be used in gupply_plots.R
+# 2 # output can be used in guppy_plots.R
 
 
 ######################################################################################################
@@ -34,12 +34,12 @@
 
 setwd("/Users/12705859/Desktop/metapigs_base/phylosift/guppy")
 
-
 library(readr)
 library(dplyr)
 library(tidyr)
 library(splitstackshape)
 library(grid)
+library(data.table)
 
 ###########################################################################################
 
@@ -59,8 +59,9 @@ complete.df <- data.frame(
   file = character()
   )
 
-my.files = list.files(my.basedir,pattern="xml.txt")
-my.files <- my.files[-9] # removing problematic file (won't parse - it's Ja31 anyway)
+my.files = list.files(my.basedir,pattern=".txt.xml.txt")
+my.files <- my.files[-17] # removing problematic file (won't parse - it's Ja31 anyway)
+my.files <- my.files[-26] # removing problematic file (won't parse - it's Ja31 anyway)
 
 for (textfile in my.files) {
   
@@ -147,16 +148,26 @@ for (textfile in my.files) {
 
 complete <- complete.df
 
+unique(jplace_df$file)
+unique(complete$file)
+
 # clean file name & parse file name 
 complete$file <- gsub('_sel.txt.xml.txt', '', complete$file)
 complete$file <- gsub('piggies_group_A', 'groupA', complete$file)
 complete$file <- gsub('piggies_group_B', 'groupB', complete$file)
+complete$file <- gsub('piggies_CTRLNEO', 'groupC', complete$file)
+complete$file <- gsub('piggies_NEONEOD', 'groupD', complete$file)
+complete$file <- gsub('piggies_NEONEOC', 'groupE', complete$file)
+complete$file <- gsub('piggies_CTRLDs', 'groupF', complete$file)
+complete$file <- gsub('piggies_CTRLC', 'groupG', complete$file)
 complete$file <- gsub('^piggies$', 'piggies_all', complete$file)
 complete <- cSplit(complete, "file","_")
 
 complete <- complete %>% rename(sample_type = file_1, guppied_date = file_2 )
 
 NROW(complete)
+unique(complete$sample_type)
+
 ###############
 
 # simplify taxa
@@ -210,39 +221,39 @@ fwrite(x = simplified, file = "guppy_xml_simplified.df")
 
 
 find_PC1 <- function(x) {
-  PC1 <- x[[1]] %>%
+  PC <- x[[1]] %>%
     group_by(taxa_simple) %>%
     filter(n()==1) %>% # keep only taxa that appear once either up or down in PC, not both
     arrange(PC_position,taxa_simple)
-  return(PC1)
+  return(PC)
 }
 find_PC2 <- function(x) {
-  PC1 <- x[[2]] %>%
+  PC <- x[[2]] %>%
     group_by(taxa_simple) %>%
     filter(n()==1) %>% # keep only taxa that appear once either up or down in PC, not both
     arrange(PC_position,taxa_simple)
-  return(PC1)
+  return(PC)
 }
 find_PC3 <- function(x) {
-  PC1 <- x[[3]] %>%
+  PC <- x[[3]] %>%
     group_by(taxa_simple) %>%
     filter(n()==1) %>% # keep only taxa that appear once either up or down in PC, not both
     arrange(PC_position,taxa_simple)
-  return(PC1)
+  return(PC)
 }
 find_PC4 <- function(x) {
-  PC1 <- x[[4]] %>%
+  PC <- x[[4]] %>%
     group_by(taxa_simple) %>%
     filter(n()==1) %>% # keep only taxa that appear once either up or down in PC, not both
     arrange(PC_position,taxa_simple)
-  return(PC1)
+  return(PC)
 }
 find_PC5 <- function(x) {
-  PC1 <- x[[5]] %>%
+  PC <- x[[5]] %>%
     group_by(taxa_simple) %>%
     filter(n()==1) %>% # keep only taxa that appear once either up or down in PC, not both
     arrange(PC_position,taxa_simple)
-  return(PC1)
+  return(PC)
 }
 
 ######################################################################################################

@@ -51,7 +51,8 @@ library(ggpubr)
 library(tidyr)
 library(data.table)
 library(sva)   # this is combat , careful not to install COMBAT instead which is another thing
-
+library(openxlsx)
+library(gridExtra)
 # manual settings 
 
 removebatcheffect_allowed <- "yes"     # if yes, it removes the batch effect only where detected
@@ -149,6 +150,14 @@ jplace_df$file <- gsub('_sel.txt.proj', '', jplace_df$file)
 
 
 ##############################
+##############################
+
+# run guppy_XML_process.R to get simplified df
+# tried to load it with read.csv, read_csv, read.csv2, would not keep the same format!!!!! grrrrrrr
+
+##############################
+##############################
+
 
 # function to adjust p-value
 padj_function <- function(x, na.rm = FALSE) (p.adjust(x,method="hommel"))
@@ -290,20 +299,22 @@ rbow <- rainbow(40, end=0.7, alpha=0.7)
 jplace_df_final$group <- jplace_df_final$file
 jplace_df_final$group <- gsub('piggies_group_A', 'groupA', jplace_df_final$group)
 jplace_df_final$group <- gsub('piggies_group_B', 'groupB', jplace_df_final$group)
-
 jplace_df_final$group <- gsub('piggies_CTRLNEO', 'groupC', jplace_df_final$group)
 jplace_df_final$group <- gsub('piggies_NEONEOD', 'groupD', jplace_df_final$group)
 jplace_df_final$group <- gsub('piggies_NEONEOC', 'groupE', jplace_df_final$group)
 jplace_df_final$group <- gsub('piggies_CTRLDs', 'groupF', jplace_df_final$group)
 jplace_df_final$group <- gsub('piggies_CTRLC', 'groupG', jplace_df_final$group)
-
-# note to self: ^ and $ for the exact (and entire) string match 
 jplace_df_final$group <- gsub('^piggies$', 'piggies_all', jplace_df_final$group)
+# note to self: ^ and $ for the exact (and entire) string match 
+
 jplace_df_final <- cSplit(jplace_df_final, "group","_")
 jplace_df_final$group_1 <- gsub('pos', 'positive_controls', jplace_df_final$group_1)
 jplace_df_final$group_2 <- gsub('controls', 'all_replicates', jplace_df_final$group_2)
 jplace_df_final <- setnames(jplace_df_final, old = c('group_1','group_2'), new = c('sample_type','guppied_date'))
+
 head(jplace_df_final)
+unique(jplace_df_final$sample_type)
+unique(jplace_df_final$guppied_date)
 
 ##############################
 
@@ -688,7 +699,7 @@ DF_piggies
 xmldata <- simplified %>%
   filter(sample_type==a) %>%
   filter(guppied_date=="all") %>%
-  group_split(component) 
+  group_split(component)
 
 # legend 
 color_legend <- function(x, y, xlen, ylen, main, tiks, colors){
@@ -699,7 +710,7 @@ rbow <- rainbow(40, end=0.7, alpha=0.7)
 legvec <- c(0,10,20,30,40)
 
 
-pdf("piggies_guppied_all.pdf")
+pdf("time_beta.pdf")
 # PC1PC2
 par(oma=c(6,6,6,6)) # all sides have 4 lines of space
 par(mar=c(4,4,0.01,0.01))
@@ -710,38 +721,39 @@ plot(DF_piggies$PC1,DF_piggies$PC2,
      col=rbow[as.Date(DF_piggies$collection_date)-as.Date("2017-01-29 00:00:00")])
 color_legend(min(DF_piggies$PC1), max(DF_piggies$PC2)-0.6, 
              3.5, 0.9, "trial days:", legvec, rbow)
-mtext(paste0(PC_down(find_PC1(xmldata))), side=1, line=2, adj=0.0, cex=0.5, col="blue", outer=TRUE)  # PC1 low
-mtext(paste0(PC_up(find_PC1(xmldata))), side=1, line=2, adj=1.0, cex=0.5, col="purple", outer=TRUE)  # PC1 high
-mtext(paste0(PC_down(find_PC2(xmldata))), side=2, line=1, adj=0.0, cex=0.5, col="red", outer=TRUE)   # PC2 low 
-mtext(paste0(PC_up(find_PC2(xmldata))), side=2, line=1, adj=1.0, cex=0.5, col="orange", outer=TRUE)   # PC2 high
-# PC3PC4
-par(oma=c(6,6,6,6)) # all sides have 4 lines of space
-par(mar=c(4,4,0.01,0.01))
-plot(DF_piggies$PC3,DF_piggies$PC4,
-     xlab=paste0("PC3  (",get_var(find_PC3(xmldata)),"%)"),
-     ylab=paste0("PC4  (",get_var(find_PC4(xmldata)),"%)"),
-     type="p",cex=0.8,cex.axis=0.6,cex.lab=0.6,
-     col=rbow[as.Date(DF_piggies$collection_date)-as.Date("2017-01-29 00:00:00")])
-color_legend(min(DF_piggies$PC3), max(DF_piggies$PC4)-0.25, 
-             1.8, 0.5, "trial days:", legvec, rbow)
-mtext(paste0(PC_down(find_PC3(xmldata))), side=1, line=2, adj=0.0, cex=0.5, col="blue", outer=TRUE)
-mtext(paste0(PC_up(find_PC3(xmldata))), side=1, line=2, adj=1.0, cex=0.5, col="purple", outer=TRUE)  
-mtext(paste0(PC_down(find_PC4(xmldata))), side=2, line=1, adj=0.0, cex=0.5, col="red", outer=TRUE)    
-mtext(paste0(PC_up(find_PC4(xmldata))), side=2, line=1, adj=1.0, cex=0.5, col="orange", outer=TRUE)   
+mtext(paste0(PC_down(find_PC1(xmldata))), side=1, line=2, adj=0.0, cex=0.5, col="black", outer=TRUE)  # PC1 low
+mtext(paste0(PC_up(find_PC1(xmldata))), side=1, line=2, adj=1.0, cex=0.5, col="black", outer=TRUE)  # PC1 high
+mtext(paste0(PC_down(find_PC2(xmldata))), side=2, line=1, adj=0.0, cex=0.5, col="black", outer=TRUE)   # PC2 low 
+mtext(paste0(PC_up(find_PC2(xmldata))), side=2, line=1, adj=1.0, cex=0.5, col="black", outer=TRUE)   # PC2 high
+dev.off()
+
+# plot(DF_piggies$PC3,DF_piggies$PC4,
+#      xlab=paste0("PC3  (",get_var(find_PC3(xmldata)),"%)"),
+#      ylab=paste0("PC4  (",get_var(find_PC4(xmldata)),"%)"),
+#      type="p",cex=0.8,cex.axis=0.6,cex.lab=0.6,
+#      col=rbow[as.Date(DF_piggies$collection_date)-as.Date("2017-01-29 00:00:00")])
+# color_legend(min(DF_piggies$PC3), max(DF_piggies$PC4)-0.25, 
+#              1.8, 0.5, "trial days:", legvec, rbow)
+# mtext(paste0(PC_down(find_PC3(xmldata))), side=1, line=2, adj=0.0, cex=0.5, col="blue", outer=TRUE)
+# mtext(paste0(PC_up(find_PC3(xmldata))), side=1, line=2, adj=1.0, cex=0.5, col="purple", outer=TRUE)  
+# mtext(paste0(PC_down(find_PC4(xmldata))), side=2, line=1, adj=0.0, cex=0.5, col="red", outer=TRUE)    
+# mtext(paste0(PC_up(find_PC4(xmldata))), side=2, line=1, adj=1.0, cex=0.5, col="orange", outer=TRUE)   
 # PC1PC5
-par(oma=c(6,6,6,6)) # all sides have 4 lines of space
-par(mar=c(4,4,0.01,0.01))
-plot(DF_piggies$PC1,DF_piggies$PC5,
-     xlab=paste0("PC1  (",get_var(find_PC1(xmldata)),"%)"),
-     ylab=paste0("PC5  (",get_var(find_PC5(xmldata)),"%)"),
-     type="p",cex=0.8,cex.axis=0.6,cex.lab=0.6,
-     col=rbow[as.Date(DF_piggies$collection_date)-as.Date("2017-01-29 00:00:00")])
-color_legend(min(DF_piggies$PC1), max(DF_piggies$PC5)-0.15, 
-             2.7, 0.35, "trial days:", legvec, rbow)
-mtext(paste0(PC_down(find_PC1(xmldata))), side=1, line=2, adj=0.0, cex=0.5, col="blue", outer=TRUE)  
-mtext(paste0(PC_up(find_PC1(xmldata))), side=1, line=2, adj=1.0, cex=0.5, col="purple", outer=TRUE)  
-mtext(paste0(PC_down(find_PC5(xmldata))), side=2, line=1, adj=0.0, cex=0.5, col="red", outer=TRUE)    
-mtext(paste0(PC_up(find_PC5(xmldata))), side=2, line=1, adj=1.0, cex=0.5, col="orange", outer=TRUE)  
+# par(oma=c(6,6,6,6)) # all sides have 4 lines of space
+# par(mar=c(4,4,0.01,0.01))
+# plot(DF_piggies$PC1,DF_piggies$PC5,
+#      xlab=paste0("PC1  (",get_var(find_PC1(xmldata)),"%)"),
+#      ylab=paste0("PC5  (",get_var(find_PC5(xmldata)),"%)"),
+#      type="p",cex=0.8,cex.axis=0.6,cex.lab=0.6,
+#      col=rbow[as.Date(DF_piggies$collection_date)-as.Date("2017-01-29 00:00:00")])
+# color_legend(min(DF_piggies$PC1), max(DF_piggies$PC5)-0.15, 
+#              2.7, 0.35, "trial days:", legvec, rbow)
+# mtext(paste0(PC_down(find_PC1(xmldata))), side=1, line=2, adj=0.0, cex=0.5, col="blue", outer=TRUE)  
+# mtext(paste0(PC_up(find_PC1(xmldata))), side=1, line=2, adj=1.0, cex=0.5, col="purple", outer=TRUE)  
+# mtext(paste0(PC_down(find_PC5(xmldata))), side=2, line=1, adj=0.0, cex=0.5, col="red", outer=TRUE)    
+# mtext(paste0(PC_up(find_PC5(xmldata))), side=2, line=1, adj=1.0, cex=0.5, col="orange", outer=TRUE)  
+
+pdf("time_beta_cohorts_PC1PC2.pdf")
 #################### Cohorts separately
 par(oma=c(0,0,0,0)) # resetting the outer margins to default for the next plots
 # control groups (Control, D-scour, ColiGuard)
@@ -755,30 +767,12 @@ plot(DF_piggies$PC1[DF_piggies$Cohort=="Control"],
      cex.axis=0.8,
      type="p",col=rbow[as.Date(DF_piggies$collection_date
                                [DF_piggies$Cohort=="Control"])-as.Date("2017-01-30 00:00:00")])
-plot(DF_piggies$PC3[DF_piggies$Cohort=="Control"],
-     DF_piggies$PC4[DF_piggies$Cohort=="Control"],
-     main="PC3 PC4 Control",
-     xlab="",ylab="",
-     xlim=c(-1,1.75),
-     ylim=c(-1.3,0.8),
-     cex.axis=0.8,
-     type="p",col=rbow[as.Date(DF_piggies$collection_date
-                               [DF_piggies$Cohort=="Control"])-as.Date("2017-01-30 00:00:00")])
 plot(DF_piggies$PC1[DF_piggies$Cohort=="D-scour"],
      DF_piggies$PC2[DF_piggies$Cohort=="D-scour"],
      main="PC1 PC2 D-scour",
      xlab="",ylab="",
      xlim=c(-3.5,3),
      ylim=c(0.8,4.7),
-     cex.axis=0.8,
-     type="p",col=rbow[as.Date(DF_piggies$collection_date
-                               [DF_piggies$Cohort=="D-scour"])-as.Date("2017-01-30 00:00:00")])
-plot(DF_piggies$PC3[DF_piggies$Cohort=="D-scour"],
-     DF_piggies$PC4[DF_piggies$Cohort=="D-scour"],
-     main="PC3 PC4 D-scour",
-     xlab="",ylab="",
-     xlim=c(-1,1.75),
-     ylim=c(-1.3,0.8),
      cex.axis=0.8,
      type="p",col=rbow[as.Date(DF_piggies$collection_date
                                [DF_piggies$Cohort=="D-scour"])-as.Date("2017-01-30 00:00:00")])
@@ -791,32 +785,13 @@ plot(DF_piggies$PC1[DF_piggies$Cohort=="ColiGuard"],
      cex.axis=0.8,
      type="p",col=rbow[as.Date(DF_piggies$collection_date
                                [DF_piggies$Cohort=="ColiGuard"])-as.Date("2017-01-30 00:00:00")])
-plot(DF_piggies$PC3[DF_piggies$Cohort=="ColiGuard"],
-     DF_piggies$PC4[DF_piggies$Cohort=="ColiGuard"],
-     main="PC3 PC4 ColiGuard",
-     xlab="",ylab="",
-     xlim=c(-1,1.75),
-     ylim=c(-1.3,0.8),
-     cex.axis=0.8,
-     type="p",col=rbow[as.Date(DF_piggies$collection_date
-                               [DF_piggies$Cohort=="ColiGuard"])-as.Date("2017-01-30 00:00:00")])
 # Neo groups (Neo, Neo+D, Neo+C)
-par(mfrow=c(3,2), mai = c(0.4, 0.4, 0.4, 0.4))
 plot(DF_piggies$PC1[DF_piggies$Cohort=="Neomycin"],
      DF_piggies$PC2[DF_piggies$Cohort=="Neomycin"],
      main="PC1 PC2 Neomycin",
      xlab="PC1",ylab="",
      xlim=c(-3.5,3),
      ylim=c(0.8,4.7),
-     cex.axis=0.8,
-     type="p",col=rbow[as.Date(DF_piggies$collection_date
-                               [DF_piggies$Cohort=="Neomycin"])-as.Date("2017-01-30 00:00:00")])
-plot(DF_piggies$PC3[DF_piggies$Cohort=="Neomycin"],
-     DF_piggies$PC4[DF_piggies$Cohort=="Neomycin"],
-     main="PC3 PC4 Neomycin",
-     xlab="",ylab="",
-     xlim=c(-1,1.75),
-     ylim=c(-1.3,0.8),
      cex.axis=0.8,
      type="p",col=rbow[as.Date(DF_piggies$collection_date
                                [DF_piggies$Cohort=="Neomycin"])-as.Date("2017-01-30 00:00:00")])
@@ -829,15 +804,6 @@ plot(DF_piggies$PC1[DF_piggies$Cohort=="Neomycin+D-scour"],
      cex.axis=0.8,
      type="p",col=rbow[as.Date(DF_piggies$collection_date
                                [DF_piggies$Cohort=="Neomycin+D-scour"])-as.Date("2017-01-30 00:00:00")])
-plot(DF_piggies$PC3[DF_piggies$Cohort=="Neomycin+D-scour"],
-     DF_piggies$PC4[DF_piggies$Cohort=="Neomycin+D-scour"],
-     main="PC3 PC4 Neomycin+D-scour",
-     xlab="",ylab="",
-     xlim=c(-1,1.75),
-     ylim=c(-1.3,0.8),
-     cex.axis=0.8,
-     type="p",col=rbow[as.Date(DF_piggies$collection_date
-                               [DF_piggies$Cohort=="Neomycin+D-scour"])-as.Date("2017-01-30 00:00:00")])
 plot(DF_piggies$PC1[DF_piggies$Cohort=="Neomycin+ColiGuard"],
      DF_piggies$PC2[DF_piggies$Cohort=="Neomycin+ColiGuard"],
      main="PC1 PC2 Neomycin+ColiGuard",
@@ -847,17 +813,196 @@ plot(DF_piggies$PC1[DF_piggies$Cohort=="Neomycin+ColiGuard"],
      cex.axis=0.8,
      type="p",col=rbow[as.Date(DF_piggies$collection_date
                                [DF_piggies$Cohort=="Neomycin+ColiGuard"])-as.Date("2017-01-30 00:00:00")])
-plot(DF_piggies$PC3[DF_piggies$Cohort=="Neomycin+ColiGuard"],
-     DF_piggies$PC4[DF_piggies$Cohort=="Neomycin+ColiGuard"],
-     main="PC3 PC4 Neomycin+ColiGuard",
-     xlab="",ylab="",
-     xlim=c(-1,1.75),
-     ylim=c(-1.3,0.8),
-     cex.axis=0.8,
-     type="p",col=rbow[as.Date(DF_piggies$collection_date
-                               [DF_piggies$Cohort=="Neomycin+ColiGuard"])-as.Date("2017-01-30 00:00:00")])
 dev.off()
 
+# pdf("time_beta_cohorts_PC3PC4.pdf")
+# #################### Cohorts separately
+# par(oma=c(0,0,0,0)) # resetting the outer margins to default for the next plots
+# # control groups (Control, D-scour, ColiGuard)
+# par(mfrow=c(3,2), mai = c(0.4, 0.4, 0.4, 0.4))
+# plot(DF_piggies$PC3[DF_piggies$Cohort=="Control"],
+#      DF_piggies$PC4[DF_piggies$Cohort=="Control"],
+#      main="PC3 PC4 Control",
+#      xlab="",ylab="",
+#      xlim=c(-1,1.75),
+#      ylim=c(-1.3,0.8),
+#      cex.axis=0.8,
+#      type="p",col=rbow[as.Date(DF_piggies$collection_date
+#                                [DF_piggies$Cohort=="Control"])-as.Date("2017-01-30 00:00:00")])
+# plot(DF_piggies$PC3[DF_piggies$Cohort=="D-scour"],
+#      DF_piggies$PC4[DF_piggies$Cohort=="D-scour"],
+#      main="PC3 PC4 D-scour",
+#      xlab="",ylab="",
+#      xlim=c(-1,1.75),
+#      ylim=c(-1.3,0.8),
+#      cex.axis=0.8,
+#      type="p",col=rbow[as.Date(DF_piggies$collection_date
+#                                [DF_piggies$Cohort=="D-scour"])-as.Date("2017-01-30 00:00:00")])
+# plot(DF_piggies$PC3[DF_piggies$Cohort=="ColiGuard"],
+#      DF_piggies$PC4[DF_piggies$Cohort=="ColiGuard"],
+#      main="PC3 PC4 ColiGuard",
+#      xlab="",ylab="",
+#      xlim=c(-1,1.75),
+#      ylim=c(-1.3,0.8),
+#      cex.axis=0.8,
+#      type="p",col=rbow[as.Date(DF_piggies$collection_date
+#                                [DF_piggies$Cohort=="ColiGuard"])-as.Date("2017-01-30 00:00:00")])
+# plot(DF_piggies$PC3[DF_piggies$Cohort=="Neomycin"],
+#      DF_piggies$PC4[DF_piggies$Cohort=="Neomycin"],
+#      main="PC3 PC4 Neomycin",
+#      xlab="",ylab="",
+#      xlim=c(-1,1.75),
+#      ylim=c(-1.3,0.8),
+#      cex.axis=0.8,
+#      type="p",col=rbow[as.Date(DF_piggies$collection_date
+#                                [DF_piggies$Cohort=="Neomycin"])-as.Date("2017-01-30 00:00:00")])
+# plot(DF_piggies$PC3[DF_piggies$Cohort=="Neomycin+D-scour"],
+#      DF_piggies$PC4[DF_piggies$Cohort=="Neomycin+D-scour"],
+#      main="PC3 PC4 Neomycin+D-scour",
+#      xlab="",ylab="",
+#      xlim=c(-1,1.75),
+#      ylim=c(-1.3,0.8),
+#      cex.axis=0.8,
+#      type="p",col=rbow[as.Date(DF_piggies$collection_date
+#                                [DF_piggies$Cohort=="Neomycin+D-scour"])-as.Date("2017-01-30 00:00:00")])
+# plot(DF_piggies$PC3[DF_piggies$Cohort=="Neomycin+ColiGuard"],
+#      DF_piggies$PC4[DF_piggies$Cohort=="Neomycin+ColiGuard"],
+#      main="PC3 PC4 Neomycin+ColiGuard",
+#      xlab="",ylab="",
+#      xlim=c(-1,1.75),
+#      ylim=c(-1.3,0.8),
+#      cex.axis=0.8,
+#      type="p",col=rbow[as.Date(DF_piggies$collection_date
+#                                [DF_piggies$Cohort=="Neomycin+ColiGuard"])-as.Date("2017-01-30 00:00:00")])
+# dev.off()
+
+
+
+# TIME BETA DENSITIES 
+
+mytheme <- theme(legend.position="none",
+                 axis.text.x=element_text(size=4),
+                 axis.title.x=element_text(size=6),
+                 axis.text.y=element_text(size=4),
+                 axis.title.y=element_text(size=5))
+
+p1 <- DF_piggies %>%
+  filter(collection_date=="2017-01-31"|
+           collection_date=="2017-02-07"|
+           collection_date=="2017-02-14"|
+           collection_date=="2017-02-21"|
+           collection_date=="2017-02-28"|
+           collection_date=="2017-03-03") %>%
+  ggplot(., aes(x = PC1, fill = collection_date)) + 
+  geom_density(alpha = 0.5) +
+  xlim(min(DF_piggies$PC1),max(DF_piggies$PC1))  +
+  theme_bw()+
+  mytheme +
+  xlab(paste0("PC1 (",get_var(find_PC1(xmldata)),"%)"))
+g1.1 <- text_grob(paste0(PC_down(find_PC1(xmldata))),size=4,lineheight = 1)
+g1.2 <- text_grob(paste0(PC_up(find_PC1(xmldata))),size=4,lineheight = 1)
+
+p2 <- DF_piggies %>%
+  filter(collection_date=="2017-01-31"|
+           collection_date=="2017-02-07"|
+           collection_date=="2017-02-14"|
+           collection_date=="2017-02-21"|
+           collection_date=="2017-02-28"|
+           collection_date=="2017-03-03") %>%
+  ggplot(., aes(x = PC2, fill = collection_date)) + 
+  geom_density(alpha = 0.5) +
+  xlim(min(DF_piggies$PC2),max(DF_piggies$PC2))  +
+  theme_bw()+
+  mytheme+
+  xlab(paste0("PC2 (",get_var(find_PC2(xmldata)),"%)"))
+g2.1 <- text_grob(paste0(PC_down(find_PC2(xmldata))),size=4,lineheight = 1)
+g2.2 <- text_grob(paste0(PC_up(find_PC2(xmldata))),size=4,lineheight = 1)
+
+p3 <- DF_piggies %>%
+  filter(collection_date=="2017-01-31"|
+           collection_date=="2017-02-07"|
+           collection_date=="2017-02-14"|
+           collection_date=="2017-02-21"|
+           collection_date=="2017-02-28"|
+           collection_date=="2017-03-03") %>%
+  ggplot(., aes(x = PC3, fill = collection_date)) + 
+  geom_density(alpha = 0.5) +
+  xlim(min(DF_piggies$PC3),max(DF_piggies$PC3))  +
+  theme_bw()+
+  mytheme+
+  xlab(paste0("PC3 (",get_var(find_PC3(xmldata)),"%)"))
+g3.1 <- text_grob(paste0(PC_down(find_PC3(xmldata))),size=4,lineheight = 1)
+g3.2 <- text_grob(paste0(PC_up(find_PC3(xmldata))),size=4,lineheight = 1)
+
+p4 <- DF_piggies %>%
+  filter(collection_date=="2017-01-31"|
+           collection_date=="2017-02-07"|
+           collection_date=="2017-02-14"|
+           collection_date=="2017-02-21"|
+           collection_date=="2017-02-28"|
+           collection_date=="2017-03-03") %>%
+  ggplot(., aes(x = PC4, fill = collection_date)) + 
+  geom_density(alpha = 0.5) +
+  xlim(min(DF_piggies$PC4),max(DF_piggies$PC4))  +
+  theme_bw()+
+  mytheme+
+  xlab(paste0("PC4 (",get_var(find_PC4(xmldata)),"%)"))
+g4.1 <- text_grob(paste0(PC_down(find_PC4(xmldata))),size=4,lineheight = 1)
+g4.2 <- text_grob(paste0(PC_up(find_PC4(xmldata))),size=4,lineheight = 1)
+
+p5 <- DF_piggies %>%
+  filter(collection_date=="2017-01-31"|
+           collection_date=="2017-02-07"|
+           collection_date=="2017-02-14"|
+           collection_date=="2017-02-21"|
+           collection_date=="2017-02-28"|
+           collection_date=="2017-03-03") %>%
+  ggplot(., aes(x = PC5, fill = collection_date)) + 
+  geom_density(alpha = 0.5) +
+  xlim(min(DF_piggies$PC5),max(DF_piggies$PC5)) +
+  theme_bw()+
+  mytheme+
+  xlab(paste0("PC5 (",get_var(find_PC5(xmldata)),"%)"))
+g5.1 <- text_grob(paste0(PC_down(find_PC5(xmldata))),size=4,lineheight = 1)
+g5.2 <- text_grob(paste0(PC_up(find_PC5(xmldata))),size=4,lineheight = 1)
+
+
+
+for_legend_only <- DF_piggies %>%
+  filter(collection_date=="2017-01-31"|
+           collection_date=="2017-02-07"|
+           collection_date=="2017-02-14"|
+           collection_date=="2017-02-21"|
+           collection_date=="2017-02-28"|
+           collection_date=="2017-03-03") %>%
+  ggplot(., aes(x = PC5, fill = collection_date)) + 
+  geom_density(alpha = 0.5) +
+  xlim(min(DF_piggies$PC5),max(DF_piggies$PC5)) +
+  theme(legend.position="right",
+        legend.title = element_text(size = 8),
+        legend.text = element_text(size = 6))
+leg <- get_legend(for_legend_only)
+
+lay <- rbind(c(1,1,1,1,2,2,2,2),
+             c(1,1,1,1,2,2,2,2),
+             c(6,6,7,7,8,8,9,9),
+             c(3,3,3,3,4,4,4,4),
+             c(3,3,3,3,4,4,4,4),
+             c(10,10,11,11,12,12,13,13),
+             c(5,5,5,5,16,16,16,16),
+             c(5,5,5,5,16,16,16,16),
+             c(14,14,15,15,16,16,16,16))
+
+pdf("time_beta_densities.pdf", width=7,height=5)
+grid.arrange(p1,p2,p3,p4,p5,
+             g1.1,g1.2,
+             g2.1,g2.2,
+             g3.1,g3.2,
+             g4.1,g4.2,
+             g5.1,g5.2,
+             leg,
+             layout_matrix = lay)
+dev.off()
 
 ##############################
 ##############################
@@ -1197,7 +1342,6 @@ grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"),
           gp = gpar(fontsize = 5))
 ###############################
 dev.off()
-
 
 
 
@@ -2564,7 +2708,6 @@ grid.text(PC_up(find_PC4(xmldata)), x = unit(0.1, "npc"),
 dev.off()
 
 
-
 ##############################
 ##############################
 ##############################
@@ -3597,7 +3740,7 @@ dev.off()
 ###########################################################################################
 ###########################################################################################
 
-# Checking significance and plotting based on significance: 
+# Checking significance and plot based on significance: 
 
 
 ###########################################################################################
@@ -3781,8 +3924,6 @@ for (singl_DF in multi_DFs) {
   
 }
 
-which(significant$p_value<0.05)
-
 ###################################
 ###################################
 
@@ -3804,11 +3945,6 @@ final <- significant %>%
 final
 
 
-# final <- significant %>% 
-#   mutate(pval.adj = p.adjust (p_value, method='fdr')) %>% 
-#   filter(pval.adj<0.05) 
-# final
-
 ###################################
 ###################################
 
@@ -3823,13 +3959,6 @@ writeData(wb, sheet = "p_adj", final, rowNames = FALSE)
 final <- cSplit(final, "groupsplit","_")
 colnames(final)[colnames(final)=="groupsplit_1"] <- "dataframe"
 colnames(final)[colnames(final)=="groupsplit_2"] <- "guppied_date"
-
-
-# keep only useful cols & keep only observations passing the padj threshold (to be plotted)
-final <- final %>%
-  select(guppied_date,which_PC,group_1,group_2,dataframe,pval.adj)  %>% 
-  filter(pval.adj<0.05) 
-
 
 
 # dummy df to associate guppied_date with collection_date
@@ -3865,12 +3994,18 @@ simplified2$sample_type <- gsub("piggies","DF_piggies_time",simplified2$sample_t
 
 
 
+mytheme <- theme(legend.position = "none",
+                 axis.text.x=element_text(size=3),
+                 axis.title.x=element_text(size=5),
+                 axis.text.y=element_text(size=3),
+                 axis.title.y=element_text(size=4),
+                 plot.title = element_text(size = 6, face = "bold"))
+
 # Plots only statistically significant observations,
 # reporting xml data and dataframe (guppy run) it comes from
 
-
-l <- list()
-pdf("guppy_sign_plots.pdf", onefile = TRUE)
+mygrobs <- vector('list', nrow(df))
+pdf("guppy_sign_cohorts.pdf", onefile = TRUE)
 for (A in rownames(df)) {
   A <- as.numeric(A) # dataframes rownames must be taken as numeric
   
@@ -3886,6 +4021,14 @@ for (A in rownames(df)) {
       values_drop_na = FALSE
     ) %>%
     filter(component==as.name(paste(df$which_PC[A])))
+  
+  pp$Cohort <- factor(pp$Cohort, 
+                      levels=c("Control", 
+                               "D-scour", 
+                               "ColiGuard",
+                               "Neomycin",
+                               "Neomycin+D-scour",
+                               "Neomycin+ColiGuard"))
   
   # save some parameters to report on plot
   title1 <- unique(pp$guppied_date)
@@ -3904,13 +4047,15 @@ for (A in rownames(df)) {
   
   # build plot 
   p <- ggplot(pp, aes(x=value, fill=Cohort)) +
-    geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity')+
+    geom_histogram( color="#e9ecef", alpha=0.6, position = 'stack')+
     ggtitle(paste0(title1,"_",title2)) +
-    theme(legend.position="top")+
-    xlab(paste0(PC_lab," (",get_var(xmldata),"%)"))
+    theme_bw()+
+    mytheme+
+    xlab(paste0(PC_lab," (",get_var(xmldata),"%)"))+
+    scale_fill_discrete(drop=FALSE)
   
-  g1 <- text_grob(paste0(PC_down(xmldata)),size=7,lineheight = 1)
-  g2 <- text_grob(paste0(PC_up(xmldata)),size=7,lineheight = 1)
+  g1 <- text_grob(paste0(PC_down(xmldata)),size=3,lineheight = 1)
+  g2 <- text_grob(paste0(PC_up(xmldata)),size=3,lineheight = 1)
   
   lay <- rbind(c(1,1,1,1,1),
                c(1,1,1,1,1),
@@ -3918,97 +4063,43 @@ for (A in rownames(df)) {
   
   grid.arrange(p,g1,g2, layout_matrix = lay)
   
+  mygrobs[[A]]  <- grid.arrange(p,g1,g2, layout_matrix = lay)
 }
 dev.off()
 
-################################################################################################
+pp <- ggplot(DF_piggies, aes(x=PC1, fill=Cohort)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity')+
+  theme_bw()+
+  mytheme+
+  theme(legend.position="right",
+        legend.title = element_text(size = 8),
+        legend.text = element_text(size = 6))+
+  scale_fill_discrete(drop=FALSE)
+leg <- get_legend(pp)
 
+# a selection of plots from the figure generated above 
+pdf("guppy_sign_cohorts_selection.pdf")
+lay <- rbind(c(1,2),
+             c(3,4),
+             c(5,6),
+             c(7,8))
+grid.arrange(mygrobs[[1]]
+             ,mygrobs[[4]],
+             mygrobs[[5]],
+             mygrobs[[6]],
+             mygrobs[[7]],
+             mygrobs[[8]],
+             mygrobs[[9]],
+             leg,
+             layout_matrix = lay)
+dev.off()
+
+################################################################################################
 ###########################################################################################
 ###########################################################################################
-# 
-# 
-# # Plotting only the special ones: 
-# 
-# basedir = "/Users/12705859/Desktop/metapigs_base/phylosift/input_files/"
-# timeline_deltas_guppy <- image_read(paste0(basedir,"Slide14.tiff"))
-# 
-# 
-# # piggies_by_time (all piglets, guppied by collection date)
-# 
-# # df is: 
-# DF_piggies_time
-# 
-# # filter out PCs (e.g.:PC1PC2) and either the control OR the neo groups
-# # this way:
-# 
-# New_C_Fe28_pc1pc2 <- DF_piggies_time %>%
-#   filter(Cohort=="Control"|Cohort=="D-scour"|Cohort=="ColiGuard") %>%
-#   filter(guppied_date=="Fe28") %>%
-#   ggplot(., aes(x=PC1,y=PC2,color=Cohort))+
-#   geom_point()+
-#   theme+
-#   stat_ellipse(inherit.aes = TRUE, level = 0.80)+
-#   scale_color_discrete(drop=FALSE)
-# 
-# # extracting the legend 
-# 
-# #settings for legend plot
-# theme_leg<-theme(legend.position="right",
-#                  legend.text=element_text(size=8),
-#                  legend.title=element_text(size=8))
-# 
-# for_legend_only <- DF_piggies_time %>%
-#   filter(guppied_date=="Fe28") %>% # filter any date
-#   ggplot(., aes(x=PC3,y=PC4,color=Cohort))+
-#   geom_point()+
-#   theme+
-#   theme_leg+
-#   scale_color_discrete(drop=FALSE)
-# 
-# leg <- get_legend(for_legend_only)
-# 
-# #####################################
-# 
-# empty_space = plot_grid(NULL, NULL, NULL, NULL, ncol=4)
-# 
-# top_row = plot_grid(N_Fe14_pc1pc2, #A    <- your plots
-#                     N_Fe21_pc1pc2, #B    <- your plots
-#                     N_Fe21_pc3pc4, #C,    <- your plots
-#                     NULL,
-#                     ncol=4, 
-#                     rel_widths=c(0.25,0.25,0.25),
-#                     labels=c("A","B","C",""),
-#                     label_size = 10)
-# 
-# bottom_row = plot_grid(C_Fe28_pc1pc2, #D     <- your plots
-#                        C_Fe28_pc3pc4, #E     <- your plots
-#                        N_Fe28_pc3pc4, #F     <- your plots
-#                        leg,
-#                        ncol=4, 
-#                        rel_widths=c(0.25,0.25,0.25,0.25),
-#                        labels=c("D","E","F",""),
-#                        label_size = 10)
-# 
-# all_plots <- plot_grid(empty_space,
-#                        top_row,
-#                        bottom_row,
-#                        nrow=3)
-# 
-# pdf("out/cohorts_beta.pdf")
-# ggdraw() +
-#   draw_image(timeline_deltas_guppy, x = 0, y = 0.16) +
-#   draw_plot(all_plots) 
-# dev.off()
-# 
-# 
+
 
 
 # save stats in workbook
 saveWorkbook(wb, "/Users/12705859/Desktop/metapigs_base/phylosift/guppy/stats_guppy.xlsx", overwrite=TRUE)
-
-
-
-
-
-
 

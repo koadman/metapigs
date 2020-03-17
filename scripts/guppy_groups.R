@@ -279,6 +279,247 @@ writeLines(unlist(B_f), "guppy_input/piggies_group_B_Ma3_sel.txt", sep = " ")
 ###########################################################################################
 ###########################################################################################
 
+
+#  PIGGIES : CTRL and NEO ; groups by collection date 
+
+# filter to keep piggies samples only 
+mdat_sel <- mdat %>% 
+  filter(Cohort=="Control"|Cohort=="Neomycin") %>%
+  dplyr::select(isolation_source,Cohort,DNA_plate,DNA_well,collection_date)
+
+mdat_sel$ID <- paste0(mdat_sel$DNA_plate,"_",mdat_sel$DNA_well,"_*")
+
+# groups by date 
+
+mdat_Ja31 <- mdat_sel %>% 
+  filter(collection_date == "2017-01-31"|collection_date == "2017-02-01")
+
+mdat_Fe7 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-06"|collection_date == "2017-02-07")
+
+mdat_Fe14 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-14")
+
+mdat_Fe21 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-21")
+
+mdat_Fe28 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-28")
+
+mdat_Ma3 <- mdat_sel %>% 
+  filter(collection_date == "2017-03-03")
+
+a <- as.character(mdat_Ja31$ID)
+b <- as.character(mdat_Fe7$ID)
+c <- as.character(mdat_Fe14$ID)
+d <- as.character(mdat_Fe21$ID)
+e <- as.character(mdat_Fe28$ID)
+f <- as.character(mdat_Ma3$ID)
+
+writeLines(unlist(a), "guppy_input/piggies_CTRLNEO_Ja31_sel.txt", sep = " ")
+writeLines(unlist(b), "guppy_input/piggies_CTRLNEO_Fe7_sel.txt", sep = " ")
+writeLines(unlist(c), "guppy_input/piggies_CTRLNEO_Fe14_sel.txt", sep = " ")
+writeLines(unlist(d), "guppy_input/piggies_CTRLNEO_Fe21_sel.txt", sep = " ")
+writeLines(unlist(e), "guppy_input/piggies_CTRLNEO_Fe28_sel.txt", sep = " ")
+writeLines(unlist(f), "guppy_input/piggies_CTRLNEO_Ma3_sel.txt", sep = " ")
+
+
+###########################################################################################
+###########################################################################################
+
+
+#  PIGGIES : NEO and NEO+D ; groups by collection date 
+
+# filter to keep piggies samples only 
+mdat_sel <- mdat %>% 
+  filter(Cohort=="Neomycin"|Cohort=="Neomycin+D-scour") %>%
+  dplyr::select(isolation_source,Cohort,DNA_plate,DNA_well,collection_date)
+
+mdat_sel$ID <- paste0(mdat_sel$DNA_plate,"_",mdat_sel$DNA_well,"_*")
+
+# groups by date 
+
+mdat_Ja31 <- mdat_sel %>% 
+  filter(collection_date == "2017-01-31"|collection_date == "2017-02-01")
+
+mdat_Fe7 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-06"|collection_date == "2017-02-07")
+
+mdat_Fe14 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-14")
+
+mdat_Fe21 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-21")
+
+mdat_Fe28 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-28")
+
+mdat_Ma3 <- mdat_sel %>% 
+  filter(collection_date == "2017-03-03")
+
+a <- as.character(mdat_Ja31$ID)
+b <- as.character(mdat_Fe7$ID)
+c <- as.character(mdat_Fe14$ID)
+d <- as.character(mdat_Fe21$ID)
+e <- as.character(mdat_Fe28$ID)
+f <- as.character(mdat_Ma3$ID)
+
+writeLines(unlist(a), "guppy_input/piggies_NEONEOD_Ja31_sel.txt", sep = " ")
+writeLines(unlist(b), "guppy_input/piggies_NEONEOD_Fe7_sel.txt", sep = " ")
+writeLines(unlist(c), "guppy_input/piggies_NEONEOD_Fe14_sel.txt", sep = " ")
+writeLines(unlist(d), "guppy_input/piggies_NEONEOD_Fe21_sel.txt", sep = " ")
+writeLines(unlist(e), "guppy_input/piggies_NEONEOD_Fe28_sel.txt", sep = " ")
+writeLines(unlist(f), "guppy_input/piggies_NEONEOD_Ma3_sel.txt", sep = " ")
+
+
+###########################################################################################
+###########################################################################################
+
+
+#  PIGGIES : NEO and NEO+C ; groups by collection date 
+
+# filter to keep piggies samples only 
+mdat_sel <- mdat %>% 
+  filter(Cohort=="Neomycin"|Cohort=="Neomycin+ColiGuard") %>%
+  dplyr::select(isolation_source,Cohort,DNA_plate,DNA_well,collection_date)
+
+mdat_sel$ID <- paste0(mdat_sel$DNA_plate,"_",mdat_sel$DNA_well,"_*")
+
+# groups by date 
+
+mdat_Ja31 <- mdat_sel %>% 
+  filter(collection_date == "2017-01-31"|collection_date == "2017-02-01")
+
+mdat_Fe7 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-06"|collection_date == "2017-02-07")
+
+mdat_Fe14 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-14")
+
+mdat_Fe21 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-21")
+
+mdat_Fe28 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-28")
+
+mdat_Ma3 <- mdat_sel %>% 
+  filter(collection_date == "2017-03-03")
+
+a <- as.character(mdat_Ja31$ID)
+b <- as.character(mdat_Fe7$ID)
+c <- as.character(mdat_Fe14$ID)
+d <- as.character(mdat_Fe21$ID)
+e <- as.character(mdat_Fe28$ID)
+f <- as.character(mdat_Ma3$ID)
+
+writeLines(unlist(a), "guppy_input/piggies_NEONEOC_Ja31_sel.txt", sep = " ")
+writeLines(unlist(b), "guppy_input/piggies_NEONEOC_Fe7_sel.txt", sep = " ")
+writeLines(unlist(c), "guppy_input/piggies_NEONEOC_Fe14_sel.txt", sep = " ")
+writeLines(unlist(d), "guppy_input/piggies_NEONEOC_Fe21_sel.txt", sep = " ")
+writeLines(unlist(e), "guppy_input/piggies_NEONEOC_Fe28_sel.txt", sep = " ")
+writeLines(unlist(f), "guppy_input/piggies_NEONEOC_Ma3_sel.txt", sep = " ")
+
+
+###########################################################################################
+###########################################################################################
+
+
+#  PIGGIES : CTRL and Ds ; groups by collection date 
+
+# filter to keep piggies samples only 
+mdat_sel <- mdat %>% 
+  filter(Cohort=="Control"|Cohort=="D-scour") %>%
+  dplyr::select(isolation_source,Cohort,DNA_plate,DNA_well,collection_date)
+
+mdat_sel$ID <- paste0(mdat_sel$DNA_plate,"_",mdat_sel$DNA_well,"_*")
+
+# groups by date 
+
+mdat_Ja31 <- mdat_sel %>% 
+  filter(collection_date == "2017-01-31"|collection_date == "2017-02-01")
+
+mdat_Fe7 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-06"|collection_date == "2017-02-07")
+
+mdat_Fe14 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-14")
+
+mdat_Fe21 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-21")
+
+mdat_Fe28 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-28")
+
+mdat_Ma3 <- mdat_sel %>% 
+  filter(collection_date == "2017-03-03")
+
+a <- as.character(mdat_Ja31$ID)
+b <- as.character(mdat_Fe7$ID)
+c <- as.character(mdat_Fe14$ID)
+d <- as.character(mdat_Fe21$ID)
+e <- as.character(mdat_Fe28$ID)
+f <- as.character(mdat_Ma3$ID)
+
+writeLines(unlist(a), "guppy_input/piggies_CTRLDs_Ja31_sel.txt", sep = " ")
+writeLines(unlist(b), "guppy_input/piggies_CTRLDs_Fe7_sel.txt", sep = " ")
+writeLines(unlist(c), "guppy_input/piggies_CTRLDs_Fe14_sel.txt", sep = " ")
+writeLines(unlist(d), "guppy_input/piggies_CTRLDs_Fe21_sel.txt", sep = " ")
+writeLines(unlist(e), "guppy_input/piggies_CTRLDs_Fe28_sel.txt", sep = " ")
+writeLines(unlist(f), "guppy_input/piggies_CTRLDs_Ma3_sel.txt", sep = " ")
+
+
+###########################################################################################
+###########################################################################################
+
+
+#  PIGGIES : CTRL and Co ; groups by collection date 
+
+# filter to keep piggies samples only 
+mdat_sel <- mdat %>% 
+  filter(Cohort=="Control"|Cohort=="ColiGuard") %>%
+  dplyr::select(isolation_source,Cohort,DNA_plate,DNA_well,collection_date)
+
+mdat_sel$ID <- paste0(mdat_sel$DNA_plate,"_",mdat_sel$DNA_well,"_*")
+
+# groups by date 
+
+mdat_Ja31 <- mdat_sel %>% 
+  filter(collection_date == "2017-01-31"|collection_date == "2017-02-01")
+
+mdat_Fe7 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-06"|collection_date == "2017-02-07")
+
+mdat_Fe14 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-14")
+
+mdat_Fe21 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-21")
+
+mdat_Fe28 <- mdat_sel %>% 
+  filter(collection_date == "2017-02-28")
+
+mdat_Ma3 <- mdat_sel %>% 
+  filter(collection_date == "2017-03-03")
+
+a <- as.character(mdat_Ja31$ID)
+b <- as.character(mdat_Fe7$ID)
+c <- as.character(mdat_Fe14$ID)
+d <- as.character(mdat_Fe21$ID)
+e <- as.character(mdat_Fe28$ID)
+f <- as.character(mdat_Ma3$ID)
+
+writeLines(unlist(a), "guppy_input/piggies_CTRLC_Ja31_sel.txt", sep = " ")
+writeLines(unlist(b), "guppy_input/piggies_CTRLC_Fe7_sel.txt", sep = " ")
+writeLines(unlist(c), "guppy_input/piggies_CTRLC_Fe14_sel.txt", sep = " ")
+writeLines(unlist(d), "guppy_input/piggies_CTRLC_Fe21_sel.txt", sep = " ")
+writeLines(unlist(e), "guppy_input/piggies_CTRLC_Fe28_sel.txt", sep = " ")
+writeLines(unlist(f), "guppy_input/piggies_CTRLC_Ma3_sel.txt", sep = " ")
+
+
+###########################################################################################
+###########################################################################################
+
+
 # these are going to guppy: 
 
 # 1 piggies_sel.txt
@@ -286,6 +527,11 @@ writeLines(unlist(B_f), "guppy_input/piggies_group_B_Ma3_sel.txt", sep = " ")
 # 6 piggies_*.txt
 # 6 piggies_group_A_*.txt
 # 6 piggies_group_B_*.txt
+# 6 piggies_CTRLNEO_*.txt
+# 6 piggies_NEONEOD_*.txt
+# 6 piggies_NEONEOC_*.txt
+# 6 piggies_CTRLDs_*.txt
+# 6 piggies_CTRLC_*.txt
 
 ###########################################################################################
 ###########################################################################################

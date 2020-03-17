@@ -4,15 +4,9 @@
 setwd("/Users/12705859/Desktop/metapigs_base")
 basedir = "/Users/12705859/Desktop/metapigs_base/phylosift/input_files/"
 
-
-
-timeline_deltas <- image_read(paste0(basedir,"Slide10.tiff"))
-
-
 weights_final <- read_csv("~/Desktop/metapigs_base/weights_final.csv", 
                           col_types = cols(Pig = col_character(), 
                                            Room = col_character()))
-
 
 weights_final <- pivot_wider(weights_final, id_cols=Pig,values_from=euth_wt,names_from =euth_day)
 # get rid of rows after row 60 as they miss the value (no weights available for March 10th)
@@ -45,7 +39,7 @@ mdat <- read_excel(paste0(basedir,"Metagenome.environmental_20190308_2.xlsx"),
                    skip = 12)
 
 mdat <- mdat %>%
-  select(isolation_source, Cohort) %>%
+  dplyr::select(isolation_source, Cohort) %>%
   distinct()
 
 # load details (breed, line, bday, mothers)
@@ -64,7 +58,7 @@ colnames(details)[colnames(details) == 'pig'] <- 'isolation_source'
 details$BIRTH_DAY <- as.character(details$BIRTH_DAY)
 details$LINE <- as.character(details$LINE)
 details <- details %>%
-  select(isolation_source,BIRTH_DAY,LINE,breed,stig,nurse)
+  dplyr::select(isolation_source,BIRTH_DAY,LINE,breed,stig,nurse)
 
 df <- inner_join(all_weights,mdat)
 df <- inner_join(df,details)
@@ -114,14 +108,14 @@ df1 <- df %>%
 
 pigs_1 <- df1 %>%
   filter(date == "31-Jan") %>%
-  select(isolation_source,Cohort,value,breed,BIRTH_DAY)
+  dplyr::select(isolation_source,Cohort,value,breed,BIRTH_DAY)
 NROW(pigs_1)
 
 ###########################
 
 pigs_2 <- df1 %>%
   filter(date == "7-Feb") %>%
-  select(isolation_source,Cohort,value,breed,BIRTH_DAY)
+  dplyr::select(isolation_source,Cohort,value,breed,BIRTH_DAY)
 NROW(pigs_2)
 
 ###########################
@@ -129,7 +123,7 @@ NROW(pigs_2)
 
 pigs_3 <- df1 %>%
   filter(date == "14-Feb") %>%
-  select(isolation_source,Cohort,value,breed,BIRTH_DAY)
+  dplyr::select(isolation_source,Cohort,value,breed,BIRTH_DAY)
 NROW(pigs_3)
 
 ###########################
@@ -137,14 +131,14 @@ NROW(pigs_3)
 
 pigs_4 <- df1 %>%
   filter(date == "21-Feb") %>%
-  select(isolation_source,Cohort,value,breed,BIRTH_DAY)
+  dplyr::select(isolation_source,Cohort,value,breed,BIRTH_DAY)
 NROW(pigs_4)
 
 ###########################
 
 pigs_5 <- df1 %>%
   filter(date == "28-Feb") %>%
-  select(isolation_source,Cohort,value,breed,BIRTH_DAY)
+  dplyr::select(isolation_source,Cohort,value,breed,BIRTH_DAY)
 NROW(pigs_5)
 
 
@@ -198,6 +192,7 @@ plot_A_B <- ggboxplot(df, x="Cohort.x", y="diff", fill = "Cohort.x",
 
 plot_A_B
 
+
 ############
 
 df <- merge(pigs_2,pigs_3, by=c("isolation_source"))
@@ -233,6 +228,7 @@ plot_B_C <- ggboxplot(df, x="Cohort.x", y="diff", fill = "Cohort.x",
   stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
 
 plot_B_C
+
 
 ############
 
@@ -270,6 +266,7 @@ plot_C_D <- ggboxplot(df, x="Cohort.x", y="diff", fill = "Cohort.x",
   stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
 
 plot_C_D
+
 
 ############
 
@@ -379,6 +376,41 @@ plot_C_E <- ggboxplot(df, x="Cohort.x", y="diff", fill = "Cohort.x",
 
 plot_C_E
 
+############
+
+df <- merge(pigs_1,pigs_5, by=c("isolation_source"))
+df$diff = ((df$value.y-df$value.x)/df$value.y)*100
+
+# reorder
+df$Cohort.x <- factor(df$Cohort.x, 
+                      levels=c("Control", 
+                               "D-scour", 
+                               "ColiGuard",
+                               "Neomycin",
+                               "Neomycin+D-scour",
+                               "Neomycin+ColiGuard"))
+
+res1 <- aov(diff ~ Cohort.x, data=df)
+res <- TukeyHSD(res1)
+aov.out <- as.data.frame(res$Cohort.x)
+aov.out <- tibble::rownames_to_column(aov.out, "comparison")
+aov.out$time_delta="Ja31_Fe28"
+aov.out$test <- "anova"
+aov.out$padj_method <- "TukeyHSD"
+cohort_stats <- rbind(cohort_stats,aov.out)
+
+cw_summary <- df %>% 
+  group_by(Cohort.x) %>% 
+  tally()
+
+plot_A_E <- ggboxplot(df, x="Cohort.x", y="diff", fill = "Cohort.x", 
+                      ylab="weight gain (%)", legend = "none")+
+  My_Theme+
+  geom_text(data = cw_summary,
+            aes(Cohort.x, Inf, label = n), vjust="inward", size = your_font_size)+
+  stat_compare_means(method = "anova", label.x=1.5, size = your_font_size) 
+
+plot_A_E
 
 # this is for extracting the legend 
 for_legend_only <- ggboxplot(df, x = "Cohort.x", y = "diff", fill = "Cohort.x", 
@@ -404,9 +436,9 @@ top_row = plot_grid(plot_A_B,plot_B_C,plot_C_D,plot_D_E, ncol=4,
                     rel_widths=c(0.25,0.25,0.25,0.25),
                     labels=c("A-B","B-C","C-D","D-E"),
                     label_size = 10)
-bottom_row = plot_grid(plot_B_D,plot_C_E, leg, ncol=3, 
-                       rel_widths=c(0.25,0.25,0.50),
-                       labels=c("B-D","C-E",""),
+bottom_row = plot_grid(plot_B_D,plot_C_E,plot_A_E,leg, ncol=4, 
+                       rel_widths=c(0.25,0.25,0.25,0.25),
+                       labels=c("B-D","C-E","A-E",""),
                        label_size = 10)
 all_plots <- plot_grid(empty_space,
                        top_row,
@@ -415,7 +447,7 @@ all_plots <- plot_grid(empty_space,
 
 pdf("weight_deltas_by_cohort.pdf")
 ggdraw() +
-  draw_image(timeline_deltas, x = 0, y = 0.16) +
+  draw_image(timeline_deltas_weight, x = 0, y = 0.16) +
   draw_plot(all_plots)
 dev.off()
 
@@ -682,11 +714,11 @@ all_plots <- plot_grid(empty_space,
                        bottom_row,
                        nrow=3)
 
-pdf("weight_deltas_by_breed.pdf")
-ggdraw() +
-  draw_image(timeline_deltas, x = 0, y = 0.16) +
-  draw_plot(all_plots)
-dev.off()
+# pdf("weight_deltas_by_breed.pdf")
+# ggdraw() +
+#   draw_image(timeline_deltas, x = 0, y = 0.16) +
+#   draw_plot(all_plots)
+# dev.off()
 
 
 # DELTA p-values - Breed
@@ -954,11 +986,11 @@ all_plots <- plot_grid(empty_space,
                        bottom_row,
                        nrow=3)
 
-pdf("weight_deltas_by_bday.pdf")
-ggdraw() +
-  draw_image(timeline_deltas, x = 0, y = 0.16) +
-  draw_plot(all_plots)
-dev.off()
+# pdf("weight_deltas_by_bday.pdf")
+# ggdraw() +
+#   draw_image(timeline_deltas, x = 0, y = 0.16) +
+#   draw_plot(all_plots)
+# dev.off()
 
 
 # DELTA p-values - bday
@@ -972,4 +1004,7 @@ writeData(wb, sheet = "weight_delta_bday", weight_delta_bday, rowNames = FALSE)
 
 # save stats in existing workbook
 saveWorkbook(wb, "/Users/12705859/Desktop/metapigs_base/phylosift/out/stats.xlsx", overwrite=TRUE)
+
+
+
 
