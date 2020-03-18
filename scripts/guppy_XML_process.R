@@ -163,7 +163,8 @@ complete$file <- gsub('piggies_CTRLC', 'groupG', complete$file)
 complete$file <- gsub('^piggies$', 'piggies_all', complete$file)
 complete <- cSplit(complete, "file","_")
 
-complete <- complete %>% rename(sample_type = file_1, guppied_date = file_2 )
+colnames(complete)[colnames(complete) == 'file_1'] <- 'sample_type'
+colnames(complete)[colnames(complete) == 'file_2'] <- 'guppied_date'
 
 NROW(complete)
 unique(complete$sample_type)
@@ -178,16 +179,20 @@ complete$taxa_simple <- complete$taxa %<>%
   gsub('^_', '', .) %>% # removes the first _
   gsub('[0-9]+', '', .) %>% # removes digits
   gsub('_$', '', .) %>%  # removes the last _
-  gsub('.*__', '', .)  # removes everyting up to __ (keeping only the most specific)
+  gsub('.*__', '', .)  # removes everything up to __ (keeping only the most specific)
 
-unique(complete$taxa_simple)
+sort(unique(complete$taxa_simple))
 
 ###############
 
+View(complete)
+colnames(complete)
 
-# Store the minimum necessary info
+# Store the minimum necessary info - no branch width included as we need this xml data 
+# for the axes description only (as we don't need this info to this purpose, we can do "distinct")
 simplified <- complete %>%
-  select(sample_type, guppied_date,var_explained,component,PC_position,taxa_simple) %>%
+  select(sample_type, guppied_date,var_explained,
+         component,PC_position,taxa_simple) %>%
   distinct()
 
 # save both complete and simplified dataframes 

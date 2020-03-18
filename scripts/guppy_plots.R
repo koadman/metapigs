@@ -53,6 +53,10 @@ library(data.table)
 library(sva)   # this is combat , careful not to install COMBAT instead which is another thing
 library(openxlsx)
 library(gridExtra)
+library(wordspace)
+library(pheatmap)
+library(taxize)
+library(ggplot2)
 # manual settings 
 
 removebatcheffect_allowed <- "yes"     # if yes, it removes the batch effect only where detected
@@ -153,7 +157,7 @@ jplace_df$file <- gsub('_sel.txt.proj', '', jplace_df$file)
 ##############################
 
 # run guppy_XML_process.R to get simplified df
-# tried to load it with read.csv, read_csv, read.csv2, would not keep the same format!!!!! grrrrrrr
+# (I tried to load it with read.csv, read_csv, read.csv2, would not keep the same format!!!!! grrrrrrr)
 
 ##############################
 ##############################
@@ -629,7 +633,7 @@ PC1PC5_pos_controls <- DF_positive_controls %>%
   theme(plot.margin=unit(c(0.2,0.2,2.9,2.9) ,"cm"))
 
 
-pdf("pos_controls.pdf")
+pdf("guppy_pos_controls.pdf")
 ### plot PC3PC4 
 PC1PC2_pos_controls
 # PC1
@@ -992,7 +996,7 @@ lay <- rbind(c(1,1,1,1,2,2,2,2),
              c(5,5,5,5,16,16,16,16),
              c(5,5,5,5,16,16,16,16),
              c(14,14,15,15,16,16,16,16))
-
+getwd()
 pdf("time_beta_densities.pdf", width=7,height=5)
 grid.arrange(p1,p2,p3,p4,p5,
              g1.1,g1.2,
@@ -4067,6 +4071,7 @@ for (A in rownames(df)) {
 }
 dev.off()
 
+# for legend only 
 pp <- ggplot(DF_piggies, aes(x=PC1, fill=Cohort)) +
   geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity')+
   theme_bw()+
@@ -4094,10 +4099,122 @@ grid.arrange(mygrobs[[1]]
              layout_matrix = lay)
 dev.off()
 
-################################################################################################
-###########################################################################################
-###########################################################################################
 
+
+
+##########################################################################################
+##########################################################################################
+##########################################################################################
+##########################################################################################
+
+
+
+############ VARIATION BEST EXPLAINED BY - DURING TIME - IN PIGGIES: 
+
+# "complete" comes from guppy_XML_process.R
+simplified2 <- complete %>%
+  select(sample_type, guppied_date,branch_width,var_explained,component,PC_position,taxa_simple) %>%
+  # taking all along except the guppy run with all the samples from all time points
+  filter(!guppied_date == "all")  
+
+# now the only piggies are from the DF_piggies_time guppy runs
+simplified2$sample_type <- gsub("piggies","DF_piggies_time",simplified2$sample_type)
+
+# branch_width * var_explained = importance
+simplified2 <- simplified2 %>%
+  mutate(importance = as.numeric(branch_width)*var_explained) %>%
+  filter(sample_type=="DF_piggies_time"|sample_type=="groupA"|sample_type=="groupB") %>% # eventual selection of only one guppy run 
+  select(guppied_date,taxa_simple,importance) 
+
+both <- simplified2 %>% 
+  group_by(taxa_simple,guppied_date) %>%
+  dplyr::summarize(Sum_importance = sum(importance))
+
+unique(both$taxa_simple) # 61 taxa
+
+both_wide <- both %>%
+  pivot_wider(names_from = guppied_date, values_from = Sum_importance) %>%
+  select(taxa_simple,Ja31,Fe7,Fe14,Fe21,Fe28,Ma3) %>%
+  mutate_all(~replace(., is.na(.), 0))
+
+both_wide <- as.data.frame(both_wide)
+
+##############################
+
+# put order
+
+
+mytaxa <- both_wide[,1]
+mytaxa <- gsub("_"," ",mytaxa)
+
+uids <- get_uid(mytaxa)
+
+out <- classification(uids)
+
+out2 <- do.call(rbind.data.frame, out)
+
+out2$index <- rownames(out2)
+
+out2 <- cSplit(out2, "index",".")
+out2$rank <- NULL
+out2$id <- NULL
+
+out3 <- out2 %>% 
+  spread(key = index_2, value = name)
+
+out3$index_1 <- NULL
+out3 <- as.data.frame(lapply(out3, function(y) gsub(" ", "__", y)))
+
+#remove rows where all NA
+out3 <- out3 %>% filter_all(any_vars(!is.na(.)))
+
+ind <- !is.na(out3)
+out3$taxa_simple <- tapply(out3[ind], row(out3)[ind], tail, 1)
+
+out3$taxa_simple<-toupper(out3$taxa_simple) 
+
+out4 <- left_join(both_wide,out3,by= "taxa_simple")
+NROW(out4)
+head(out4)
+
+out5 <- out4 %>%
+  arrange(., X2,X3,X4,X5,X6,X7,X8,X9) %>%
+  select(taxa_simple,Ja31,Fe7,Fe14,Fe21,Fe28,Ma3)
+head(out5)
+
+
+##############################
+##############################
+
+
+# to matrix conversion
+
+rownames(out5) <- out5[,1]
+out5[,1] <- NULL
+View(out5)
+##############################
+
+# to matrix
+out_m <- as.matrix(out5)
+
+# normalize by column 
+out_m <- normalize.cols(out_m, method = "euclidean", 
+                        tol = 1e-6, inplace = TRUE)
+
+# remove cells with low rowSums
+out_m <- as.matrix(out_m[rowSums(out_m)>0.1,])
+
+pdf("time_beta_heatmap.pdf")
+pheatmap(out_m, display_numbers = T,
+         cluster_rows = F, cluster_cols = F, fontsize_number = 8,
+         fontsize_row = 8)
+dev.off()
+
+
+##########################################################################################
+##########################################################################################
+##########################################################################################
+##########################################################################################
 
 
 # save stats in workbook
