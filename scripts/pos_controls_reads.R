@@ -23,10 +23,10 @@ setwd("/Users/12705859/Desktop/metapigs_base/pos.controls_reads_metaphlan/")
 
 
 My_Theme = theme(
-  axis.title.x = element_blank(),
-  axis.text.x = element_blank(), 
-  axis.text.y = element_text(size = 7), 
-  axis.title.y = element_text(size = 9)) 
+  axis.text.x = element_text(size=11),
+  axis.title.x = element_text(size=9), 
+  axis.text.y = element_text(size = 9), 
+  axis.title.y = element_text(size = 11)) 
 
 
 mock <- read.csv("mock_communities_merged_abundance_table_species.txt",
@@ -47,7 +47,7 @@ colRename <- function(x) {
 df <- colRename(df[,-1])
 
 a <- cbind(mock[,1], df)
-colnames(a)[1] <- "ID"
+colnames(a)[1] <- "taxa_assigned"
 
 colSums(a[,-1])
 
@@ -61,7 +61,7 @@ df2 <- a %>%
   )
 
 # nice barplot 
-mock_community_plot <- ggplot(data=df2, aes(x=sample, y=value, fill=ID)) +
+mock_community_plot <- ggplot(data=df2, aes(x=sample, y=value, fill=taxa_assigned)) +
   geom_bar(stat="identity") + 
   ggtitle("Mock community") +
   ylab("read abundance (%)") +
@@ -79,7 +79,7 @@ df$mean <- rowMeans(df, na.rm=TRUE)
 df$sd <- apply(df[,1:8],1,sd)
 
 # re-insert IDs
-df$ID <- mock[,1]
+df$taxa_assigned <- mock[,1]
 
 capture.output(
   paste0("mock community mean read abundance of 7/8 replicates"),
@@ -163,10 +163,12 @@ mock_data2$taxa <- factor(mock_data2$taxa,
                                       "S. aureus (+)"))
 
 mock_data2$count <- gsub("ratio_CFU", "expected", mock_data2$count)
-mock_data2$count <- gsub("ratio_read_count", "obtained", mock_data2$count)
+mock_data2$count <- gsub("ratio_read_count", "observed", mock_data2$count)
 
+colnames(mock_data2)[colnames(mock_data2) == 'taxa'] <- 'taxa_assigned'
+  
 # here it's visible how the type of gram influences the read count 
-q <- ggplot(data=mock_data2, aes(x=count, y=rank, fill=taxa)) +
+q <- ggplot(data=mock_data2, aes(x=count, y=rank, fill=taxa_assigned)) +
   geom_bar(stat="identity", color="black", position=position_stack())+
   labs( y ="relative abundance (ratio)") +
   theme_minimal() +
@@ -207,7 +209,7 @@ colRename <- function(x) {
 df <- colRename(df[,-1])
 
 df <- cbind(protexin[,1], df)
-colnames(df)[1] <- "ID"
+colnames(df)[1] <- "taxa_assigned"
 
 colSums(df[,-1])
 
@@ -221,12 +223,12 @@ df2 <- df %>%
   )
 
 # nice barplot 
-Protexin_plot <- ggplot(data=df2, aes(x=sample, y=value, fill=ID)) +
+Protexin_plot <- ggplot(data=df2, aes(x=sample, y=value, fill=taxa_assigned)) +
   geom_bar(stat="identity") + 
   ggtitle("D-scour") +
   ylab("read abundance (%)") +
   My_Theme+
-  labs(fill = "assigned taxa")
+  labs(fill = "taxa_assigned")
 Protexin_plot
 
 summary(df)
@@ -237,7 +239,7 @@ df$mean <- rowMeans(df[,2:9], na.rm=TRUE)
 # standard deviation
 df$sd <- apply(df[,2:9],1,sd)
 
-df$ID
+df$taxa_assigned
 df$mean
 df$sd
 
@@ -266,7 +268,7 @@ colRename <- function(x) {
 df <- colRename(df[,-1])
 
 df <- cbind(coliguard[,1], df)
-colnames(df)[1] <- "ID"
+colnames(df)[1] <- "taxa_assigned"
 
 colSums(df[,-1])
 
@@ -280,11 +282,11 @@ df2 <- df %>%
   )
 
 # heatmap 
-ggplot(data = df2, aes(x=sample, y=ID, fill=value)) + 
+ggplot(data = df2, aes(x=sample, y=taxa_assigned, fill=value)) + 
   geom_tile()
 
 # nice barplot 
-coliguard_plot <- ggplot(data=df2, aes(x=sample, y=value, fill=ID)) +
+coliguard_plot <- ggplot(data=df2, aes(x=sample, y=value, fill=taxa_assigned)) +
   geom_bar(stat="identity") + 
   My_Theme+
   ggtitle("ColiGuard") +
@@ -300,7 +302,7 @@ df$mean <- rowMeans(df[,2:9], na.rm=TRUE)
 # standard deviation
 df$sd <- apply(df[,2:9],1,sd)
 
-df$ID
+df$taxa_assigned
 df$mean
 df$sd
 
@@ -365,19 +367,19 @@ colRename <- function(x) {
 df <- colRename(df[,-1])
 
 df <- cbind(pigs[,1], df)
-colnames(df)[1] <- "ID"
+colnames(df)[1] <- "taxa_assigned"
 
 colSums(df[,-1])
 
 df
 
 so <- as.matrix(df[,2:4])
-names(so) <- df$ID
+names(so) <- df$taxa_assigned
 so
 
 pheatmap(so, display_numbers = T,
          cluster_rows = F, cluster_cols = F, fontsize_number = 15,
-         labels_row=as.character(df2$ID))
+         labels_row=as.character(df2$taxa_assigned))
 
 df2 <- df %>%
   pivot_longer(
@@ -389,11 +391,11 @@ df2 <- df %>%
   )
 
 # barplot. too much diversity to display in any way (barplot nor heatmap)
-pigs_plot <- ggplot(data=df2, aes(x=sample, y=value, fill=ID)) +
+pigs_plot <- ggplot(data=df2, aes(x=sample, y=value, fill=taxa_assigned)) +
   geom_bar(stat="identity") + 
   ggtitle("pigs") +
   ylab("read abundance (%)") +
-  labs(fill = "assigned taxa")
+  labs(fill = "taxa_assigned")
 pigs_plot
 # a possibility would be to get the genus level by using sep="_"
 # and barplot 
@@ -423,7 +425,7 @@ colRename <- function(x) {
 df <- colRename(df[,-1])
 
 df <- cbind(mock[,1], df)
-colnames(df)[1] <- "ID"
+colnames(df)[1] <- "taxa_assigned"
 
 colSums(df[,-1])
 
@@ -439,23 +441,23 @@ df2 <- df %>%
   )
 
 # plot without numbers 
-ggplot(data = df2, aes(x=sample, y=ID, fill=value)) + 
+ggplot(data = df2, aes(x=sample, y=taxa_assigned, fill=value)) + 
   geom_tile() +
   scale_fill_distiller(palette = "Spectral")
 
 df2 <- df 
-df2$ID
+df2$taxa_assigned
 
 so <- as.matrix(df2[,2:9])
-names(so) <- df$ID
+names(so) <- df$taxa_assigned
 so
 
 # heat map with numbers 
-pdf("mock_contamination.pdf")
+pdf("contam_mock.pdf")
 pheatmap(so, display_numbers = T,
          main="Mock community contamination",
          cluster_rows = F, cluster_cols = F, fontsize_number = 11,
-         labels_row=as.character(df2$ID))
+         labels_row=as.character(df$taxa_assigned))
 dev.off()
 
 #####################################
@@ -476,16 +478,16 @@ colRename <- function(x) {
 df <- colRename(df[,-1])
 
 df <- cbind(protexin[,1], df)
-colnames(df)[1] <- "ID"
+colnames(df)[1] <- "taxa_assigned"
 
 # removing the species of the probiotic (what's left now is contamination)
-df <- df[!grepl("Bifidobacterium_bifidum", df$ID),]
-df <- df[!grepl("Enterococcus_faecium", df$ID),]
-df <- df[!grepl("Lactobacillus_helveticus", df$ID),]
-df <- df[!grepl("Lactobacillus_delbrueckii", df$ID),]
-df <- df[!grepl("Lactobacillus_plantarum", df$ID),]
-df <- df[!grepl("Lactobacillus_rhamnosus", df$ID),]
-df <- df[!grepl("Streptococcus_thermophilus", df$ID),]
+df <- df[!grepl("Bifidobacterium_bifidum", df$taxa_assigned),]
+df <- df[!grepl("Enterococcus_faecium", df$taxa_assigned),]
+df <- df[!grepl("Lactobacillus_helveticus", df$taxa_assigned),]
+df <- df[!grepl("Lactobacillus_delbrueckii", df$taxa_assigned),]
+df <- df[!grepl("Lactobacillus_plantarum", df$taxa_assigned),]
+df <- df[!grepl("Lactobacillus_rhamnosus", df$taxa_assigned),]
+df <- df[!grepl("Streptococcus_thermophilus", df$taxa_assigned),]
 
 colSums(df[,-1])
 
@@ -499,7 +501,7 @@ df2 <- df %>%
   )
 
 # heatmap without numbers
-ggplot(data = df2, aes(x=sample, y=ID, fill=value)) + 
+ggplot(data = df2, aes(x=sample, y=taxa_assigned, fill=value)) + 
   geom_tile() +
   scale_fill_distiller(palette = "Spectral")
 
@@ -507,15 +509,15 @@ df2 <- df
 df2$ID
 
 so <- as.matrix(df2[,2:9])
-names(so) <- df$ID
+names(so) <- df$taxa_assigned
 so
 
 # heatmap with numbers  
-pdf("Dscour_contamination.pdf")
+pdf("contam_dscour.pdf")
 pheatmap(so, display_numbers = T,
          main="D-scour contamination",
          cluster_rows = F, cluster_cols = F, fontsize_number = 11,
-         labels_row=as.character(df2$ID))
+         labels_row=as.character(df$taxa_assigned))
 dev.off()
 
 #####################################
@@ -537,14 +539,14 @@ colRename <- function(x) {
 df <- colRename(df[,-1])
 
 df <- cbind(coliguard[,1], df)
-colnames(df)[1] <- "ID"
+colnames(df)[1] <- "taxa_assigned"
 
 colSums(df[,-1])
 
 
 # removing the two species of the probiotic (what's left now is contamination)
-df <- df[!grepl("Lactobacillus_plantarum", df$ID),]
-df <- df[!grepl("Lactobacillus_salivarius", df$ID),]
+df <- df[!grepl("Lactobacillus_plantarum", df$taxa_assigned),]
+df <- df[!grepl("Lactobacillus_salivarius", df$taxa_assigned),]
 
 
 df2 <- df %>%
@@ -557,28 +559,26 @@ df2 <- df %>%
   )
 
 # heatmap without numbers
-ggplot(data = df2, aes(x=sample, y=ID, fill=value)) + 
+ggplot(data = df2, aes(x=sample, y=taxa_assigned, fill=value)) + 
   geom_tile() +
   scale_fill_distiller(palette = "Spectral")
 
 # heatmap 
 df2 <- df
-df2$ID
 
 sum(df2$R5)
 sum(df2$R7)
 
 so <- as.matrix(df2[,2:9])
-names(so) <- df$ID
+names(so) <- df$taxa_assigned
 so
 
 
-
-pdf("ColiGuard_contamination.pdf")
+pdf("contam_coliguard.pdf")
 pheatmap(so, display_numbers = T,
          main="ColiGuard contamination",
          cluster_rows = F, cluster_cols = F, fontsize_number = 11,
-         labels_row=as.character(df2$ID))
+         labels_row=as.character(df$taxa_assigned))
 dev.off()
 
 
@@ -599,5 +599,3 @@ Contaminants were present majorly in three technical replicates (R3, R7, R8) and
   append=TRUE,
   file="pos_controls_numbers.txt"
   )
-
-

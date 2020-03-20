@@ -771,6 +771,8 @@ plot(DF_piggies$PC1[DF_piggies$Cohort=="Control"],
      cex.axis=0.8,
      type="p",col=rbow[as.Date(DF_piggies$collection_date
                                [DF_piggies$Cohort=="Control"])-as.Date("2017-01-30 00:00:00")])
+color_legend(min(DF_piggies$PC1), max(DF_piggies$PC2)-0.6, 
+             3.5, 0.9, "", legvec, rbow)
 plot(DF_piggies$PC1[DF_piggies$Cohort=="D-scour"],
      DF_piggies$PC2[DF_piggies$Cohort=="D-scour"],
      main="PC1 PC2 D-scour",
@@ -3751,7 +3753,7 @@ dev.off()
 
 # create workbook to add stats 
 
-wb <- createWorkbook()
+#wb <- createWorkbook()
 
 ###########################################################################################
 
@@ -3932,8 +3934,8 @@ for (singl_DF in multi_DFs) {
 ###################################
 
 # save stats
-addWorksheet(wb, "p_values")
-writeData(wb, sheet = "p_values", significant, rowNames = FALSE)
+addWorksheet(wb, "guppy_pvalues")
+writeData(wb, sheet = "guppy_pvalues", significant, rowNames = FALSE)
 
 
 ###################################
@@ -3953,8 +3955,8 @@ final
 ###################################
 
 # save stats
-addWorksheet(wb, "p_adj")
-writeData(wb, sheet = "p_adj", final, rowNames = FALSE)
+addWorksheet(wb, "guppy_padj")
+writeData(wb, sheet = "guppy_padj", final, rowNames = FALSE)
 
 
 ###################################
@@ -4052,7 +4054,7 @@ for (A in rownames(df)) {
   # build plot 
   p <- ggplot(pp, aes(x=value, fill=Cohort)) +
     geom_histogram( color="#e9ecef", alpha=0.6, position = 'stack')+
-    ggtitle(paste0(title1,"_",title2)) +
+    ggtitle(paste0(title1)) +    # this way it contains df info: ggtitle(paste0(title1,"_",title2))
     theme_bw()+
     mytheme+
     xlab(paste0(PC_lab," (",get_var(xmldata),"%)"))+
@@ -4070,6 +4072,15 @@ for (A in rownames(df)) {
   mygrobs[[A]]  <- grid.arrange(p,g1,g2, layout_matrix = lay)
 }
 dev.off()
+
+# re-order 
+DF_piggies$Cohort <- factor(DF_piggies$Cohort, 
+                       levels=c("Control", 
+                                "D-scour", 
+                                "ColiGuard",
+                                "Neomycin",
+                                "Neomycin+D-scour",
+                                "Neomycin+ColiGuard"))
 
 # for legend only 
 pp <- ggplot(DF_piggies, aes(x=PC1, fill=Cohort)) +
@@ -4191,7 +4202,7 @@ head(out5)
 
 rownames(out5) <- out5[,1]
 out5[,1] <- NULL
-View(out5)
+
 ##############################
 
 # to matrix
@@ -4218,5 +4229,7 @@ dev.off()
 
 
 # save stats in workbook
-saveWorkbook(wb, "/Users/12705859/Desktop/metapigs_base/phylosift/guppy/stats_guppy.xlsx", overwrite=TRUE)
+#saveWorkbook(wb, "/Users/12705859/Desktop/metapigs_base/phylosift/guppy/stats_guppy.xlsx", overwrite=TRUE)
 
+#save stats in workbook
+saveWorkbook(wb, "/Users/12705859/Desktop/metapigs_base/phylosift/out/stats.xlsx", overwrite=TRUE)

@@ -185,7 +185,7 @@ sort(unique(complete$taxa_simple))
 
 ###############
 
-View(complete)
+
 colnames(complete)
 
 # Store the minimum necessary info - no branch width included as we need this xml data 

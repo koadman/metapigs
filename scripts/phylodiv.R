@@ -860,8 +860,13 @@ df1$Cohort.x <- factor(df1$Cohort.x,
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Ja31_vs_Fe7"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Ja31_vs_Fe7"
@@ -873,8 +878,13 @@ A_B <- rbind(res1,res2)
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Ja31_vs_Fe7"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Ja31_vs_Fe7"
@@ -943,8 +953,13 @@ df1$Cohort.x <- factor(df1$Cohort.x,
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe7_vs_Fe14"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe7_vs_Fe14"
@@ -956,8 +971,13 @@ B_C <- rbind(res1,res2)
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe7_vs_Fe14"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe7_vs_Fe14"
@@ -1028,8 +1048,13 @@ df1$Cohort.x <- factor(df1$Cohort.x,
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe14_vs_Fe21"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe14_vs_Fe21"
@@ -1041,8 +1066,13 @@ C_D <- rbind(res1,res2)
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe14_vs_Fe21"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe14_vs_Fe21"
@@ -1110,8 +1140,13 @@ df1$Cohort.x <- factor(df1$Cohort.x,
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe21_vs_Fe28"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe21_vs_Fe28"
@@ -1123,8 +1158,13 @@ D_E <- rbind(res1,res2)
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe21_vs_Fe28"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe21_vs_Fe28"
@@ -1193,8 +1233,13 @@ df1$Cohort.x <- factor(df1$Cohort.x,
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe28_vs_Ma3"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe28_vs_Ma3"
@@ -1206,8 +1251,13 @@ E_F <- rbind(res1,res2)
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe28_vs_Ma3"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe28_vs_Ma3"
@@ -1276,8 +1326,13 @@ df1$Cohort.x <- factor(df1$Cohort.x,
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Ja31_vs_Fe14"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Ja31_vs_Fe14"
@@ -1289,8 +1344,13 @@ A_C <- rbind(res1,res2)
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Ja31_vs_Fe14"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Ja31_vs_Fe14"
@@ -1361,8 +1421,13 @@ df1$Cohort.x <- factor(df1$Cohort.x,
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe7_vs_Fe21"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe7_vs_Fe21"
@@ -1374,8 +1439,13 @@ B_D <- rbind(res1,res2)
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe7_vs_Fe21"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe7_vs_Fe21"
@@ -1445,8 +1515,13 @@ df1$Cohort.x <- factor(df1$Cohort.x,
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe14_vs_Fe28"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe14_vs_Fe28"
@@ -1458,8 +1533,13 @@ C_E <- rbind(res1,res2)
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe14_vs_Fe28"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe14_vs_Fe28"
@@ -1530,8 +1610,13 @@ df1$Cohort.x <- factor(df1$Cohort.x,
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe21_vs_Fe28"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe21_vs_Fe28"
@@ -1543,8 +1628,13 @@ D_F <- rbind(res1,res2)
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe21_vs_Fe28"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe21_vs_Fe28"
@@ -1615,8 +1705,13 @@ df1$Cohort.x <- factor(df1$Cohort.x,
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Ja31_vs_Fe21"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Ja31_vs_Fe21"
@@ -1628,8 +1723,13 @@ A_D <- rbind(res1,res2)
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Ja31_vs_Fe21"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Ja31_vs_Fe21"
@@ -1680,8 +1780,13 @@ df1$Cohort.x <- factor(df1$Cohort.x,
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe14_vs_Ma3"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe14_vs_Ma3"
@@ -1693,8 +1798,13 @@ C_F <- rbind(res1,res2)
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Fe14_vs_Ma3"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Fe14_vs_Ma3"
@@ -1764,8 +1874,13 @@ df1$Cohort.x <- factor(df1$Cohort.x,
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "none")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "none")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Ja31_vs_Ma3"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Ja31_vs_Ma3"
@@ -1777,8 +1892,13 @@ A_F <- rbind(res1,res2)
 
 res1 <- pairwise.t.test(df1$diff_unroo, df1$Cohort.x, p.adj = "BH")
 res2 <- pairwise.t.test(df1$diff_bw, df1$Cohort.x, p.adj = "BH")
-res1 <- as.data.frame(res1$p.value)
-res2 <- as.data.frame(res2$p.value)
+res1 <- res1$p.value
+res2 <- res2$p.value
+# formatting matrix format (wide) to long format (NA automatically form, omit)
+res1 <- na.omit(as.data.frame(matrix(res1, dimnames=list(
+  t(outer(colnames(res1), rownames(res1), FUN=paste)), NULL))))
+res2 <- na.omit(as.data.frame(matrix(res2, dimnames=list(
+  t(outer(colnames(res2), rownames(res2), FUN=paste)), NULL))))
 res1$time_delta <- "Ja31_vs_Ma3"
 res1$type <- "unrooted_pd"
 res2$time_delta <- "Ja31_vs_Ma3"
@@ -1833,32 +1953,65 @@ leg <- get_legend(for_legend_only)
 # DELTAS p values  WITHOUT p-adjustment
 
 # gather stats of the deltas: 
-deltas_stats <- rbind(A_B,B_C,C_D,D_E,E_F,A_C,B_D,C_E,D_F,A_D,C_F,A_F)
+deltas_p <- rbind(A_B,B_C,C_D,D_E,E_F,A_C,B_D,C_E,D_F,A_D,C_F,A_F)
 # convert rownames to first column
-deltas_stats <- setDT(deltas_stats, keep.rownames = TRUE)[]
-deltas_stats$test <- "pairwise t-test"
-deltas_stats$padj_method <- "none"
-# add data to workbook 
-addWorksheet(wb, "deltas_p")
-writeData(wb, sheet = "deltas_p", deltas_stats, rowNames = FALSE)
+deltas_p <- setDT(deltas_p, keep.rownames = TRUE)[]
+deltas_p$test <- "pairwise t-test"
 
 ##############################################################################
 
 # DELTAS p values WITH p-adjustment
 
 # gather stats of the deltas: 
-deltas_stats <- rbind(A_B_adj,B_C_adj,C_D_adj,D_E_adj,E_F_adj,
+deltas_padj <- rbind(A_B_adj,B_C_adj,C_D_adj,D_E_adj,E_F_adj,
                       A_C_adj,B_D_adj,C_E_adj,D_F_adj,
                       A_D_adj,C_F_adj,A_F_adj)
 # convert rownames to first column
-deltas_stats <- setDT(deltas_stats, keep.rownames = TRUE)[]
-deltas_stats$test <- "pairwise t-test"
-deltas_stats$padj_method <- "BH"
-# add data to workbook 
-addWorksheet(wb, "deltas_padj")
-writeData(wb, sheet = "deltas_padj", deltas_stats, rowNames = FALSE)
+deltas_padj <- setDT(deltas_padj, keep.rownames = TRUE)[]
+deltas_padj$test <- "pairwise t-test"
+deltas_padj$method <- "BH"
 
 ##############################################################################
+
+colnames(deltas_p)[colnames(deltas_p) == 'V1'] <- 'pvalues'
+colnames(deltas_padj)[colnames(deltas_padj) == 'V1'] <- 'pvalues_adj'
+
+deltas_stats <- merge(deltas_p,deltas_padj, by=c("rn","time_delta","type","test"))
+deltas_stats <- cSplit(deltas_stats, "rn"," ")
+
+
+deltas_stats <- deltas_stats %>%
+  # join the two groups for which the p-value has been computed
+  mutate(comparison=paste0(rn_1,"_vs_",rn_2)) %>%
+  select(test,type,time_delta,comparison,pvalues,pvalues_adj,method)
+
+# remove useless digits in strings "comparison"
+deltas_stats$comparison <- deltas_stats$comparison %<>%
+  gsub('[0-9]+', '', .)  # removes digits
+  
+# filtering to keep only meaningful comparisons 
+# to be kept: 
+meaningfulcomparisons <- c("Control_vs_ColiGuard", "ColiGuard_vs_Control",
+                           "Control_vs_D-scour", "D-scour_vs_Control",
+                           "Control_vs_Neomycin", "Neomycin_vs_Control",
+                           "Neomycin_vs_Neomycin+D-scour", "Neomycin+D-scour_vs_Neomycin",
+                           "Neomycin_vs_Neomycin+ColiGuard", "Neomycin+ColiGuard_vs_Neomycin")
+
+# eliminate useless comparisons
+deltas_stats <- deltas_stats[deltas_stats$comparison %in% meaningfulcomparisons,]
+
+
+# add data to workbook 
+addWorksheet(wb, "deltas_stats")
+writeData(wb, sheet = "deltas_stats", deltas_stats, rowNames = FALSE)
+
+
+
+
+
+##############################################################################
+##############################################################################
+
 
 # DELTAS p values WITH Tukey p-adjustment
 
@@ -2384,12 +2537,12 @@ p3 <- ggplot(boggo1, aes(x=Cohort, y=unrooted_pd)) +
   coord_flip()
 
 
-pdf("out/alpha_BWPD&unrooted.pdf")
+pdf("out/alpha_BWPD_unrooted.pdf")
 plot_grid(p2,p3,nrow=2, labels = c("A","B"))
 dev.off()
 
 pdf("out/alpha_all.pdf")
-plot_grid(p1,p2,p3,nrow=3, labels = c("A","B","C"))
+plot_grid(p1,p2,p3,nrow=3)
 dev.off()
 
 ##############################################
@@ -2622,6 +2775,16 @@ unroo <- doggo %>%
                    ,q25 = quantile(unrooted_pd, .25)
                    ,q75 = quantile(unrooted_pd, .75)) 
 
+unroo_all <- doggo %>%
+  group_by(collection_date) %>%
+  dplyr::summarise(min = min(unrooted_pd)
+                   ,max = max(unrooted_pd)
+                   ,mean = mean(unrooted_pd)
+                   ,sd = sd(unrooted_pd)
+                   ,n = n()
+                   ,q25 = quantile(unrooted_pd, .25)
+                   ,q75 = quantile(unrooted_pd, .75)) 
+
 bw <- doggo %>%
   group_by(collection_date,Cohort) %>%
   dplyr::summarise(min = min(bwpd)
@@ -2632,15 +2795,34 @@ bw <- doggo %>%
                    ,q25 = quantile(bwpd, .25)
                    ,q75 = quantile(bwpd, .75)) 
 
+bw_all <- doggo %>%
+  group_by(collection_date) %>%
+  dplyr::summarise(min = min(bwpd)
+                   ,max = max(bwpd)
+                   ,mean = mean(bwpd)
+                   ,sd = sd(bwpd)
+                   ,n = n()
+                   ,q25 = quantile(bwpd, .25)
+                   ,q75 = quantile(bwpd, .75)) 
+
+unroo_all$Cohort <- "all"
+bw_all$Cohort <- "all"
+
 # add data to workbook 
 
 bw$type="bwpd"
+bw_all$type="bwpd"
 unroo$type="unrooted_pd"
+unroo_all$type="unrooted_pd"
 bw <- as.data.frame(bw)
+bw_all <- as.data.frame(bw_all)
 unroo <- as.data.frame(unroo)
-both <- rbind(bw,unroo,means)
+unroo_all <- as.data.frame(unroo_all)
+both <- rbind(bw,unroo,bw_all,unroo_all,means)
 addWorksheet(wb, "alpha_means")
 writeData(wb, sheet = "alpha_means", both, rowNames = FALSE)
+
+
 
 ######################################################################################################
 
@@ -2659,7 +2841,7 @@ summs <- x %>% group_by(Cohort,collection_date) %>%
 
 summs <- as.data.frame(summs)
 
-pdf("out/time_alpha_cohorts_unroo&BW.pdf")
+pdf("out/time_alpha_cohorts_unroo_BW.pdf")
 ggplot(summs, aes(x=collection_date, y=meanUnroo,group=Cohort,color=Cohort)) +
   geom_errorbar(aes(ymin=meanUnroo-sdUnroo, ymax=meanUnroo+sdUnroo), 
                 width=0.1,
@@ -2708,6 +2890,21 @@ doggo <- doggo %>% filter(collection_date == "2017-01-31" |
                             collection_date == "2017-02-14" |
                             collection_date == "2017-02-21" ) 
 
+
+doggo[3] <- lapply(
+  doggo[3], 
+  gsub, 
+  pattern = "Neomycin+D-scour", 
+  replacement = "Neo+D-scour", 
+  fixed = TRUE)
+
+doggo[3] <- lapply(
+  doggo[3], 
+  gsub, 
+  pattern = "Neomycin+ColiGuard", 
+  replacement = "Neo+ColiGuard", 
+  fixed = TRUE)
+
 # filter out heavy outliers
 
 doggo <- doggo %>% 
@@ -2729,8 +2926,8 @@ doggo$Cohort <- factor(doggo$Cohort,
                                 "D-scour", 
                                 "ColiGuard",
                                 "Neomycin",
-                                "Neomycin+D-scour",
-                                "Neomycin+ColiGuard"))
+                                "Neo+D-scour",
+                                "Neo+ColiGuard"))
 
 # reordering
 doggo$collection_date <- factor(doggo$collection_date,
@@ -2741,48 +2938,49 @@ doggo$collection_date <- factor(doggo$collection_date,
 
 my_comparisons = list( c("2017-01-31", "2017-02-07"), 
                        c("2017-02-07", "2017-02-14"), 
-                       c("2017-02-14", "2017-02-21"),
-                       c("2017-02-07", "2017-02-21"))
+                       c("2017-02-14", "2017-02-21"))
 
 stat.test_unroo <- doggo %>%
   group_by(Cohort) %>%
   t_test(unrooted_pd ~ collection_date) %>%
-  adjust_pvalue(method="BH") %>%
-  dplyr::mutate(y.position=rep(seq(150,250,length.out=6),6)) %>%
+  adjust_pvalue(method="bonferroni") %>%
+  dplyr::mutate(y.position=rep(seq(150,220,length.out=6),6)) %>%
   dplyr::mutate_if(is.numeric, round, digits = 4)
 
 unroo <- ggboxplot(doggo, x = "collection_date", y = "unrooted_pd",
                    color = "collection_date", palette = "jco",
                    add = "jitter",short.panel.labs = TRUE) +
   theme_bw()+
-  facet_wrap(~Cohort)+
-  theme(axis.text.x=element_blank())+
-  ylim(0,250)+
+  facet_grid(~Cohort)+
+  theme(axis.text.x=element_blank(),
+        axis.title.x=element_blank())+
+  ylim(50,225)+
   stat_pvalue_manual(stat.test_unroo, label = "p.adj",
                      hide.ns=TRUE,
                      bracket.size = 0.3,
-                     size = 3)
+                     size = 2)
 
 #########
 
 stat.test_bwpd <- doggo %>%
   group_by(Cohort) %>%
   t_test(bwpd ~ collection_date) %>%
-  adjust_pvalue(method="BH") %>%
-  mutate(y.position=rep(seq(2.4,3.0,length.out=6),6)) %>%
+  adjust_pvalue(method="bonferroni") %>%
+  mutate(y.position=rep(seq(2.3,2.65,length.out=6),6)) %>%
   mutate_if(is.numeric, round, digits = 4)
 
 bw <- ggboxplot(doggo, x = "collection_date", y = "bwpd",
                 color = "collection_date", palette = "jco",
                 add = "jitter",short.panel.labs = TRUE) +
-  facet_wrap(~Cohort)+
+  facet_grid(~Cohort)+
   theme_bw()+
-  theme(axis.text.x=element_blank())+
-  ylim(1.3,3)+
+  theme(axis.text.x=element_blank(),
+        axis.title.x=element_blank())+
+  ylim(1.5,2.70)+
   stat_pvalue_manual(stat.test_bwpd, label = "p.adj",
                      hide.ns=TRUE,
                      bracket.size = 0.3,
-                     size = 3)
+                     size = 2)
 bw
 
 tosave <- ggarrange(unroo,bw,nrow=2,ncol=1,labels=c("A","B"),common.legend = TRUE)
@@ -2792,11 +2990,31 @@ ggsave(filename = "out/time_alpha_cohorts.pdf", plot = tosave)
 # add data to workbook 
 both <- rbind(stat.test_bwpd,
               stat.test_unroo)
-both$padj_method <- "BH"
+both$padj_method <- "bonferroni"
 
 addWorksheet(wb, "alpha_cohorts")
 writeData(wb, sheet = "alpha_cohorts", both, rowNames = FALSE)
 
+
+#######################
+
+# comparing timepoints, irrespective of cohort
+
+stat.test_unroo_all <- doggo %>%
+  t_test(unrooted_pd ~ collection_date) %>%
+  adjust_pvalue(method="bonferroni") 
+
+stat.test_bwpd_all <- doggo %>%
+  t_test(bwpd ~ collection_date) %>%
+  adjust_pvalue(method="bonferroni") 
+
+# add data to workbook 
+both <- rbind(stat.test_bwpd_all,
+              stat.test_unroo_all)
+both$padj_method <- "bonferroni"
+
+addWorksheet(wb, "alpha_time")
+writeData(wb, sheet = "alpha_time", both, rowNames = FALSE)
 
 ######################################################################################################
 ######################################################################################################
@@ -2892,13 +3110,13 @@ d <- ggplot(startDF1, aes(x=stig, y=unrooted_pd, group=stig)) +
 ##################
 
 # nurses and stigs on the same plot, dividing BWPD from unrooted
-pdf("out/nurse&stig_BWPD.pdf")
+pdf("out/nurse_stig_BWPD.pdf")
 ggarrange(c, a, 
           labels = c("A", "B"),
           ncol = 1, nrow = 2)
 dev.off()
 
-pdf("out/nurse&stig_unrooted.pdf")
+pdf("out/nurse_stig_unrooted.pdf")
 ggarrange(d, b, 
           labels = c("A", "B"),
           ncol = 1, nrow = 2)
@@ -2952,8 +3170,8 @@ breed_bwpd_plot <- ggboxplot(startDF1, x = "breed", y = "bwpd",
             aes(breed, Inf, label = n), vjust="inward")+
   stat_compare_means(method = "kruskal.test", label.y=1.5) 
 
-#tosave <- ggarrange(breed_unrooted_plot, breed_bwpd_plot, nrow = 2, labels=c("A","B"))
-#ggsave(file = "out/breed_alpha.pdf", tosave)
+tosave <- ggarrange(breed_unrooted_plot, breed_bwpd_plot, nrow = 2, labels=c("A","B"))
+ggsave(file = "out/breed_alpha.pdf", tosave)
 
 
 # by birth day
@@ -3022,8 +3240,8 @@ LINE_bwpd_plot <- ggboxplot(startDF1, x = "LINE", y = "bwpd",
   stat_compare_means(method = "kruskal.test", label.y=1.5)  # Add pairwise comparisons p-value
 
 
-#tosave <- ggarrange(LINE_unrooted_plot, LINE_bwpd_plot, nrow = 2, labels=c("A","B"))
-#ggsave(file = "out/line_alpha.pdf", tosave)
+tosave <- ggarrange(LINE_unrooted_plot, LINE_bwpd_plot, nrow = 2, labels=c("A","B"))
+ggsave(file = "out/line_alpha.pdf", tosave)
 
 
 ##################
@@ -5122,7 +5340,7 @@ df2 <- piglets_factors2 %>%
 colnames(df2)[colnames(df2)=="name"] <- "parameter"
 alpha_plot <- ggplot(df, aes(x=collection_date,y=value)) + 
   ylim(0,0.06)+
-  labs(y="unrooted_pd & BWPD - p-value",
+  labs(y="alpha diversity - p-value",
        x="")+
   geom_point(data=df2,aes(shape=parameter), color="red", size=2)+
   geom_point(aes(shape=parameter), color="black", size=2)+
@@ -5142,7 +5360,7 @@ df2 <- piglets_factors2 %>%
 colnames(df2)[colnames(df2)=="name"] <- "parameter"
 beta_plot <- ggplot(df, aes(x=collection_date,y=value)) + 
   ylim(0,0.06)+
-  labs(y="PC1 to PC5 - p-value",
+  labs(y="beta diversity - p-value",
        x="")+
   geom_point(data=df2,aes(shape=parameter), color="red", size=2)+
   geom_point(aes(shape=parameter), color="black", size=2)+
@@ -5171,7 +5389,7 @@ dev.off()
 
 
 # save stats in workbook
-#saveWorkbook(wb, "/Users/12705859/Desktop/metapigs_base/phylosift/out/stats.xlsx", overwrite=TRUE)
+saveWorkbook(wb, "/Users/12705859/Desktop/metapigs_base/phylosift/out/stats.xlsx", overwrite=TRUE)
 
 
 ###########################################################################################
@@ -5184,10 +5402,3 @@ out <- sapply(names(sessionInfo()$otherPkgs),
 
 closeAllConnections()
 
-
-
-
-  
-  
-  
-  
