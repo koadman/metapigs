@@ -12,7 +12,7 @@
 # 5   # plot BETA diversity (all timepoints)
 # 6   # plot ALPHA diversity (at pig trial start) 
 # 7   # plot BETA diversity (at pig trial start) 
-# 8   # plot distribution of breeds and bdays among cohorts + cohorts distr plates 
+# 8   # plot distribution of cross_breeds and bdays among cohorts + cohorts distr plates 
 # 9   # p-values
 # 10 # plot p-values (starting factors)
 # 11  # prepare input files for guppy (select by time interval) and plot output 
@@ -93,21 +93,24 @@ mdat <- read_excel(paste0(basedir,"Metagenome.environmental_20190308_2.xlsx"),
                                  "text","text", "text", "text", "text", "text","text", "text"),
                    skip = 12)
 
+mdat$Cohort <- gsub("Sows","Sows",mdat$Cohort)
 
-# load details (breed, line, bday, mothers)
+# load details (cross_breed, line, bday, Sows)
 details <- read_excel(paste0(basedir, "pigTrial_GrowthWtsGE.hlsx.xlsx"),
                       "Piglet details")
 
 # format details
 colnames(details)[colnames(details) == 'STIG'] <- 'pig'
-colnames(details)[colnames(details) == 'Nursing Dam'] <- 'nurse'
-colnames(details)[colnames(details) == 'STIGDAM'] <- 'stig'
-colnames(details)[colnames(details) == '...8'] <- 'breed'
+colnames(details)[colnames(details) == 'Nursing Dam'] <- 'nurse_sow'
+colnames(details)[colnames(details) == 'STIGDAM'] <- 'maternal_sow'
+colnames(details)[colnames(details) == '...8'] <- 'cross_breed'
 details$pig <- gsub("G","",details$pig)
 details$pig <- gsub("T","",details$pig)
 
 details <- details %>%
-  dplyr::select(pig,BIRTH_DAY,LINE,breed,stig,nurse)
+  dplyr::select(pig,BIRTH_DAY,LINE,cross_breed,maternal_sow,nurse_sow)
+unique(details$cross_breed)
+
 
 # formatting metadata column names 
 mdat$`*collection_date` <- as.character(mdat$`*collection_date`)
@@ -683,7 +686,7 @@ boggo$Cohort <- factor(boggo$Cohort,
                                 "Neomycin",
                                 "Neomycin+D-scour",
                                 "Neomycin+ColiGuard",
-                                "Mothers",
+                                "Sows",
                                 "MockCommunity",
                                 "PosControl_D-scour",
                                 "PosControl_ColiGuard"))
@@ -706,7 +709,7 @@ coggo$Cohort <- factor(coggo$Cohort,
                                 "Neomycin",
                                 "Neomycin+D-scour",
                                 "Neomycin+ColiGuard",
-                                "Mothers",
+                                "Sows",
                                 "NegativeControl"))
 
 
@@ -895,8 +898,8 @@ A_B_adj <- rbind(res1,res2)
 
 new_df <- merge(df1,details, by.x="isolation_source",by.y="pig")
 new_df$BIRTH_DAY <- as.character(new_df$BIRTH_DAY)
-aov.out1 = aov(diff_unroo ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
-aov.out2 = aov(diff_bw ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
+aov.out1 = aov(diff_unroo ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
+aov.out2 = aov(diff_bw ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
 res1 <- TukeyHSD(aov.out1)
 res2 <- TukeyHSD(aov.out2)
 x <- as.data.frame(res1$Cohort)
@@ -989,8 +992,8 @@ B_C_adj <- rbind(res1,res2)
 
 new_df <- merge(df1,details, by.x="isolation_source",by.y="pig")
 new_df$BIRTH_DAY <- as.character(new_df$BIRTH_DAY)
-aov.out1 = aov(diff_unroo ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
-aov.out2 = aov(diff_bw ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
+aov.out1 = aov(diff_unroo ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
+aov.out2 = aov(diff_bw ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
 res1 <- TukeyHSD(aov.out1)
 res2 <- TukeyHSD(aov.out2)
 x <- as.data.frame(res1$Cohort)
@@ -1083,8 +1086,8 @@ C_D_adj <- rbind(res1,res2)
 
 new_df <- merge(df1,details, by.x="isolation_source",by.y="pig")
 new_df$BIRTH_DAY <- as.character(new_df$BIRTH_DAY)
-aov.out1 = aov(diff_unroo ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
-aov.out2 = aov(diff_bw ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
+aov.out1 = aov(diff_unroo ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
+aov.out2 = aov(diff_bw ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
 res1 <- TukeyHSD(aov.out1)
 res2 <- TukeyHSD(aov.out2)
 x <- as.data.frame(res1$Cohort)
@@ -1176,8 +1179,8 @@ D_E_adj <- rbind(res1,res2)
 
 new_df <- merge(df1,details, by.x="isolation_source",by.y="pig")
 new_df$BIRTH_DAY <- as.character(new_df$BIRTH_DAY)
-aov.out1 = aov(diff_unroo ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
-aov.out2 = aov(diff_bw ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
+aov.out1 = aov(diff_unroo ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
+aov.out2 = aov(diff_bw ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
 res1 <- TukeyHSD(aov.out1)
 res2 <- TukeyHSD(aov.out2)
 x <- as.data.frame(res1$Cohort)
@@ -1269,8 +1272,8 @@ E_F_adj <- rbind(res1,res2)
 
 new_df <- merge(df1,details, by.x="isolation_source",by.y="pig")
 new_df$BIRTH_DAY <- as.character(new_df$BIRTH_DAY)
-aov.out1 = aov(diff_unroo ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
-aov.out2 = aov(diff_bw ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
+aov.out1 = aov(diff_unroo ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
+aov.out2 = aov(diff_bw ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
 res1 <- TukeyHSD(aov.out1)
 res2 <- TukeyHSD(aov.out2)
 x <- as.data.frame(res1$Cohort)
@@ -1362,8 +1365,8 @@ A_C_adj <- rbind(res1,res2)
 
 new_df <- merge(df1,details, by.x="isolation_source",by.y="pig")
 new_df$BIRTH_DAY <- as.character(new_df$BIRTH_DAY)
-aov.out1 = aov(diff_unroo ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
-aov.out2 = aov(diff_bw ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
+aov.out1 = aov(diff_unroo ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
+aov.out2 = aov(diff_bw ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
 res1 <- TukeyHSD(aov.out1)
 res2 <- TukeyHSD(aov.out2)
 x <- as.data.frame(res1$Cohort)
@@ -1457,8 +1460,8 @@ B_D_adj <- rbind(res1,res2)
 
 new_df <- merge(df1,details, by.x="isolation_source",by.y="pig")
 new_df$BIRTH_DAY <- as.character(new_df$BIRTH_DAY)
-aov.out1 = aov(diff_unroo ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
-aov.out2 = aov(diff_bw ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
+aov.out1 = aov(diff_unroo ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
+aov.out2 = aov(diff_bw ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
 res1 <- TukeyHSD(aov.out1)
 res2 <- TukeyHSD(aov.out2)
 x <- as.data.frame(res1$Cohort)
@@ -1551,8 +1554,8 @@ C_E_adj <- rbind(res1,res2)
 
 new_df <- merge(df1,details, by.x="isolation_source",by.y="pig")
 new_df$BIRTH_DAY <- as.character(new_df$BIRTH_DAY)
-aov.out1 = aov(diff_unroo ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
-aov.out2 = aov(diff_bw ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
+aov.out1 = aov(diff_unroo ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
+aov.out2 = aov(diff_bw ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
 res1 <- TukeyHSD(aov.out1)
 res2 <- TukeyHSD(aov.out2)
 x <- as.data.frame(res1$Cohort)
@@ -1646,8 +1649,8 @@ D_F_adj <- rbind(res1,res2)
 
 new_df <- merge(df1,details, by.x="isolation_source",by.y="pig")
 new_df$BIRTH_DAY <- as.character(new_df$BIRTH_DAY)
-aov.out1 = aov(diff_unroo ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
-aov.out2 = aov(diff_bw ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
+aov.out1 = aov(diff_unroo ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
+aov.out2 = aov(diff_bw ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
 res1 <- TukeyHSD(aov.out1)
 res2 <- TukeyHSD(aov.out2)
 x <- as.data.frame(res1$Cohort)
@@ -1815,8 +1818,8 @@ C_F_adj <- rbind(res1,res2)
 
 new_df <- merge(df1,details, by.x="isolation_source",by.y="pig")
 new_df$BIRTH_DAY <- as.character(new_df$BIRTH_DAY)
-aov.out1 = aov(diff_unroo ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
-aov.out2 = aov(diff_bw ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
+aov.out1 = aov(diff_unroo ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
+aov.out2 = aov(diff_bw ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
 res1 <- TukeyHSD(aov.out1)
 res2 <- TukeyHSD(aov.out2)
 x <- as.data.frame(res1$Cohort)
@@ -1909,8 +1912,8 @@ A_F_adj <- rbind(res1,res2)
 
 new_df <- merge(df1,details, by.x="isolation_source",by.y="pig")
 new_df$BIRTH_DAY <- as.character(new_df$BIRTH_DAY)
-aov.out1 = aov(diff_unroo ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
-aov.out2 = aov(diff_bw ~ Cohort.x + breed + BIRTH_DAY, data=new_df)   
+aov.out1 = aov(diff_unroo ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
+aov.out2 = aov(diff_bw ~ Cohort.x + cross_breed + BIRTH_DAY, data=new_df)   
 res1 <- TukeyHSD(aov.out1)
 res2 <- TukeyHSD(aov.out2)
 x <- as.data.frame(res1$Cohort)
@@ -2022,7 +2025,7 @@ deltas_padj_w_model <- rbind(A_B_delta,B_C_delta,C_D_delta,D_E_delta,E_F_delta,
 
 deltas_padj_w_model$test <- "pairwise t-test"
 deltas_padj_w_model$padj_method <- "Tukey"
-deltas_padj_w_model$model <- "value~Cohort+breed+BIRTH_DAY"
+deltas_padj_w_model$model <- "value~Cohort+cross_breed+BIRTH_DAY"
 # add data to workbook 
 addWorksheet(wb, "deltas_padj_w_model")
 writeData(wb, sheet = "deltas_padj_w_model", deltas_padj_w_model, rowNames = FALSE)
@@ -2514,7 +2517,7 @@ boggo1$Cohort <- factor(boggo1$Cohort,
                                 "Neomycin",
                                 "Neomycin+D-scour",
                                 "Neomycin+ColiGuard",
-                                "Mothers",
+                                "Sows",
                                 "MockCommunity",
                                 "PosControl_D-scour",
                                 "PosControl_ColiGuard"))
@@ -2552,7 +2555,7 @@ a <- boggo %>%
   filter(!Cohort=="PosControl_D-scour") %>% 
   filter(!Cohort=="PosControl_ColiGuard") %>% 
   filter(!Cohort=="NegativeControl") %>% 
-  filter(!Cohort=="Mothers") %>% 
+  filter(!Cohort=="Sows") %>% 
   dplyr::summarise(min = min(unrooted_pd)
             ,max = max(unrooted_pd)
             ,mean = mean(unrooted_pd)
@@ -2585,7 +2588,7 @@ c <- boggo %>%
   filter(!Cohort=="PosControl_D-scour") %>% 
   filter(!Cohort=="PosControl_ColiGuard") %>% 
   filter(!Cohort=="NegativeControl") %>% 
-  filter(!Cohort=="Mothers") %>% 
+  filter(!Cohort=="Sows") %>% 
   dplyr::summarise(min = min(bwpd)
             ,max = max(bwpd)
             ,mean = mean(bwpd)
@@ -2637,9 +2640,9 @@ f <- boggo %>%
             ,q75 = quantile(bwpd, .75)) 
 
 a$Cohort="piglets"
-b$Cohort="mothers"
+b$Cohort="Sows"
 c$Cohort="piglets"
-d$Cohort="mothers"
+d$Cohort="Sows"
 
 a$type="unrooted"
 b$type="unrooted"
@@ -2679,7 +2682,7 @@ doggo <- doggo %>%
 hist(doggo$unrooted_pd)
 hist(doggo$bwpd)
 
-# (no need to filter out pos, neg controls and mothers 
+# (no need to filter out pos, neg controls and Sows 
 # as filtering by date is already doing it )
 
 # reordering
@@ -2917,7 +2920,7 @@ doggo <- doggo %>%
 hist(doggo$unrooted_pd)
 hist(doggo$bwpd)
 
-# (no need to filter out pos, neg controls and mothers 
+# (no need to filter out pos, neg controls and Sows 
 # as filtering by date is already doing it )
 
 # reordering
@@ -3049,32 +3052,32 @@ length(unique(startDF$isolation_source))
 startDF1 <- merge(startDF,details, by.x="isolation_source",by.y="pig")
 
 startDF1 <- startDF1 %>%
-  dplyr::select(phylo_entropy,unrooted_pd,bwpd,isolation_source,nurse,stig,
-                breed,BIRTH_DAY,LINE)
+  dplyr::select(phylo_entropy,unrooted_pd,bwpd,isolation_source,nurse_sow,maternal_sow,
+                cross_breed,BIRTH_DAY,LINE)
 
 
 # plots
 
 cw_summary <- startDF1 %>% 
-  group_by(nurse) %>% 
+  group_by(nurse_sow) %>% 
   tally()
 
-a <- ggplot(startDF1, aes(x=nurse, y=bwpd, group=nurse)) + 
+a <- ggplot(startDF1, aes(x=nurse_sow, y=bwpd, group=nurse_sow)) + 
   labs(title = "Piglets alpha diversity (BWPD)",
-       subtitle = "Grouped by nurse mother") +
+       subtitle = "Grouped by nurse sow") +
   geom_boxplot() +
   geom_text(data = cw_summary,
-            aes(nurse, Inf, label = n), vjust="inward") +
+            aes(nurse_sow, Inf, label = n), vjust="inward") +
   theme(axis.text.x=element_text(hjust=0, angle=90),
         plot.title = element_text(lineheight = 0.9, size=12),
         plot.subtitle = element_text(lineheight = 0.9, size=11))
 
-b <- ggplot(startDF1, aes(x=nurse, y=unrooted_pd, group=nurse)) + 
+b <- ggplot(startDF1, aes(x=nurse_sow, y=unrooted_pd, group=nurse_sow)) + 
   labs(title = "Piglets alpha diversity (unrooted)",
-       subtitle = "Grouped by nurse mother") +
+       subtitle = "Grouped by nurse sow") +
   geom_boxplot() +
   geom_text(data = cw_summary,
-            aes(nurse, Inf, label = n), vjust="inward") +
+            aes(nurse_sow, Inf, label = n), vjust="inward") +
   theme(axis.text.x=element_text(hjust=0, angle=90),
         plot.title = element_text(lineheight = 0.9, size=12),
         plot.subtitle = element_text(lineheight = 0.9, size=11)) +
@@ -3083,25 +3086,25 @@ b <- ggplot(startDF1, aes(x=nurse, y=unrooted_pd, group=nurse)) +
 #######
 
 cw_summary <- startDF1 %>% 
-  group_by(stig) %>% 
+  group_by(maternal_sow) %>% 
   tally()
 
-c <- ggplot(startDF1, aes(x=stig, y=bwpd, group=stig)) + 
+c <- ggplot(startDF1, aes(x=maternal_sow, y=bwpd, group=maternal_sow)) + 
   labs(title = "Piglets alpha diversity (BWPD)",
-       subtitle = "Grouped by stig mother") +
+       subtitle = "Grouped by maternal sow") +
   geom_boxplot() +
   geom_text(data = cw_summary,
-            aes(stig, Inf, label = n), vjust="inward") +
+            aes(maternal_sow, Inf, label = n), vjust="inward") +
   theme(axis.text.x=element_text(hjust=0, angle=90),
         plot.title = element_text(lineheight = 0.9, size=12),
         plot.subtitle = element_text(lineheight = 0.9, size=11))
 
-d <- ggplot(startDF1, aes(x=stig, y=unrooted_pd, group=stig)) + 
-  labs(title = "Piglets alpha diversity (unrooted)",
-       subtitle = "Grouped by stig mother") +
+d <- ggplot(startDF1, aes(x=maternal_sow, y=unrooted_pd, group=maternal_sow)) + 
+  labs(title = "Piglets alpha diversity (unrooted PD)",
+       subtitle = "Grouped by maternal sow") +
   geom_boxplot() +
   geom_text(data = cw_summary,
-            aes(stig, Inf, label = n), vjust="inward") +
+            aes(maternal_sow, Inf, label = n), vjust="inward") +
   theme(axis.text.x=element_text(hjust=0, angle=90),
         plot.title = element_text(lineheight = 0.9, size=12),
         plot.subtitle = element_text(lineheight = 0.9, size=11)) +
@@ -3109,14 +3112,14 @@ d <- ggplot(startDF1, aes(x=stig, y=unrooted_pd, group=stig)) +
 
 ##################
 
-# nurses and stigs on the same plot, dividing BWPD from unrooted
-pdf("out/nurse_stig_BWPD.pdf")
+# nurse_sows and maternal sows on the same plot, dividing BWPD from unrooted
+pdf("out/nursesow_maternalsow_BWPD.pdf")
 ggarrange(c, a, 
           labels = c("A", "B"),
           ncol = 1, nrow = 2)
 dev.off()
 
-pdf("out/nurse_stig_unrooted.pdf")
+pdf("out/nursesow_maternalsow_unrooted.pdf")
 ggarrange(d, b, 
           labels = c("A", "B"),
           ncol = 1, nrow = 2)
@@ -3125,7 +3128,7 @@ dev.off()
 ##############################################
 
 # do piglets at arrival cluster by unrooted and bwpd
-# based on breed/line/birth day? 
+# based on cross_breed/line/birth day? 
 
 startDF1$BIRTH_DAY <- as.character(startDF1$BIRTH_DAY)
 startDF1$BIRTH_DAY <- factor(startDF1$BIRTH_DAY, 
@@ -3139,38 +3142,38 @@ startDF1$LINE <- as.character(startDF1$LINE)
 
 # plots
 
-# by breed
+# by cross_breed
 
-####### get sample size within each breed group:
+####### get sample size within each cross_breed group:
 
 cw_summary <- startDF1 %>% 
-  group_by(breed) %>% 
+  group_by(cross_breed) %>% 
   tally()
 
-# breed - unrooted 
-breed_unrooted_plot <- ggboxplot(startDF1, x = "breed", y = "unrooted_pd",
-                                 color = "breed", palette = "jco",
+# cross_breed - unrooted 
+cross_breed_unrooted_plot <- ggboxplot(startDF1, x = "cross_breed", y = "unrooted_pd",
+                                 color = "cross_breed", palette = "jco",
                                  add = "jitter")+
   theme_bw()+
   theme(axis.text.x=element_blank(), legend.position="top")+
   ylim(50,160)+
   geom_text(data = cw_summary,
-            aes(breed, Inf, label = n), vjust="inward") +
+            aes(cross_breed, Inf, label = n), vjust="inward") +
   stat_compare_means(method = "kruskal.test", label.y=50)  # Add pairwise comparisons p-value
 
-# breed - bwpd
+# cross_breed - bwpd
 
-breed_bwpd_plot <- ggboxplot(startDF1, x = "breed", y = "bwpd",
-                             color = "breed", palette = "jco",
+cross_breed_bwpd_plot <- ggboxplot(startDF1, x = "cross_breed", y = "bwpd",
+                             color = "cross_breed", palette = "jco",
                              add = "jitter")+
   theme_bw()+
   theme(axis.text.x=element_blank(),legend.position="none")+
   ylim(1.5,2.7)+
   geom_text(data = cw_summary,
-            aes(breed, Inf, label = n), vjust="inward")+
+            aes(cross_breed, Inf, label = n), vjust="inward")+
   stat_compare_means(method = "kruskal.test", label.y=1.5) 
 
-tosave <- ggarrange(breed_unrooted_plot, breed_bwpd_plot, nrow = 2, labels=c("A","B"))
+tosave <- ggarrange(cross_breed_unrooted_plot, cross_breed_bwpd_plot, nrow = 2, labels=c("A","B"))
 ggsave(file = "out/breed_alpha.pdf", tosave)
 
 
@@ -3246,25 +3249,25 @@ ggsave(file = "out/line_alpha.pdf", tosave)
 
 ##################
 
-# bday AND breed:
+# bday AND cross_breed:
 # with age unrooted pd decreases and bwpd increases 
-# conclusion comes from two breeds as each bday is not represented 
-# equally by the 4 breeds 
+# conclusion comes from two cross_breeds as each bday is not represented 
+# equally by the 4 cross_breeds 
 my_comparisons <- list(  c("2017-01-07", "2017-01-09"),  
                          c("2017-01-08", "2017-01-10"), 
                          c("2017-01-09", "2017-01-11"), 
                          c("2017-01-10", "2017-01-11") )
 
 startDF1_sub <- startDF1 %>%
-  filter(!breed=="Landrace x Cross bred (LW x D)")
+  filter(!cross_breed=="Landrace x Cross bred (LW x D)")
 startDF1_sub <- startDF1_sub %>%
-  filter(!breed=="Large white x Duroc")
+  filter(!cross_breed=="Large white x Duroc")
 
 
 p1 <- ggboxplot(startDF1_sub, x = "BIRTH_DAY", y = "unrooted_pd",
                color = "BIRTH_DAY", palette = "jco",
                add = "jitter",
-               facet.by = "breed", short.panel.labs = FALSE) +
+               facet.by = "cross_breed", short.panel.labs = FALSE) +
   theme_bw()+
   theme(axis.text.x=element_blank())+
   ylim(50,230)+
@@ -3273,7 +3276,7 @@ p1 <- ggboxplot(startDF1_sub, x = "BIRTH_DAY", y = "unrooted_pd",
 p2 <- ggboxplot(startDF1_sub, x = "BIRTH_DAY", y = "bwpd",
                color = "BIRTH_DAY", palette = "jco",
                add = "jitter",
-               facet.by = "breed", short.panel.labs = FALSE) +
+               facet.by = "cross_breed", short.panel.labs = FALSE) +
   theme_bw()+
   theme(axis.text.x=element_blank())+
   ylim(1.6,3.4)+
@@ -3298,7 +3301,7 @@ startDF <- coggo %>% filter(
 startDF1 <- merge(startDF,details, by.x="isolation_source",by.y="pig")
 
 startDF1 <- startDF1 %>%
-  dplyr::select(pc1,pc2,pc3,pc4,pc5,isolation_source,nurse,stig)
+  dplyr::select(pc1,pc2,pc3,pc4,pc5,isolation_source,nurse_sow,maternal_sow)
 
 theme<-theme(panel.background = element_blank(),
              panel.border=element_rect(fill=NA),
@@ -3315,20 +3318,20 @@ theme<-theme(panel.background = element_blank(),
              legend.title=element_text(size=8),
              plot.margin=unit(c(0.3,0.3,0.3,0.3),"line"))
 
-# nurses
+# nurse_sows
 
 startDF1_unique <- startDF1 %>% group_by(isolation_source) %>% slice(1)
 
-# remove rows were nurse is unique (can't be plotted a pca)
-startDF1_unique <- subset(startDF1_unique,duplicated(nurse) | duplicated(nurse, fromLast=TRUE))
+# remove rows were nurse_sow is unique (can't be plotted a pca)
+startDF1_unique <- subset(startDF1_unique,duplicated(nurse_sow) | duplicated(nurse_sow, fromLast=TRUE))
 
-# order alphabetically by nurse
-startDF1_unique <- startDF1_unique[order(startDF1_unique$nurse),]
+# order alphabetically by nurse_sow
+startDF1_unique <- startDF1_unique[order(startDF1_unique$nurse_sow),]
 
 rownames(startDF1_unique) <- 1:nrow(startDF1_unique)
-length(unique(startDF1_unique$nurse))
+length(unique(startDF1_unique$nurse_sow))
 
-# subsetting to have 5 nurses in each 
+# subsetting to have 5 nurse_sows in each 
 startDF11 <- startDF1_unique[1:27,]
 startDF12 <- startDF1_unique[28:47,]
 startDF13 <- startDF1_unique[48:63,]
@@ -3336,52 +3339,52 @@ startDF14 <- startDF1_unique[64:80,]
 startDF15 <- startDF1_unique[81:98,]
 startDF16 <- startDF1_unique[99:122,]
 
-p11<-ggplot(startDF11,aes(x=pc1,y=pc2,color=nurse ))+
+p11<-ggplot(startDF11,aes(x=pc1,y=pc2,color=nurse_sow ))+
   geom_point()+
   theme+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)
-p12<-ggplot(startDF12,aes(x=pc1,y=pc2,color=nurse ))+
+p12<-ggplot(startDF12,aes(x=pc1,y=pc2,color=nurse_sow ))+
   geom_point()+
   theme+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)
-p13<-ggplot(startDF13,aes(x=pc1,y=pc2,color=nurse ))+
+p13<-ggplot(startDF13,aes(x=pc1,y=pc2,color=nurse_sow ))+
   geom_point()+
   theme+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)
-p14<-ggplot(startDF14,aes(x=pc1,y=pc2,color=nurse ))+
+p14<-ggplot(startDF14,aes(x=pc1,y=pc2,color=nurse_sow ))+
   geom_point()+
   theme+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)
-p15<-ggplot(startDF15,aes(x=pc1,y=pc2,color=nurse ))+
+p15<-ggplot(startDF15,aes(x=pc1,y=pc2,color=nurse_sow ))+
   geom_point()+
   theme+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)
-p16<-ggplot(startDF16,aes(x=pc1,y=pc2,color=nurse ))+
+p16<-ggplot(startDF16,aes(x=pc1,y=pc2,color=nurse_sow ))+
   geom_point()+
   theme+
   stat_ellipse(inherit.aes = TRUE, 
                level = 0.80)
 p16
 
-pdf("out/nurse_PC1PC2.pdf")
+pdf("out/nursesow_PC1PC2.pdf")
 grid.arrange(p11,p12,p13,p14,p15,p16, nrow=3,ncol=2)
 dev.off()
 
 ######################
 
-# stigs 
+# maternal sows 
 
 startDF1_unique <- startDF1 %>% group_by(isolation_source) %>% slice(1)
 
-# remove rows were nurse is unique (can't be plotted a pca)
-startDF1_unique <- subset(startDF1_unique,duplicated(stig) | duplicated(stig, fromLast=TRUE))
+# remove rows were nurse_sow is unique (can't be plotted a pca)
+startDF1_unique <- subset(startDF1_unique,duplicated(maternal_sow) | duplicated(maternal_sow, fromLast=TRUE))
 
-# order alphabetically by nurse
-startDF1_unique <- startDF1_unique[order(startDF1_unique$stig),]
+# order alphabetically by nurse_sow
+startDF1_unique <- startDF1_unique[order(startDF1_unique$maternal_sow),]
 rownames(startDF1_unique) <- 1:nrow(startDF1_unique)
-length(unique(startDF1_unique$stig))
+length(unique(startDF1_unique$maternal_sow))
 
-# subsetting to have 5 stigs in each 
+# subsetting to have 5 maternal sows in each 
 startDF11 <- startDF1_unique[1:30,]
 startDF12 <- startDF1_unique[31:58,]
 startDF13 <- startDF1_unique[59:72,]
@@ -3389,41 +3392,41 @@ startDF14 <- startDF1_unique[73:85,]
 startDF15 <- startDF1_unique[86:108,]
 startDF16 <- startDF1_unique[109:123,]
 
-p11<-ggplot(startDF11,aes(x=pc1,y=pc2,color=stig ))+
+p11<-ggplot(startDF11,aes(x=pc1,y=pc2,color=maternal_sow ))+
   geom_point()+
   theme+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)
-p12<-ggplot(startDF12,aes(x=pc1,y=pc2,color=stig ))+
+p12<-ggplot(startDF12,aes(x=pc1,y=pc2,color=maternal_sow ))+
   geom_point()+
   theme+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)
-p13<-ggplot(startDF13,aes(x=pc1,y=pc2,color=stig ))+
+p13<-ggplot(startDF13,aes(x=pc1,y=pc2,color=maternal_sow ))+
   geom_point()+
   theme+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)
-p14<-ggplot(startDF14,aes(x=pc1,y=pc2,color=stig ))+
+p14<-ggplot(startDF14,aes(x=pc1,y=pc2,color=maternal_sow ))+
   geom_point()+
   theme+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)
-p15<-ggplot(startDF15,aes(x=pc1,y=pc2,color=stig ))+
+p15<-ggplot(startDF15,aes(x=pc1,y=pc2,color=maternal_sow ))+
   geom_point()+
   theme+
   stat_ellipse(inherit.aes = TRUE, level = 0.80)
-p16<-ggplot(startDF16,aes(x=pc1,y=pc2,color=stig ))+
+p16<-ggplot(startDF16,aes(x=pc1,y=pc2,color=maternal_sow ))+
   geom_point()+
   theme+
   stat_ellipse(inherit.aes = TRUE, 
                level = 0.80)
 p16
 
-pdf("out/stig_PC1PC2.pdf")
+pdf("out/maternalsow_PC1PC2.pdf")
 grid.arrange(p11,p12,p13,p14,p15,p16, nrow=3,ncol=2)
 dev.off()
 
 ##############################################
 
 # do piglets at arrival cluster by PCA
-# based on breed/line/birth day? 
+# based on cross_breed/line/birth day? 
 
 startDF2 <- merge(startDF,details, by.x="isolation_source",by.y="pig")
 
@@ -3439,67 +3442,67 @@ startDF2$BIRTH_DAY <- factor(startDF2$BIRTH_DAY,
 startDF2$LINE <- as.character(startDF2$LINE)
 
 
-# by breed
+# by cross_breed
 
-####### get sample size within each breed group:
+####### get sample size within each cross_breed group:
 
 cw_summary <- startDF2 %>% 
-  group_by(breed) %>% 
+  group_by(cross_breed) %>% 
   tally()
 
-# breed - PCA
-breed_PC1_plot <- ggboxplot(startDF2, x = "breed", y = "pc1",
-                            color = "breed", palette = "jco",
+# cross_breed - PCA
+cross_breed_PC1_plot <- ggboxplot(startDF2, x = "cross_breed", y = "pc1",
+                            color = "cross_breed", palette = "jco",
                             add = "jitter")+
   theme_bw()+
   theme(axis.text.x=element_blank(), legend.position="top")+
   geom_text(data = cw_summary,
-            aes(breed, Inf, label = n), vjust="inward") +
+            aes(cross_breed, Inf, label = n), vjust="inward") +
   stat_compare_means(method = "kruskal.test", label.x=1, label.y=0.5)  # Add pairwise comparisons p-value
-breed_PC1_plot
-breed_PC2_plot <- ggboxplot(startDF2, x = "breed", y = "pc2",
-                            color = "breed", palette = "jco",
+cross_breed_PC1_plot
+cross_breed_PC2_plot <- ggboxplot(startDF2, x = "cross_breed", y = "pc2",
+                            color = "cross_breed", palette = "jco",
                             add = "jitter")+
   theme_bw()+
   theme(axis.text.x=element_blank(), legend.position="top")+
   geom_text(data = cw_summary,
-            aes(breed, Inf, label = n), vjust="inward") +
+            aes(cross_breed, Inf, label = n), vjust="inward") +
   stat_compare_means(method = "kruskal.test", label.x=1, label.y=1)  # Add pairwise comparisons p-value
-breed_PC2_plot
-breed_PC3_plot <- ggboxplot(startDF2, x = "breed", y = "pc3",
-                            color = "breed", palette = "jco",
+cross_breed_PC2_plot
+cross_breed_PC3_plot <- ggboxplot(startDF2, x = "cross_breed", y = "pc3",
+                            color = "cross_breed", palette = "jco",
                             add = "jitter")+
   theme_bw()+
   theme(axis.text.x=element_blank(), legend.position="top")+
   geom_text(data = cw_summary,
-            aes(breed, Inf, label = n), vjust="inward") +
+            aes(cross_breed, Inf, label = n), vjust="inward") +
   stat_compare_means(method = "kruskal.test", label.x=1, label.y=-1.5)  # Add pairwise comparisons p-value
-breed_PC3_plot
-breed_PC4_plot <- ggboxplot(startDF2, x = "breed", y = "pc4",
-                            color = "breed", palette = "jco",
+cross_breed_PC3_plot
+cross_breed_PC4_plot <- ggboxplot(startDF2, x = "cross_breed", y = "pc4",
+                            color = "cross_breed", palette = "jco",
                             add = "jitter")+
   theme_bw()+
   theme(axis.text.x=element_blank(), legend.position="top")+
   geom_text(data = cw_summary,
-            aes(breed, Inf, label = n), vjust="inward") +
+            aes(cross_breed, Inf, label = n), vjust="inward") +
   stat_compare_means(method = "kruskal.test", label.x=1, label.y=-1.2)  # Add pairwise comparisons p-value
-breed_PC4_plot
-breed_PC5_plot <- ggboxplot(startDF2, x = "breed", y = "pc5",
-                            color = "breed", palette = "jco",
+cross_breed_PC4_plot
+cross_breed_PC5_plot <- ggboxplot(startDF2, x = "cross_breed", y = "pc5",
+                            color = "cross_breed", palette = "jco",
                             add = "jitter")+
   theme_bw()+
   theme(axis.text.x=element_blank(), legend.position="top")+
   geom_text(data = cw_summary,
-            aes(breed, Inf, label = n), vjust="inward") +
+            aes(cross_breed, Inf, label = n), vjust="inward") +
   ylim(4.5,6.3)+
   stat_compare_means(method = "kruskal.test", label.x=1, label.y=4.5)  # Add pairwise comparisons p-value
-breed_PC5_plot
+cross_breed_PC5_plot
 
 
-#tosave <- ggarrange(breed_PC1_plot, breed_PC2_plot, breed_PC3_plot, breed_PC4_plot, 
-#          breed_PC5_plot, nrow = 3, ncol=2, labels = c("A","B","C","D","E"),
+#tosave <- ggarrange(cross_breed_PC1_plot, cross_breed_PC2_plot, cross_breed_PC3_plot, cross_breed_PC4_plot, 
+#          cross_breed_PC5_plot, nrow = 3, ncol=2, labels = c("A","B","C","D","E"),
 #          common.legend = TRUE)
-#ggsave(file = "out/breed_beta.pdf", tosave)
+#ggsave(file = "out/cross_breed_beta.pdf", tosave)
 
 # by birth day
 
@@ -3629,25 +3632,25 @@ line_PC5_plot
 
 ##################
 
-# bday AND breed:
+# bday AND cross_breed:
 
 my_comparisons <- list(  c("2017-01-07", "2017-01-09"),  
                          c("2017-01-08", "2017-01-10"), 
                          c("2017-01-09", "2017-01-11"), 
                          c("2017-01-10", "2017-01-11") )
 
-# need to exclude two breeds as these two breeds don't have enough
+# need to exclude two cross_breeds as these two cross_breeds don't have enough
 # age groups to be plotted and compared 
 startDF2_sub <- startDF2 %>%
-  filter(!breed=="Landrace x Cross bred (LW x D)")
+  filter(!cross_breed=="Landrace x Cross bred (LW x D)")
 startDF2_sub <- startDF2_sub %>%
-  filter(!breed=="Large white x Duroc")
+  filter(!cross_breed=="Large white x Duroc")
 
 
 p1 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "pc1",
                 color = "BIRTH_DAY", palette = "jco",
                 add = "jitter",
-                facet.by = "breed", short.panel.labs = FALSE) +
+                facet.by = "cross_breed", short.panel.labs = FALSE) +
   ylim(0,4)+
   theme_bw()+
   theme(axis.text.x=element_blank(), legend.position = 'right')+
@@ -3655,7 +3658,7 @@ p1 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "pc1",
 p2 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "pc2",
                 color = "BIRTH_DAY", palette = "jco",
                 add = "jitter",
-                facet.by = "breed", short.panel.labs = FALSE) +
+                facet.by = "cross_breed", short.panel.labs = FALSE) +
   ylim(0,7)+
   theme_bw()+
   theme(axis.text.x=element_blank(), legend.position = 'right')+
@@ -3663,7 +3666,7 @@ p2 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "pc2",
 p3 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "pc3",
                 color = "BIRTH_DAY", palette = "jco",
                 add = "jitter",
-                facet.by = "breed", short.panel.labs = FALSE) +
+                facet.by = "cross_breed", short.panel.labs = FALSE) +
   ylim(-2,3)+
   theme_bw()+
   theme(axis.text.x=element_blank(), legend.position = 'right')+
@@ -3671,7 +3674,7 @@ p3 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "pc3",
 p4 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "pc4",
                 color = "BIRTH_DAY", palette = "jco",
                 add = "jitter",
-                facet.by = "breed", short.panel.labs = FALSE) +
+                facet.by = "cross_breed", short.panel.labs = FALSE) +
   ylim(-1,2.2)+
   theme_bw()+
   theme(axis.text.x=element_blank(), legend.position = 'right')+
@@ -3679,7 +3682,7 @@ p4 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "pc4",
 p5 <- ggboxplot(startDF2_sub, x = "BIRTH_DAY", y = "pc5",
                 color = "BIRTH_DAY", palette = "jco",
                 add = "jitter",
-                facet.by = "breed", short.panel.labs = FALSE) +
+                facet.by = "cross_breed", short.panel.labs = FALSE) +
   ylim(4.7,6.6)+
   theme_bw()+
   theme(axis.text.x=element_blank(), legend.position = 'right')+
@@ -3700,7 +3703,7 @@ dev.off()
 
 ######################################################################################################
 
-# distribution of breeds, birth days across cohorts
+# distribution of cross_breeds, birth days across cohorts
 
 finalDF <- inner_join(boggo,coggo)
 NROW(finalDF)
@@ -3708,14 +3711,14 @@ NROW(finalDF)
 df <- merge(finalDF,details, by.x="isolation_source",by.y="pig")
 head(df)
 
-# distribution of breeds and bdays across cohorts
-df1 <- setDT(df)[, .(Freq = .N), by = .(BIRTH_DAY,breed,Cohort)]
-df1[order(df1$breed)]
+# distribution of cross_breeds and bdays across cohorts
+df1 <- setDT(df)[, .(Freq = .N), by = .(BIRTH_DAY,cross_breed,Cohort)]
+df1[order(df1$cross_breed)]
 
 p1 <- ggplot(df1, aes(fill=BIRTH_DAY, y=Freq, x=Cohort)) + 
   geom_bar(position="stack", stat="identity")+
   theme(legend.position="none")+
-  facet_wrap(.~breed,scales="free")
+  facet_wrap(.~cross_breed,scales="free")
 p1
 
 # distribution of Cohorts across bdays
@@ -3905,7 +3908,7 @@ head(df)
 
 df1 <- df %>%
   dplyr::select(unrooted_pd,bwpd,pc1,pc2,pc3,pc4,pc5,Cohort,collection_date,isolation_source,
-         BIRTH_DAY,breed,LINE,stig,nurse)
+         BIRTH_DAY,cross_breed,LINE,maternal_sow,nurse_sow)
 NROW(df1)
 
 # for some reasons df1$pc2 is character and not numeric. convert: 
@@ -3916,39 +3919,39 @@ cols <- 1:7
 df1 <- setDT(df1)[, lapply(.SD, mean), by=c(names(df1)[8:15]), .SDcols=cols]
 NROW(df1)
 
-df_breed <- df1 %>%
+df_cross_breed <- df1 %>%
   group_by(collection_date) %>%
   do({
     data.frame(
       sample_size=NROW(.),
-      unrooted_pd=kruskal.test(.$unrooted_pd, .$breed)$p.value,
-      bwpd=kruskal.test(.$bwpd, .$breed)$p.value,
-      pc1=kruskal.test(.$pc1, .$breed)$p.value,
-      pc2=kruskal.test(.$pc2, .$breed)$p.value,
-      pc3=kruskal.test(.$pc3, .$breed)$p.value,
-      pc4=kruskal.test(.$pc4, .$breed)$p.value,
-      pc5=kruskal.test(.$pc5, .$breed)$p.value,
-      grouping=paste0("breed"),
+      unrooted_pd=kruskal.test(.$unrooted_pd, .$cross_breed)$p.value,
+      bwpd=kruskal.test(.$bwpd, .$cross_breed)$p.value,
+      pc1=kruskal.test(.$pc1, .$cross_breed)$p.value,
+      pc2=kruskal.test(.$pc2, .$cross_breed)$p.value,
+      pc3=kruskal.test(.$pc3, .$cross_breed)$p.value,
+      pc4=kruskal.test(.$pc4, .$cross_breed)$p.value,
+      pc5=kruskal.test(.$pc5, .$cross_breed)$p.value,
+      grouping=paste0("cross_breed"),
       stringsAsFactors=FALSE)
   })
-df_breed
+df_cross_breed
 
-df_breed_all <- df1 %>%
+df_cross_breed_all <- df1 %>%
   do({
     data.frame(
       collection_date=paste0("all"),
       sample_size=NROW(.),
-      unrooted_pd=kruskal.test(.$unrooted_pd, .$breed)$p.value,
-      bwpd=kruskal.test(.$bwpd, .$breed)$p.value,
-      pc1=kruskal.test(.$pc1, .$breed)$p.value,
-      pc2=kruskal.test(.$pc2, .$breed)$p.value,
-      pc3=kruskal.test(.$pc3, .$breed)$p.value,
-      pc4=kruskal.test(.$pc4, .$breed)$p.value,
-      pc5=kruskal.test(.$pc5, .$breed)$p.value,
-      grouping=paste0("breed"),
+      unrooted_pd=kruskal.test(.$unrooted_pd, .$cross_breed)$p.value,
+      bwpd=kruskal.test(.$bwpd, .$cross_breed)$p.value,
+      pc1=kruskal.test(.$pc1, .$cross_breed)$p.value,
+      pc2=kruskal.test(.$pc2, .$cross_breed)$p.value,
+      pc3=kruskal.test(.$pc3, .$cross_breed)$p.value,
+      pc4=kruskal.test(.$pc4, .$cross_breed)$p.value,
+      pc5=kruskal.test(.$pc5, .$cross_breed)$p.value,
+      grouping=paste0("cross_breed"),
       stringsAsFactors=FALSE)
   }) 
-df_breed_all
+df_cross_breed_all
 
 df_line <- df1 %>%
   group_by(collection_date) %>%
@@ -4001,13 +4004,13 @@ df_bday <- df1 %>%
   })
 df_bday
 
-# breeds
+# cross_breeds
 "Landrace x Cross bred (LW x D)"
 "Duroc x Landrace"
 "Duroc x Large white"
 "Large white x Duroc"
 
-df_bday_DurocxLandrace <- df1[df1$breed=="Duroc x Landrace",] %>%
+df_bday_DurocxLandrace <- df1[df1$cross_breed=="Duroc x Landrace",] %>%
   group_by(collection_date) %>%
   do({
     data.frame(
@@ -4024,7 +4027,7 @@ df_bday_DurocxLandrace <- df1[df1$breed=="Duroc x Landrace",] %>%
   })
 df_bday_DurocxLandrace
 
-df_bday_DurocxLw <- df1[df1$breed=="Duroc x Large white",] %>%
+df_bday_DurocxLw <- df1[df1$cross_breed=="Duroc x Large white",] %>%
   group_by(collection_date) %>%
   do({
     data.frame(
@@ -4058,73 +4061,73 @@ df_bday_all <- df1 %>%
   }) 
 df_bday_all
 
-df_stig <- df1 %>%
+df_maternal_sow <- df1 %>%
   group_by(collection_date) %>%
   do({
     data.frame(
       sample_size=NROW(.),
-      unrooted_pd=kruskal.test(.$unrooted_pd, .$stig)$p.value,
-      bwpd=kruskal.test(.$bwpd, .$stig)$p.value,
-      pc1=kruskal.test(.$pc1, .$stig)$p.value,
-      pc2=kruskal.test(.$pc2, .$stig)$p.value,
-      pc3=kruskal.test(.$pc3, .$stig)$p.value,
-      pc4=kruskal.test(.$pc4, .$stig)$p.value,
-      pc5=kruskal.test(.$pc5, .$stig)$p.value,
-      grouping=paste0("stig mother"),
+      unrooted_pd=kruskal.test(.$unrooted_pd, .$maternal_sow)$p.value,
+      bwpd=kruskal.test(.$bwpd, .$maternal_sow)$p.value,
+      pc1=kruskal.test(.$pc1, .$maternal_sow)$p.value,
+      pc2=kruskal.test(.$pc2, .$maternal_sow)$p.value,
+      pc3=kruskal.test(.$pc3, .$maternal_sow)$p.value,
+      pc4=kruskal.test(.$pc4, .$maternal_sow)$p.value,
+      pc5=kruskal.test(.$pc5, .$maternal_sow)$p.value,
+      grouping=paste0("maternal_sow"),
       stringsAsFactors=FALSE)
   }) 
-df_stig
+df_maternal_sow
 
-df_stig_all <- df1 %>%
+df_maternal_sow_all <- df1 %>%
   do({
     data.frame(
       collection_date=paste0("all"),
       sample_size=NROW(.),
-      unrooted_pd=kruskal.test(.$unrooted_pd, .$stig)$p.value,
-      bwpd=kruskal.test(.$bwpd, .$stig)$p.value,
-      pc1=kruskal.test(.$pc1, .$stig)$p.value,
-      pc2=kruskal.test(.$pc2, .$stig)$p.value,
-      pc3=kruskal.test(.$pc3, .$stig)$p.value,
-      pc4=kruskal.test(.$pc4, .$stig)$p.value,
-      pc5=kruskal.test(.$pc5, .$stig)$p.value,
-      grouping=paste0("stig mother"),
+      unrooted_pd=kruskal.test(.$unrooted_pd, .$maternal_sow)$p.value,
+      bwpd=kruskal.test(.$bwpd, .$maternal_sow)$p.value,
+      pc1=kruskal.test(.$pc1, .$maternal_sow)$p.value,
+      pc2=kruskal.test(.$pc2, .$maternal_sow)$p.value,
+      pc3=kruskal.test(.$pc3, .$maternal_sow)$p.value,
+      pc4=kruskal.test(.$pc4, .$maternal_sow)$p.value,
+      pc5=kruskal.test(.$pc5, .$maternal_sow)$p.value,
+      grouping=paste0("maternal_sow"),
       stringsAsFactors=FALSE)
   }) 
-df_stig_all
+df_maternal_sow_all
 
-df_nurse <- df1 %>%
+df_nurse_sow <- df1 %>%
   group_by(collection_date) %>%
   do({
     data.frame(
       sample_size=NROW(.),
-      unrooted_pd=kruskal.test(.$unrooted_pd, .$nurse)$p.value,
-      bwpd=kruskal.test(.$bwpd, .$nurse)$p.value,
-      pc1=kruskal.test(.$pc1, .$nurse)$p.value,
-      pc2=kruskal.test(.$pc2, .$nurse)$p.value,
-      pc3=kruskal.test(.$pc3, .$nurse)$p.value,
-      pc4=kruskal.test(.$pc4, .$nurse)$p.value,
-      pc5=kruskal.test(.$pc5, .$nurse)$p.value,
-      grouping=paste0("nurse mother"),
+      unrooted_pd=kruskal.test(.$unrooted_pd, .$nurse_sow)$p.value,
+      bwpd=kruskal.test(.$bwpd, .$nurse_sow)$p.value,
+      pc1=kruskal.test(.$pc1, .$nurse_sow)$p.value,
+      pc2=kruskal.test(.$pc2, .$nurse_sow)$p.value,
+      pc3=kruskal.test(.$pc3, .$nurse_sow)$p.value,
+      pc4=kruskal.test(.$pc4, .$nurse_sow)$p.value,
+      pc5=kruskal.test(.$pc5, .$nurse_sow)$p.value,
+      grouping=paste0("nurse_sow"),
       stringsAsFactors=FALSE)
   })
-df_nurse
+df_nurse_sow
 
-df_nurse_all <- df1 %>%
+df_nurse_sow_all <- df1 %>%
   do({
     data.frame(
       collection_date=paste0("all"),
       sample_size=NROW(.),
-      unrooted_pd=kruskal.test(.$unrooted_pd, .$nurse)$p.value,
-      bwpd=kruskal.test(.$bwpd, .$nurse)$p.value,
-      pc1=kruskal.test(.$pc1, .$nurse)$p.value,
-      pc2=kruskal.test(.$pc2, .$nurse)$p.value,
-      pc3=kruskal.test(.$pc3, .$nurse)$p.value,
-      pc4=kruskal.test(.$pc4, .$nurse)$p.value,
-      pc5=kruskal.test(.$pc5, .$nurse)$p.value,
-      grouping=paste0("nurse mother"),
+      unrooted_pd=kruskal.test(.$unrooted_pd, .$nurse_sow)$p.value,
+      bwpd=kruskal.test(.$bwpd, .$nurse_sow)$p.value,
+      pc1=kruskal.test(.$pc1, .$nurse_sow)$p.value,
+      pc2=kruskal.test(.$pc2, .$nurse_sow)$p.value,
+      pc3=kruskal.test(.$pc3, .$nurse_sow)$p.value,
+      pc4=kruskal.test(.$pc4, .$nurse_sow)$p.value,
+      pc5=kruskal.test(.$pc5, .$nurse_sow)$p.value,
+      grouping=paste0("nurse_sow"),
       stringsAsFactors=FALSE)
   })
-df_nurse_all
+df_nurse_sow_all
 
 df_Cohort <- df1 %>%
   group_by(collection_date) %>%
@@ -4160,25 +4163,25 @@ df_Cohort_all <- df1 %>%
   })
 df_Cohort_all
 
-df_breed_all <- as.data.frame(df_breed_all)
-df_breed <- as.data.frame(df_breed)
+df_cross_breed_all <- as.data.frame(df_cross_breed_all)
+df_cross_breed <- as.data.frame(df_cross_breed)
 df_line_all <- as.data.frame(df_line_all)
 df_line <- as.data.frame(df_line)
 df_bday_all <- as.data.frame(df_bday_all)
 df_bday <- as.data.frame(df_bday)
 df_bday_DurocxLandrace <- as.data.frame(df_bday_DurocxLandrace)
 df_bday_DurocxLw <- as.data.frame(df_bday_DurocxLw)
-df_stig_all <- as.data.frame(df_stig_all)
-df_stig <- as.data.frame(df_stig)
-df_nurse_all <- as.data.frame(df_nurse_all)
-df_nurse <- as.data.frame(df_nurse)
+df_maternal_sow_all <- as.data.frame(df_maternal_sow_all)
+df_maternal_sow <- as.data.frame(df_maternal_sow)
+df_nurse_sow_all <- as.data.frame(df_nurse_sow_all)
+df_nurse_sow <- as.data.frame(df_nurse_sow)
 df_Cohort_all <- as.data.frame(df_Cohort_all)
 
-all_pvalues <- rbind(df_breed_all, df_breed,
+all_pvalues <- rbind(df_cross_breed_all, df_cross_breed,
                      df_line_all, df_line, 
                      df_bday_all, df_bday, df_bday_DurocxLandrace, df_bday_DurocxLw, 
-                     df_stig_all, df_stig, 
-                     df_nurse_all, df_nurse, 
+                     df_maternal_sow_all, df_maternal_sow, 
+                     df_nurse_sow_all, df_nurse_sow, 
                      df_Cohort_all)
 
 all_pvalues$test <- "Kruskal-Wallis"
@@ -4190,7 +4193,7 @@ writeData(wb, sheet = "all_pvalues", all_pvalues, rowNames = FALSE)
 
 padj_function <- function(x, na.rm = FALSE) (p.adjust(x,method="hommel"))
 
-df_breed <- df_breed %>%
+df_cross_breed <- df_cross_breed %>%
   mutate_at(c("unrooted_pd","bwpd","pc1","pc2","pc3","pc4","pc5"),padj_function) 
 
 df_line <- df_line %>%
@@ -4205,20 +4208,20 @@ df_bday_DurocxLandrace <- df_bday_DurocxLandrace %>%
 df_bday_DurocxLw <- df_bday_DurocxLw %>%
   mutate_at(c("unrooted_pd","bwpd","pc1","pc2","pc3","pc4","pc5"),padj_function) 
 
-df_nurse <- df_nurse %>%
+df_nurse_sow <- df_nurse_sow %>%
   mutate_at(c("unrooted_pd","bwpd","pc1","pc2","pc3","pc4","pc5"),padj_function) 
 
-df_stig <- df_stig %>%
+df_maternal_sow <- df_maternal_sow %>%
   mutate_at(c("unrooted_pd","bwpd","pc1","pc2","pc3","pc4","pc5"),padj_function) 
 
 
-all_padj_Hommel <- rbind(df_breed,
+all_padj_Hommel <- rbind(df_cross_breed,
                          df_line, 
                          df_bday, 
                          df_bday_DurocxLandrace, 
                          df_bday_DurocxLw, 
-                         df_stig, 
-                         df_nurse)
+                         df_maternal_sow, 
+                         df_nurse_sow)
 
 
 all_padj_Hommel$test <- "Kruskal-Wallis"
@@ -4242,58 +4245,58 @@ writeData(wb, sheet = "all_padj_Hommel", all_padj_Hommel, rowNames = FALSE)
 # positive among the family of tests performed).
 
 
-# by breed
+# by cross_breed
 
-aov.out = aov(unrooted_pd ~ breed, data=df1)
+aov.out = aov(unrooted_pd ~ cross_breed, data=df1)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$breed)
+aov.out <- as.data.frame(res$cross_breed)
 aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out1$type="unrooted_pd"
 #
-aov.out = aov(bwpd ~ breed, data=df1)
+aov.out = aov(bwpd ~ cross_breed, data=df1)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$breed)
+aov.out <- as.data.frame(res$cross_breed)
 aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out2$type="bwpd"
 #
-aov.out = aov(pc1 ~ breed, data=df1)
+aov.out = aov(pc1 ~ cross_breed, data=df1)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$breed)
+aov.out <- as.data.frame(res$cross_breed)
 aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out3$type="pc1"
 #
-aov.out = aov(pc2 ~ breed, data=df1)
+aov.out = aov(pc2 ~ cross_breed, data=df1)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$breed)
+aov.out <- as.data.frame(res$cross_breed)
 aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out4$type="pc2"
 # 
-aov.out = aov(pc3 ~ breed, data=df1)
+aov.out = aov(pc3 ~ cross_breed, data=df1)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$breed)
+aov.out <- as.data.frame(res$cross_breed)
 aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out5$type="pc3"
 #
-aov.out = aov(pc4 ~ breed, data=df1)
+aov.out = aov(pc4 ~ cross_breed, data=df1)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$breed)
+aov.out <- as.data.frame(res$cross_breed)
 aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out6$type="pc4"
 #
-aov.out = aov(pc5 ~ breed, data=df1)
+aov.out = aov(pc5 ~ cross_breed, data=df1)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$breed)
+aov.out <- as.data.frame(res$cross_breed)
 aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out7$type="pc5"
 
-by_breed <- rbind(aov.out1,
+by_cross_breed <- rbind(aov.out1,
       aov.out2,
       aov.out3,
       aov.out4,
       aov.out5,
       aov.out6,
       aov.out7)
-by_breed$group = "breed"
+by_cross_breed$group = "cross_breed"
 
 
 # by LINE
@@ -4411,9 +4414,9 @@ by_BIRTH_DAY <- rbind(aov.out1,
 by_BIRTH_DAY$group = "BIRTH_DAY"
 
 
-# by BIRTH_DAY for breed "Duroc x Landrace"
+# by BIRTH_DAY for cross_breed "Duroc x Landrace"
 
-df1_sub <- df1[df1$breed=="Duroc x Landrace",]
+df1_sub <- df1[df1$cross_breed=="Duroc x Landrace",]
 
 # to character otherwise considered numeric
 df1_sub$BIRTH_DAY <- as.character(df1_sub$BIRTH_DAY)
@@ -4470,9 +4473,9 @@ by_BIRTH_DAY_Duroc_x_Landrace <- rbind(aov.out1,
 by_BIRTH_DAY_Duroc_x_Landrace$group = "BIRTH_DAY_Duroc_x_Landrace"
 
 
-# by BIRTH_DAY for breed "Duroc x Large white"
+# by BIRTH_DAY for cross_breed "Duroc x Large white"
 
-df1_sub <- df1[df1$breed=="Duroc x Large white",]
+df1_sub <- df1[df1$cross_breed=="Duroc x Large white",]
 
 # to character otherwise considered numeric
 df1_sub$BIRTH_DAY <- as.character(df1_sub$BIRTH_DAY)
@@ -4529,9 +4532,9 @@ by_BIRTH_DAY_Duroc_x_Large_white <- rbind(aov.out1,
 by_BIRTH_DAY_Duroc_x_Large_white$group = "BIRTH_DAY_Duroc_x_Large_white"
 
 
-# by BIRTH_DAY for breed "Large white x Duroc"
+# by BIRTH_DAY for cross_breed "Large white x Duroc"
 
-df1_sub <- df1[df1$breed=="Large white x Duroc",]
+df1_sub <- df1[df1$cross_breed=="Large white x Duroc",]
 
 # to character otherwise considered numeric
 df1_sub$BIRTH_DAY <- as.character(df1_sub$BIRTH_DAY)
@@ -4592,55 +4595,55 @@ by_BIRTH_DAY_Large_white_x_Duroc$group = "BIRTH_DAY_Large_white_x_Duroc"
 # not enough timepoint for "Landrace x Cross bred (LW x D)"
 
 
-# by nurse
+# by nurse_sow
 
 # to character otherwise considered numeric
-df1$nurse <- as.character(df1$nurse)
+df1$nurse_sow <- as.character(df1$nurse_sow)
 
 
-aov.out = aov(unrooted_pd ~ nurse, data=df1)   
+aov.out = aov(unrooted_pd ~ nurse_sow, data=df1)   
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$nurse)
+aov.out <- as.data.frame(res$nurse_sow)
 aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out1$type="unrooted_pd"
 #
-aov.out = aov(bwpd ~ nurse, data=df1_sub)
+aov.out = aov(bwpd ~ nurse_sow, data=df1_sub)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$nurse)
+aov.out <- as.data.frame(res$nurse_sow)
 aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out2$type="bwpd"
 #
-aov.out = aov(pc1 ~ nurse, data=df1_sub)
+aov.out = aov(pc1 ~ nurse_sow, data=df1_sub)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$nurse)
+aov.out <- as.data.frame(res$nurse_sow)
 aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out3$type="pc1"
 #
-aov.out = aov(pc2 ~ nurse, data=df1_sub)
+aov.out = aov(pc2 ~ nurse_sow, data=df1_sub)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$nurse)
+aov.out <- as.data.frame(res$nurse_sow)
 aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out4$type="pc2"
 # 
-aov.out = aov(pc3 ~ nurse, data=df1_sub)
+aov.out = aov(pc3 ~ nurse_sow, data=df1_sub)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$nurse)
+aov.out <- as.data.frame(res$nurse_sow)
 aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out5$type="pc3"
 #
-aov.out = aov(pc4 ~ nurse, data=df1_sub)
+aov.out = aov(pc4 ~ nurse_sow, data=df1_sub)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$nurse)
+aov.out <- as.data.frame(res$nurse_sow)
 aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out6$type="pc4"
 #
-aov.out = aov(pc5 ~ nurse, data=df1_sub)
+aov.out = aov(pc5 ~ nurse_sow, data=df1_sub)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$nurse)
+aov.out <- as.data.frame(res$nurse_sow)
 aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out7$type="pc5"
 
-by_nurse <- rbind( 
+by_nurse_sow <- rbind( 
   aov.out1,
   aov.out2,
   aov.out3,
@@ -4649,57 +4652,57 @@ by_nurse <- rbind(
   aov.out6,
   aov.out7)
 
-by_nurse$group = "nurse"
+by_nurse_sow$group = "nurse_sow"
 
-# by stig
+# by maternal_sow
 
 # to character otherwise considered numeric
-df1$stig <- as.character(df1$stig)
+df1$maternal_sow <- as.character(df1$maternal_sow)
 
 
-aov.out = aov(unrooted_pd ~ stig, data=df1)   
+aov.out = aov(unrooted_pd ~ maternal_sow, data=df1)   
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$stig)
+aov.out <- as.data.frame(res$maternal_sow)
 aov.out1 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out1$type="unrooted_pd"
 #
-aov.out = aov(bwpd ~ stig, data=df1_sub)
+aov.out = aov(bwpd ~ maternal_sow, data=df1_sub)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$stig)
+aov.out <- as.data.frame(res$maternal_sow)
 aov.out2 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out2$type="bwpd"
 #
-aov.out = aov(pc1 ~ stig, data=df1_sub)
+aov.out = aov(pc1 ~ maternal_sow, data=df1_sub)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$stig)
+aov.out <- as.data.frame(res$maternal_sow)
 aov.out3 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out3$type="pc1"
 #
-aov.out = aov(pc2 ~ stig, data=df1_sub)
+aov.out = aov(pc2 ~ maternal_sow, data=df1_sub)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$stig)
+aov.out <- as.data.frame(res$maternal_sow)
 aov.out4 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out4$type="pc2"
 # 
-aov.out = aov(pc3 ~ stig, data=df1_sub)
+aov.out = aov(pc3 ~ maternal_sow, data=df1_sub)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$stig)
+aov.out <- as.data.frame(res$maternal_sow)
 aov.out5 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out5$type="pc3"
 #
-aov.out = aov(pc4 ~ stig, data=df1_sub)
+aov.out = aov(pc4 ~ maternal_sow, data=df1_sub)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$stig)
+aov.out <- as.data.frame(res$maternal_sow)
 aov.out6 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out6$type="pc4"
 #
-aov.out = aov(pc5 ~ stig, data=df1_sub)
+aov.out = aov(pc5 ~ maternal_sow, data=df1_sub)
 res <- TukeyHSD(aov.out)
-aov.out <- as.data.frame(res$stig)
+aov.out <- as.data.frame(res$maternal_sow)
 aov.out7 <- tibble::rownames_to_column(aov.out, "comparison")
 aov.out7$type="pc5"
 
-by_stig <- rbind( 
+by_maternal_sow <- rbind( 
   aov.out1,
   aov.out2,
   aov.out3,
@@ -4708,7 +4711,7 @@ by_stig <- rbind(
   aov.out6,
   aov.out7)
 
-by_stig$group = "stig"
+by_maternal_sow$group = "maternal_sow"
 
 ##################
 
@@ -5276,14 +5279,14 @@ by_Cohort_i6 <- rbind(aov.out1,
                    aov.out7)
 by_Cohort_i6$group = "Cohort_i6"
 
-all_padj_Tukey <- rbind(by_breed,
+all_padj_Tukey <- rbind(by_cross_breed,
              by_LINE, 
              by_BIRTH_DAY, 
              by_BIRTH_DAY_Duroc_x_Landrace,
              by_BIRTH_DAY_Duroc_x_Large_white,
              by_BIRTH_DAY_Large_white_x_Duroc, 
-             by_nurse,
-             by_stig,
+             by_nurse_sow,
+             by_maternal_sow,
              by_Cohort, 
              by_Cohort_i1,
              by_Cohort_i2.1,
@@ -5314,9 +5317,9 @@ piglets_factors <- all_pvalues %>%
            collection_date != "all") 
 
 piglets_factors$grouping <- gsub("birth day - Duroc x Large white",
-                                 "bday - Duroc x Large white",piglets_factors$grouping)
-piglets_factors$grouping <- gsub("birth dday - Duroc x Landrace",
-                                 "bday - Duroc x Landrace",piglets_factors$grouping)
+                                 "birth day - DxLW",piglets_factors$grouping)
+piglets_factors$grouping <- gsub("birth day - Duroc x Landrace",
+                                 "birth day - DxL",piglets_factors$grouping)
 
 piglets_factors2 <- all_padj_Hommel %>%
   filter(grouping != "cohorts" &
@@ -5326,10 +5329,31 @@ piglets_factors2 <- all_padj_Hommel %>%
            collection_date != "all") 
 
 piglets_factors2$grouping <- gsub("birth day - Duroc x Large white",
-                                 "bday - Duroc x Large white",piglets_factors2$grouping)
-piglets_factors2$grouping <- gsub("birth dday - Duroc x Landrace",
-                                 "bday - Duroc x Landrace",piglets_factors2$grouping)
+                                 "birth day - DxLW",piglets_factors2$grouping)
+piglets_factors2$grouping <- gsub("birth day - Duroc x Landrace",
+                                 "birth day - DxL",piglets_factors2$grouping)
 
+
+unique(piglets_factors$grouping)
+unique(piglets_factors2$grouping)
+
+# order to show facets:
+piglets_factors$grouping <- factor(piglets_factors$grouping,
+                    levels=c("birth day",
+                             "birth day - DxL",
+                             "birth day - DxLW",
+                             "cross_breed",
+                             "maternal_sow",
+                             "nurse_sow",
+                             "line"))
+piglets_factors2$grouping <- factor(piglets_factors2$grouping,
+                                 levels=c("birth day",
+                                          "birth day - DxL",
+                                          "birth day - DxLW",
+                                          "cross_breed",
+                                          "maternal_sow",
+                                          "nurse_sow",
+                                          "line"))
 
 # alpha
 df <- piglets_factors %>%
