@@ -1,16 +1,17 @@
 #!/usr/bin/Rscript
-
+# 1_5_HPC.R:
+# collects contigs from .fa and merges with depth.txt files
 # language: R 
 # version this script was developed in: "R version 3.6.0 (2019-04-26)"
 # platform this script was developed in: "x86_64-apple-darwin15.6.0"
 
 #This script requires the following packages:
-#install.packages("base", repos = "http://cran.us.r-project.org")
+install.packages("base", repos = "http://cran.us.r-project.org")
 install.packages("data.table", repos = "http://cran.us.r-project.org", dependencies = TRUE)
 install.packages("dplyr", repos = "http://cran.us.r-project.org")
 install.packages("seqinr", repos = "http://cran.us.r-project.org")
 install.packages("stringr", repos = "http://cran.us.r-project.org")
-#install.packages("utils", repos = "http://cran.us.r-project.org")
+install.packages("utils", repos = "http://cran.us.r-project.org")
 
 #upload all libraries
 library(base)

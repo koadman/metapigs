@@ -1,5 +1,7 @@
 #!/usr/bin/Rscript
 
+# 6_HPC.R: 
+# merges depths from pigs together (incl. cohorts info)
 # language: R 
 # version this script was developed in: "R version 3.6.0 (2019-04-26)"
 # platform this script was developed in: "x86_64-apple-darwin15.6.0"
