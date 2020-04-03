@@ -6,6 +6,7 @@ library(robCompositions)
 library(microbiome)
 library(phyloseq)
 library(DESeq2)
+library(ggplot2)
 
 ######################################################################
 
@@ -84,7 +85,7 @@ taxa_mat <- as.matrix(taxa_mat)
 # ready 
 
 NROW(unique(rownames(taxa_mat)))
-View(taxa_mat_df)
+head(taxa_mat_df)
 
 ############################################################################################################
 
@@ -232,31 +233,34 @@ sample_variables(carbom)
 
 # BAR PLOT
 
-pdf("phyloseq_abundance_time.pdf")
+pdf("phyloseq_abundance_barplot.pdf")
 # BAR GRAPH - all samples 
 plot_bar(carbom, fill = "phylum") + 
-  geom_bar(aes(color=phylum, fill=phylum), stat="identity", position="stack")
+  geom_bar(aes(color=phylum, fill=phylum), stat="identity", position="stack") +
+  theme(axis.text.x = element_blank())
 # BAR GRAPH - by time point
 plot_bar(carbom, fill = "phylum") + 
   geom_bar(aes(color=phylum, fill=phylum), stat="identity", position="stack") +
-  facet_wrap(~date,scales="free_x")
+  facet_grid(~date,scales="free_x") +
+  theme(axis.text.x = element_blank())
 # BAR GRAPH - by time point - class
 plot_bar(carbom, fill = "class") + 
   geom_bar(aes(color=class, fill=class), stat="identity", position="stack") +
-  facet_wrap(~date,scales="free_x") 
+  facet_grid(~date,scales="free_x") +
+  theme(axis.text.x = element_blank())
 dev.off()
 
 ######################
 
 # HEATMAP
 
-plot_heatmap(carbom, method = "NMDS", distance = "bray")
+# plot_heatmap(carbom, method = "NMDS", distance = "bray")
 
 # keep only very abundant OTUs
 carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.20) > 0, TRUE)
 
 # HEATMAP with only most abundant OTUs
-plot_heatmap(carbom_abund, method = "NMDS", distance = "bray")
+# plot_heatmap(carbom_abund, method = "NMDS", distance = "bray")
 
 # HEATMAP with only most abundant OTUs - with names 
 plot_heatmap(carbom_abund, method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
@@ -267,7 +271,10 @@ plot_heatmap(carbom_abund, method = "MDS", distance = "(A+B-2*J)/(A+B-J)",
 
 # DIVERSITY 
 
-plot_richness(carbom, measures=c("Chao1", "Shannon"), x="cohort", color="date")
+pdf("phyloseq_diversity.pdf")
+plot_richness(carbom, measures=c("Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"), x="cohort", color="date")
+dev.off()
+
 
 ######################
 
@@ -275,28 +282,31 @@ plot_richness(carbom, measures=c("Chao1", "Shannon"), x="cohort", color="date")
 
 carbom.ord <- ordinate(carbom, "NMDS", "bray")
 
+pdf("phyloseq_ordination.pdf")
 plot_ordination(carbom, carbom.ord, type="samples", color="date", #shape= "cohort", 
                 title="OTUs") + 
   geom_point(size=2) +
   facet_wrap(~cohort)
+dev.off()
 
 ######################
 
 # NETWORK ANALYSIS 
 
 plot_net(carbom, distance = "(A+B-2*J)/(A+B)", type = "taxa", 
-         maxdist = 0.7, color="phylum", point_label="class")
+         maxdist = 0.7, color="phylum", point_label="class",
+         title = "taxa network - Bray-Curtis distance")
 
 # This is quite confusing. Let us make it more simple by using only major OTUs
-plot_net(carbom_abund, distance = "(A+B-2*J)/(A+B)", type = "samples", 
-         maxdist = 0.4, color="date", point_label="cohort") 
+plot_net(carbom_abund, distance = "(A+B-2*J)/(A+B)", type = "taxa", 
+         maxdist = 0.7, color="phylum", point_label="class",
+         title = "taxa network - Bray-Curtis distance") 
 
-
-
+pdf("phyloseq_network.pdf")
 ig = make_network(carbom_abund, type = "samples", distance = "bray", max.dist = 0.3)
 plot_network(ig, carbom_abund, color = "date", shape = "cohort", line_weight = 0.3, 
-             label = NULL)
-
+             label = NULL, title = "sample network - Bray-Curtis distance")
+dev.off()
 
 ############################################################################################################
 

@@ -1,6 +1,7 @@
 
 library(pheatmap)
 library(ggbiplot)
+library(robCompositions)
 
 
 setwd("/Users/12705859/Desktop/metapigs_dry/checkm/")
@@ -536,3 +537,4 @@ dev.off()
 
 
 #################################
+
