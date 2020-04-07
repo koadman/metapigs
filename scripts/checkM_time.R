@@ -2,6 +2,7 @@
 library(pheatmap)
 library(ggbiplot)
 library(robCompositions)
+library(splitstackshape)
 
 
 setwd("/Users/12705859/Desktop/metapigs_dry/checkm/")
