@@ -1,18 +1,40 @@
 
+# upload libraries
 library(readr)
 library(tidyverse)
 library(dplyr)
 library(robCompositions)
 library(microbiome)
 library(phyloseq)
-library(DESeq2)
 library(ggplot2)
+
+
+######################################################################
+
+basedir = "/Users/12705859/Desktop/metapigs_dry/"
+setwd("/Users/12705859/Desktop/metapigs_dry/checkm/")
+
+# input files: 
+# checkm/checkm_all_nearly
+# no_reps_all.csv (BINS COUNTS)
+
+
+# OUTPUTS:
+
+# cm_phylo_barplot.pdf
+# cm_phylo_heatmap.pdf
+# cm_phylo_ordination.pdf
+# cm_phylo_diversity.pdf
+# cm_phylo_network.pdf
+
 
 ######################################################################
 
 # counts data 
 
-no_reps_all <- read.csv("~/Desktop/bins_clustering_parsing_dataframes/no_reps_all.csv", 
+# upload bins with counts (sample-dereplicated- output of 7.R)
+
+no_reps_all <- read.csv(paste0(basedir,"no_reps_all.csv"), 
                         na.strings=c("","NA"),
                         check.names = FALSE,
                         header = TRUE)
@@ -23,22 +45,26 @@ no_reps_all$bin <- gsub(".fa","", no_reps_all$bin)
 
 ######################################################################
 
-# checkM data 
 
-# upload input 
-concatenated_checkm_nearly <- read_delim("/Users/12705859/Desktop/metapigs_dry/checkm/checkm_all_nearly", 
-                                         "\t", escape_double = FALSE, trim_ws = TRUE)
+# checkM output of NEARLY COMPLETE bins 
 
-NROW(concatenated_checkm_nearly)
+# upload file
+# careful cause we don't have the pigID to distinguish which bins to which sample
+checkm_all_nearly <- read_delim("checkm_all_nearly", 
+                                "\t", escape_double = FALSE, col_types = cols(pigid = col_character()), 
+                                trim_ws = TRUE)
+
+
 # some formatting 
-concatenated_checkm_nearly$Completeness <- as.numeric(concatenated_checkm_nearly$Completeness)
-concatenated_checkm_nearly$Contamination <- as.numeric(concatenated_checkm_nearly$Contamination)
+checkm_all_nearly$Completeness <- as.numeric(checkm_all_nearly$Completeness)
+checkm_all_nearly$Contamination <- as.numeric(checkm_all_nearly$Contamination)
 # remove rows containing NAs as in the original file these rows where headers
-concatenated_checkm_nearly <- na.omit(concatenated_checkm_nearly)
+checkm_all_nearly <- na.omit(checkm_all_nearly)
+
 
 # filter >90 <5 bins 
-concatenated_checkm_nearly <- dplyr::filter(concatenated_checkm_nearly, !grepl("Completeness",Completeness))
-newdata <- subset(concatenated_checkm_nearly, Completeness >= 90 & Contamination <= 5)
+checkm_all_nearly <- dplyr::filter(checkm_all_nearly, !grepl("Completeness",Completeness))
+newdata <- subset(checkm_all_nearly, Completeness >= 90 & Contamination <= 5)
 
 # rename cols to matching colnames between dataframes to merge  
 colnames(newdata)[colnames(newdata)=="pigid"] <- "pig"
@@ -51,7 +77,7 @@ newdata <- newdata %>%
 ######################################################################
 
 
-# create "OTU" table: a separate "OTU" identifier for each different taxa
+# create "gOTU" table: a separate "gOTU" identifier for each different taxa
 
 new <- newdata
 
@@ -64,17 +90,17 @@ head(new)
 NROW(new)
 
 new <- new %>%
-  group_by(all_taxa) %>%
-  mutate(OTU = paste0("OTU_",group_indices())) 
+  dplyr::group_by(all_taxa) %>%
+  dplyr::mutate(gOTU = paste0("gOTU_",group_indices())) 
 
 taxa_mat <- new[4:11] 
 
 NROW(taxa_mat)
-NROW(unique(taxa_mat$OTU))
+NROW(unique(taxa_mat$gOTU))
 taxa_mat <- taxa_mat %>%
   distinct()
 NROW(taxa_mat)
-NROW(unique(taxa_mat$OTU))
+NROW(unique(taxa_mat$gOTU))
 
 taxa_mat_df <- as.data.frame(taxa_mat)
 # to matrix 
@@ -94,10 +120,10 @@ head(df)
 NROW(df)
 
 NROW(unique(paste0(df$pig,df$date)))
-NROW(unique(paste0(df$OTU)))
+NROW(unique(paste0(df$gOTU)))
 
 # columns to be kept 
-keep <- c("cohort","pig","bin","date","value","OTU")
+keep <- c("cohort","pig","bin","date","value","gOTU")
 df1 <- df[ , (names(df) %in% keep)]
 
 # NA to zeros 
@@ -108,9 +134,9 @@ df1$date <- as.character(df1$date)
 df1$date[is.na(df1$date)] <- "no-t"
 
 NROW(df1)
-# sum up all the counts from the same sample (pig and date) that belong to the same OTU
+# sum up all the counts from the same sample (pig and date) that belong to the same gOTU
 df2 <- df1 %>%
-  group_by(pig,date,OTU) %>%
+  group_by(pig,date,gOTU) %>%
   dplyr::summarise(all_bins_value = sum(value))
 
 NROW(df2)
@@ -127,14 +153,14 @@ df3 <- df2 %>%
   pivot_wider(names_from = sample, values_from = all_bins_value, values_fill = list(all_bins_value = 0)) 
 
 # to matrix 
-otu_mat <- as.data.frame(df3)
-rownames(otu_mat) <- otu_mat[,1]
-otu_mat[,1] <- NULL
-otu_mat <- as.matrix(otu_mat)
-# ready to transform to OTU table
+gOTU_mat <- as.data.frame(df3)
+rownames(gOTU_mat) <- gOTU_mat[,1]
+gOTU_mat[,1] <- NULL
+gOTU_mat <- as.matrix(gOTU_mat)
+# ready to transform to gOTU table
 
-NROW(unique(rownames(otu_mat)))
-NROW(unique(colnames(otu_mat)))
+NROW(unique(rownames(gOTU_mat)))
+NROW(unique(colnames(gOTU_mat)))
 
 ############################################################################################################
 
@@ -184,22 +210,22 @@ sample_df$cohort  = factor(sample_df$cohort, levels=c("Control",
                                         "NeoC"))
 
 ############################################################################################################
-
+library(phyloseq)
 
 # create phyloseq object
 
-OTU = otu_table(otu_mat, taxa_are_rows = TRUE)
+gOTU = otu_table(gOTU_mat, taxa_are_rows = TRUE)
 TAX = tax_table(taxa_mat)
 samples = sample_data(sample_df)
 
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom
 
 
 ############################################################################################################
 
 # necessary to rarefy? if yes, I ll need to convert counts to integers first 
-#rarecurve(t(otu_table(carbom)), step=50, cex=0.5)
+#rarecurve(t(gOTU_table(carbom)), step=50, cex=0.5)
 
 # SUBSETTING phyloseq obejct
 
@@ -234,7 +260,7 @@ sample_variables(carbom)
 
 # BAR PLOT
 
-pdf("phyloseq_abundance_barplot.pdf")
+pdf("cm_phylo_barplot.pdf")
 # BAR GRAPH - all samples 
 plot_bar(carbom, fill = "phylum") + 
   geom_bar(aes(color=phylum, fill=phylum), stat="identity", position="stack") +
@@ -257,22 +283,24 @@ dev.off()
 
 # plot_heatmap(carbom, method = "NMDS", distance = "bray")
 
-# keep only very abundant OTUs
+# keep only very abundant gOTUs
 carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.20) > 0, TRUE)
 
-# HEATMAP with only most abundant OTUs
+# HEATMAP with only most abundant gOTUs
 # plot_heatmap(carbom_abund, method = "NMDS", distance = "bray")
 
-# HEATMAP with only most abundant OTUs - with names 
+# HEATMAP with only most abundant gOTUs - with names 
+pdf("cm_phylo_heatmap.pdf")
 plot_heatmap(carbom_abund, method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
-             taxa.label = "class", taxa.order = "class", 
+             taxa.label = "order", taxa.order = "order", 
              trans=NULL, low="beige", high="red", na.value="beige")
+dev.off()
 
 ######################
 
 # DIVERSITY 
 
-pdf("phyloseq_diversity.pdf")
+pdf("cm_phylo_diversity.pdf")
 plot_richness(carbom, measures=c("Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"), x="cohort", color="date")
 dev.off()
 
@@ -283,9 +311,9 @@ dev.off()
 
 carbom.ord <- ordinate(carbom, "NMDS", "bray")
 
-pdf("phyloseq_ordination.pdf")
+pdf("cm_phylo_ordination.pdf")
 plot_ordination(carbom, carbom.ord, type="samples", color="date", #shape= "cohort", 
-                title="OTUs") + 
+                title="gOTUs") + 
   geom_point(size=2) +
   facet_wrap(~cohort)
 dev.off()
@@ -298,55 +326,17 @@ plot_net(carbom, distance = "(A+B-2*J)/(A+B)", type = "taxa",
          maxdist = 0.7, color="phylum", point_label="class",
          title = "taxa network - Bray-Curtis distance")
 
-# This is quite confusing. Let us make it more simple by using only major OTUs
+# This is quite confusing. Let us make it more simple by using only major gOTUs
 plot_net(carbom_abund, distance = "(A+B-2*J)/(A+B)", type = "taxa", 
          maxdist = 0.7, color="phylum", point_label="class",
          title = "taxa network - Bray-Curtis distance") 
 
-pdf("phyloseq_network.pdf")
+pdf("cm_phylo_network.pdf")
 ig = make_network(carbom_abund, type = "samples", distance = "bray", max.dist = 0.3)
 plot_network(ig, carbom_abund, color = "date", shape = "cohort", line_weight = 0.3, 
              label = NULL, title = "sample network - Bray-Curtis distance")
 dev.off()
 
 ############################################################################################################
-
-# DESEQ2 (to be continued)
-
-library(microbiome)
-library(DESeq2)
-
-d <- carbom
-
-otu_table(d)
-tax_table(d)
-sample_data(d)
-
-# Start by converting phyloseq object to deseq2 format
-ds2 <- phyloseq_to_deseq2(d, ~ date + cohort)
-
-# Run DESeq2 analysis (all taxa at once!)
-dds <- DESeq(ds2)
-
-# Investigate results
-res <- results(dds)
-deseq.results <- as.data.frame(res)
-df <- deseq.results
-df$taxon <- rownames(df)
-df <- df %>% arrange(log2FoldChange, padj)
-
-# Print the results; flitered and sorted by pvalue and effectsize
-library(knitr)
-df <- df %>% filter(pvalue < 0.05 & log2FoldChange > 1.5) %>%
-  arrange(pvalue, log2FoldChange)
-kable(df, digits = 5)
-
-
-# For comparison purposes, assess significances and effect sizes based on Wilcoxon test.
-# https://microbiome.github.io/tutorials/all.html
-
-
-############################################################################################################
-
 
 

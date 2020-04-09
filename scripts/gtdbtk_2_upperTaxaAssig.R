@@ -1,12 +1,11 @@
 
 library(readr)
 library(splitstackshape)
-library(treemap)
+library(dplyr)
+library(data.table)
 
 setwd("~/Desktop/metapigs_dry/gtdbtk")
 basedir = "~/Desktop/metapigs_dry/gtdbtk/"
-
-
 
 # load gtdbtk assignments of the bins
 gtdbtk_bins <- read_delim(paste0(basedir,"all_concatenated_220_essential.kraken"), 
@@ -25,7 +24,6 @@ gtdbtk_bins <- cSplit(gtdbtk_bins, "X2","_")
 colnames(gtdbtk_bins) <- c("species","pig","bin")
 
 
-
 # load gtdb dictionary
 bac_arc <- read_csv(paste0(basedir,"bac120_arc122_dictionary"),col_names = TRUE)
 
@@ -41,7 +39,7 @@ NROW(unique(gtdbtk_bins$species)) # <- these are the numbers of unique bins
 NOTnamed_byspecies <- anti_join(gtdbtk_bins,bac_arc)
 colnames(NOTnamed_byspecies) <- c("genus","pig","bin")
 NROW(NOTnamed_byspecies) # total number of bins (out of 51175) not found as species as these were not classified as species to start with
-View(NOTnamed_byspecies)
+head(NOTnamed_byspecies)
 
 # GENUS
 bac_arcG <- bac_arc %>% 
@@ -126,6 +124,7 @@ all <- rbind(named_byspecies,
       named_byclass,
       named_byphylum,
       named_bydomain)
+
 NROW(all)
 
 NROW(gtdbtk_bins)-NROW(all)
@@ -133,73 +132,6 @@ NROW(gtdbtk_bins)-NROW(all)
 NROW(unique(paste0(gtdbtk_bins$pig,gtdbtk_bins$bin)))
 NROW(unique(paste0(all$pig,all$bin)))
 
-View(all)
 
-unique(all$phylum)
+fwrite(x = all, file = "gtdbtk_bins_completeTaxa")
 
-# this is how many bins have been classified at phylum level 
-NROW(which(!is.na(all$phylum)))/NROW(all)*100
-
-# this is how many bins have been classified at class level 
-NROW(which(!is.na(all$class)))/NROW(all)*100
-
-# this is how many bins have been classified at order level 
-NROW(which(!is.na(all$order)))/NROW(all)*100
-
-# this is how many bins have been classified at family level 
-NROW(which(!is.na(all$family)))/NROW(all)*100
-
-# this is how many bins have been classified at genus level 
-NROW(which(!is.na(all$genus)))/NROW(all)*100
-
-# this is how many bins have been classified at species level 
-NROW(which(!is.na(all$species)))/NROW(all)*100
-
-
-
-
-
-
-phylum_counts <- setDT(all)[, .(Freq = .N), by = .(phylum)]
-
-phylum_counts_most_ab <- phylum_counts %>%
-  filter(!Freq<2) %>%
-  mutate(perc=round(Freq/sum(Freq)*100,2)) %>%
-  # most abundant 
-  filter(perc>1.4)
-phylum_counts_least_ab <- phylum_counts %>%
-  filter(!Freq<2) %>%
-  mutate(perc=round(Freq/sum(Freq)*100,2)) %>%
-  # least abundant 
-  filter(perc<1.4)
-
-phylum_counts_most_ab$label <- paste(paste(phylum_counts_most_ab$phylum,
-                                           phylum_counts_most_ab$perc,sep = "\n"),"%")
-phylum_counts_least_ab$label <- paste(paste(phylum_counts_least_ab$phylum,
-                                           phylum_counts_least_ab$perc,sep = "\n"),"%")
-
-
-pdf("treemap_gtdbtk_phyla_new.pdf")
-# most abundant 
-treemap(phylum_counts_most_ab, #Your data frame object
-        index=c("label"),  #A list of your categorical variables
-        vSize = "Freq",  #This is your quantitative variable
-        type="index", #Type sets the organization and color scheme of your treemap
-        title="Phyla distribution from all MAGs (gtdbtk db) - most abundant", #Customize your title
-        fontsize.title = 15 #Change the font size of the title
-        #fontsize.labels = 8
-)
-# least abundant 
-treemap(phylum_counts_least_ab, #Your data frame object
-        index=c("label"),  #A list of your categorical variables
-        vSize = "Freq",  #This is your quantitative variable
-        type="index", #Type sets the organization and color scheme of your treemap
-        title="Phyla distribution from all MAGs (gtdbtk db) - least abundant", #Customize your title
-        fontsize.title = 15 #Change the font size of the title
-        #fontsize.labels = 8
-)
-dev.off()
-
-
-
-phylum_counts <- setDT(all)[, .(Freq = .N), by = .(order)]

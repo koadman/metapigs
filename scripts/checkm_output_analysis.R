@@ -11,32 +11,54 @@ library(treemap)
 library(dplyr)
 library(data.table)
 library(readxl)
+library(pheatmap)
+library(robCompositions)
 
 basedir = "/Users/12705859/Desktop/metapigs_dry/"
 setwd("/Users/12705859/Desktop/metapigs_dry/checkm/")
 
 # input files: 
-# all_checkm_output.tsv
+# all_checkm_output.tsv 
 # checkm/checkm_all_nearly
-# no_reps_all.csv
-# pigTrial_GrowthWtsGE.hlsx.xlsx
+# no_reps_all.csv (BINS COUNTS)
 
 
-# output files: 
-# no_reps_all.csv
-# 
+# OUTPUTS:
+
+# from all_checkm_output :
+#  - cm_Compl_vs_contam.pdf
+#  - cm_numbers.txt
+#  - cm_contigs_distribution.pdf
+#  - cm_scaffolds_predicted_genes.pdf
+
+# from BINS COUNTS + checkm_all_nearly: 
+# based on bins frequency: 
+## - cm_treemap_phylum.pdf
+## - cm_treemap_class.pdf
+## - cm_treemap_order.pdf
+## - cm_numbers.txt
+# based on (counts) log10 relative abundance: 
+## - cm_parallel_coordinates_phyla.pdf
+# based on (counts) relative abundance: 
+## - cm_rel_ab_phyla.pdf
+## - cm_rel_ab_phyla_cohorts.pdf
+## - cm_balloonplot_phyla.pdf
+## - cm_balloonplot_phyla_cohorts.pdf
+# based on (counts) cenLR relative abundance: 
+## - cm_PCA.pdf
+
+
 
 ######################################################################
 
 # template to collect and store checkM info 
 
-sink("checkm_numbers.txt")
+sink("cm_numbers.txt")
 start_message <- " ########################## CHECKM ANALYSIS ########################## "
 start_message
 sink()
 
 ######################################################################
-
 
 # checkM output of ALL bins 
 
@@ -96,17 +118,48 @@ df_70_10$type <- ifelse(df_70_10$Completeness >=90 & df_70_10$Contamination <=5,
 # removing data less than <80 Complete to plot neatly
 df_80_10 <- df_70_10 %>%
   filter(Completeness >= 80)
+NROW(checkm_all_nearly)
+df_80_10$type <- gsub("high",
+                      paste0("Nearly complete genomes: ",
+                             NROW(checkm_all_nearly),
+                             " (",
+                             round(NROW(checkm_all_nearly)/NROW(all_checkm_output)*100,2),
+                             "%)"),
+                      df_80_10$type)
 
-pdf("checkm_Compl_vs_Contam.pdf")
+medium_quality_almost <- df_70_10 %>%
+  filter(Completeness >= 80) %>%
+  filter(Completeness <= 100) %>%
+  filter(Contamination <= 10)
+medium_quality <- NROW(medium_quality_almost)-NROW(checkm_all_nearly)
+
+df_80_10$type <- gsub("low",
+                      paste0("Medium quality genomes: ",
+                             medium_quality,
+                             " (",
+                             round(medium_quality/NROW(all_checkm_output)*100,2),
+                             "%)"),
+                      df_80_10$type)
+
+
+# Assessment of genome quality
+pdf("cm_Compl_vs_Contam.pdf")
 ggplot(df_80_10, aes(x=Completeness, y=Contamination)) + 
   geom_point(aes(color=factor(type)),size=0.1,shape=21)+
   ylab("Contamination (%)")+
   xlab("Completeness (%)")+
-  xlim(70,100)+
+  xlim(75,100)+
   theme_minimal()+
   theme(axis.title.x = element_text(),
-        axis.title.y = element_text())
+        axis.title.y = element_text(),
+        legend.title = element_blank())
 dev.off()
+
+# similar to https://www.nature.com/articles/s41564-017-0012-7#Sec2
+
+
+# library(scales)
+# scales::hue_pal()(3)
 
 # nearly complete bins 
 df_90 <- all_checkm_output %>%
@@ -120,7 +173,7 @@ df_99 <- all_checkm_output %>%
 df_perfect <- df_99 %>%
   filter(Contamination < 0.1)
 
-sink(file = "checkm_numbers.txt", 
+sink(file = "cm_numbers.txt", 
      append = TRUE, type = c("output"))
 paste0("Total number of bins is:   ",
        NROW(all_checkm_output))
@@ -145,28 +198,106 @@ df_90_5$`N50 (scaffolds)` <- as.numeric(df_90_5$`N50 (scaffolds)`)
 df_90_5$`# contigs` <- as.numeric(df_90_5$`# contigs`)
 
 
-pdf("checkm_contigs_distribution.pdf")
+pdf("cm_contigs_distribution.pdf")
 # Distribution of contig number across bins 
 hist(df_90_5$`# contigs`, 
-     main = "Distribution of # of contigs across nearly complete bins (>=90% <=5%)",
+     main = "Distribution of # of contigs across nearly complete genomes",
      breaks=100,
      xlab = "contigs")
 hist(log10(df_90_5$`# contigs`), 
-     main = "Distribution of # of contigs across nearly complete bins (>=90% <=5%) - log scale",
+     main = "Distribution of # of contigs across nearly complete genomes",
      breaks=100,
      xlab = "log10(contigs)")
 hist(df_90_5$`N50 (scaffolds)`, 
-     main = "Distribution of N50 (scaffolds) across nearly complete bins (>=90% <=5%)",
+     main = "Distribution of N50 (scaffolds) across nearly complete genomes",
      breaks=100,
      xlab = "log10(N50 scaffolds)",
      xlim=c(0,3e+05))
 hist(log10(df_90_5$`N50 (scaffolds)`), 
-     main = "Distribution of N50 (scaffolds) across nearly complete bins (>=90% <=5%) - log scale",
+     main = "Distribution of N50 (scaffolds) across nearly complete genomes",
      breaks=100,
      xlab = "log10(N50 scaffolds)",
      xlim=c(3.5,6))
 dev.off()
 
+
+new <- all_checkm_output %>%
+  select(`Bin Id`,`# genomes`,Completeness,Contamination, `# scaffolds`,`# predicted genes`)
+new$id <- paste0(new$`Bin Id`,"_",new$`# genomes`)
+
+
+new$`# scaffolds` <- as.numeric(new$`# scaffolds`)
+new$`# predicted genes` <- as.numeric(new$`# predicted genes`)
+
+
+new1 <- new %>%
+  filter(Completeness >= 50) %>%
+  filter(Completeness < 70) %>%
+  filter(Contamination <= 10) %>%
+  mutate(type="Compl50-70_Contam<10")
+
+new2 <- new %>%
+  filter(Completeness >= 70) %>%
+  filter(Completeness < 90) %>%
+  filter(Contamination <= 10) %>%
+  mutate(type="Compl70-90_Contam<10")
+
+new3 <- new %>%
+  filter(Completeness >= 90) %>%
+  filter(Contamination <= 10) %>%
+  filter(Contamination > 5) %>%
+  mutate(type="Compl>90_Contam5-10")
+
+new4 <- new %>%
+  filter(Completeness >= 90) %>%
+  filter(Contamination <= 5) %>%
+  mutate(type="Compl>90_Contam<5")
+
+new0 <- new %>%
+  filter(Completeness > 50) %>%
+  filter(Contamination > 10) %>%
+  mutate(type="Compl>50_Contam>10")
+
+new00 <- new %>%
+  filter(Completeness < 50) %>%
+  mutate(type="Compl<50")
+
+new_tot <- rbind(new00,new0,new1,new2,new3,new4)
+NROW(new_tot)
+NROW(all_checkm_output)
+
+new23 <- rbind(new2,new3)
+
+new23$type <- "Medium quality"
+
+new1$type <- "Partial"
+
+new4$type <- "Nearly complete"
+
+new_plot <- rbind(new1,new23,new4)
+
+new_plot$type  = factor(new_plot$type, levels=c("Nearly complete",
+                                                "Medium quality",
+                                                "Partial"))
+
+pdf("cm_scaffolds_predicted_genes.pdf")
+ggplot(data= new_plot, aes(x=`# scaffolds`, fill=type)) +
+  geom_histogram(alpha=0.6, position = 'stack', binwidth=15) +
+  scale_fill_manual(values=c("#45B4B8", #blue
+                             "#F8766D", #red
+                             "#6C6C6C")) + #grey
+  theme_bw() +
+  labs(fill="") +
+  lims(x=c(0,750))
+ggplot(data= new_plot, aes(x=`# predicted genes`, fill=type)) +
+  geom_histogram(alpha=0.6, position = 'stack', binwidth=15) +
+  scale_fill_manual(values=c("#45B4B8", #blue
+                             "#F8766D", #red
+                             "#6C6C6C")) + #grey
+  theme_bw() +
+  labs(fill="") +
+  lims(x=c(0,5000))
+dev.off()
 
 
 
@@ -190,7 +321,7 @@ family <- filter(nn, grepl('f__', taxa))
 genus <- filter(nn, grepl('g__', taxa))
 species <- filter(nn, grepl('s__', taxa))
 
-sink(file = "checkm_numbers.txt", 
+sink(file = "cm_numbers.txt", 
      append = TRUE, type = c("output"))
 paste0("######################################################################")
 paste0("Of the nearly complete bins: ")
@@ -231,7 +362,7 @@ Verrucomicrobia <- filter(nn, grepl('Verrucomicrobia', taxa))
 
 
 
-sink(file = "checkm_numbers.txt", 
+sink(file = "cm_numbers.txt", 
      append = TRUE, type = c("output"))
 paste0("######################################################################")
 paste0(" Phyla distribution : ")
@@ -329,7 +460,7 @@ counts <- counts %>%
 
 counts$label <- paste(paste(counts$taxa_2,counts$perc,sep = "\n"),"%")
 
-pdf("treemap_phyla.pdf")
+pdf("cm_treemap_phyla.pdf")
 treemap(counts, #Your data frame object
         index=c("label"),  #A list of your categorical variables
         vSize = "Freq",  #This is your quantitative variable
@@ -361,7 +492,7 @@ counts <- counts %>%
 
 counts$label <- paste(paste(counts$taxa_3,counts$perc,sep = "\n"),"%")
 
-pdf("treemap_class.pdf")
+pdf("cm_treemap_class.pdf")
 treemap(counts, #Your data frame object
         index=c("label"),  #A list of your categorical variables
         vSize = "Freq",  #This is your quantitative variable
@@ -393,7 +524,7 @@ counts <- counts %>%
 
 counts$label <- paste(paste(counts$taxa_4,counts$perc,sep = "\n"),"%")
 
-pdf("treemap_order.pdf")
+pdf("cm_treemap_order.pdf")
 treemap(counts, #Your data frame object
         index=c("label"),  #A list of your categorical variables
         vSize = "Freq",  #This is your quantitative variable
@@ -423,7 +554,7 @@ for_parallel_coo[5] <- lapply(
   replacement = "", 
   fixed = TRUE)
 
-# general time change - unrooted
+# general time change 
 summs_for_parallel_coo <- for_parallel_coo %>% group_by(taxa_2,date) %>% 
   dplyr::summarise(min = min(value)
                    ,max = max(value)
@@ -433,20 +564,9 @@ summs_for_parallel_coo <- for_parallel_coo %>% group_by(taxa_2,date) %>%
                    ,q25 = quantile(value, .25)
                    ,q75 = quantile(value, .75)) 
 
-pdf("parallel_coordinates_phyla.pdf")
-ggplot(summs_for_parallel_coo, aes(x=date, y=log10(mean), group=taxa_2, color=taxa_2)) + 
-  geom_line() + geom_point(size=0.8)+
-  theme_bw()+
-  theme(legend.position="right")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(x = "collection date",
-       y = "log10 of the mean",
-       color = "Phylum")  +
-  theme(legend.title = element_text()) 
-dev.off()
 
 
-pdf("rel_ab_phyla.pdf")
+pdf("cm_rel_ab_phyla.pdf")
 ggplot(summs_for_parallel_coo, aes(fill=taxa_2, y=mean, x=date)) + 
   geom_bar(position="fill", stat="identity") +
   theme(axis.title.y = element_text(),
@@ -466,7 +586,7 @@ summs_for_parallel_coo_cohorts <- for_parallel_coo %>% group_by(taxa_2,date,coho
                    ,q25 = quantile(value, .25)
                    ,q75 = quantile(value, .75)) 
 
-pdf("rel_ab_phyla_cohorts.pdf")
+pdf("cm_rel_ab_phyla_cohorts.pdf")
 ggplot(summs_for_parallel_coo_cohorts, aes(fill=taxa_2, y=mean, x=date)) + 
   geom_bar(position="fill", stat="identity")+
   facet_wrap(~cohort) +
@@ -489,198 +609,345 @@ dev.off()
 
 ######################################################################################################
 
-library(robCompositions)
+# PHYLA composition change through time: PARALLEL COORDINATES 
 
-
-summs_for_parallel_coo <- for_parallel_coo %>% group_by(taxa_2,date) %>% 
-  dplyr::summarise(value = sum(value))
-
-
-test <- summs_for_parallel_coo %>%
-  dplyr::select(taxa_2,date,value) %>%
-  pivot_wider(names_from = taxa_2, values_from = value, values_fill = list(value = 0))
-
-test[,11] <- NULL
-labels <- test[,1]
-
-test <- cenLR(test[,-1])
-test <- test$x.clr
-
-test <- as.data.frame(test)
-test <- cbind(test,labels)
-rownames(test) <- test[,10]
-test[,10] <- NULL
-test <- as.table(as.matrix(test))
-
-balloonplot(t(test), main =NULL, xlab ="", ylab="",
-            label = FALSE, show.margins = FALSE,
-            colsrt=40, colmar=2,
-            text.size=0.7)
-
-
-
-# Lib size normalization
-# 
-# Balloon plots per cohort
-
-# lib size normalization
+# keep only rows that contain phyla info, discard others; also exclude mothers
 df1 <- df %>%
-  group_by(pig,date) %>%
-  mutate(value=value/sum(value)) %>% 
-  select(pig, date, cohort,taxa_2, value)
+  dplyr::select(cohort,pig,bin,date,taxa_2,value) %>%
+  filter(!cohort=="Mothers")
 
-# omit bins that don't contain phyla info
+# remove "p__" before phylum 
+df1[5] <- lapply(
+  df1[5], 
+  gsub, 
+  pattern = "p__", 
+  replacement = "", 
+  fixed = TRUE)
+
 df1 <- na.omit(df1)
 
-# aggregate: mean of pig-bin-date values from same cohort
-x <- df1 %>%
-  group_by(cohort, date, taxa_2) %>%
-  summarise_each(funs(mean=mean(., na.rm = TRUE)))
-x$pig_mean <- NULL
-# now we have one value for each phylum-cohort-date
-length(unique(paste0(x$cohort,x$date)))
-# it's 6 cohorts times 10 timepoints, correct. 
+df2 <- df1
 
-# each cohort+date is a group : 
-x$group <- paste0(x$cohort,"_",x$date) 
-x$cohort <- NULL
-x$date <- NULL
-# remove the p__ suffix
-x$taxa_2 <- gsub("p__","",x$taxa_2)
-x
+# lib size normalization
+df2 <- df2 %>% 
+  group_by(pig,date) %>% 
+  mutate(norm_value = (value/sum(value))) %>% 
+  dplyr::select(pig, date, taxa_2, value, norm_value)
 
-# normalize by group 
-x <- x %>% 
-  group_by(group) %>% mutate(value_mean = value_mean/sum(value_mean)*100)
-
-View(x)
-x2 <- x %>%
-  pivot_wider(names_from = taxa_2, values_from = value_mean)
-
-x2[is.na(x2)] <- 0
-
-# selection of cohorts to plot individual balloon plots (1 per cohort)
-# cohorts selection
-x3_1 <- x2[grepl("Neomycin", x2[["group"]]), ]
-rownames(x3_1) <- x3_1$group
-x3_1$group <- NULL
-dt_1 <- as.table(as.matrix(x3_1))
-# cohorts selection
-x3_2 <- x2[grepl("NeoD", x2[["group"]]), ]
-rownames(x3_2) <- x3_2$group
-x3_2$group <- NULL
-dt_2 <- as.table(as.matrix(x3_2))
-# cohorts selection
-x3_3 <- x2[grepl("NeoC", x2[["group"]]), ]
-rownames(x3_3) <- x3_3$group
-x3_3$group <- NULL
-x3_3[is.na(x3_3)] <- 0
-dt_3 <- as.table(as.matrix(x3_3))
-
-# cohorts selection
-x3_4 <- x2[grepl("Control", x2[["group"]]), ]
-rownames(x3_4) <- x3_4$group
-x3_4$group <- NULL
-dt_4 <- as.table(as.matrix(x3_4))
-# cohorts selection
-x3_5 <- x2[grepl("Dscour", x2[["group"]]), ]
-rownames(x3_5) <- x3_5$group
-x3_5$group <- NULL
-dt_5 <- as.table(as.matrix(x3_5))
-# cohorts selection
-x3_6 <- x2[grepl("ColiGuard", x2[["group"]]), ]
-rownames(x3_6) <- x3_6$group
-x3_6$group <- NULL
-x3_6[is.na(x3_6)] <- 0
-dt_6 <- as.table(as.matrix(x3_6))
-
-
-pdf("phylum_neo.pdf")
-layout(matrix(c(1:3), 3, 1) )
-par(mar = c(0, 4.1,2.5, 2.1),oma = c(2, 0, 2, 0))
-balloonplot(t(dt_1), main =NULL, xlab ="", ylab="",
-            label = FALSE, show.margins = FALSE,
-            colsrt=40, colmar=2,
-            text.size=0.7)
-balloonplot(t(dt_2), main =NULL, xlab ="", ylab="",
-            label = FALSE, show.margins = FALSE,
-            colsrt=40, colmar=2,
-            text.size=0.7)
-balloonplot(t(dt_3), main =NULL, xlab ="", ylab="",
-            label = FALSE, show.margins = FALSE,
-            colsrt=40, colmar=2,
-            text.size=0.7)
-
-dev.off()
-
-
-pdf("phylum_ctrl.pdf")
-layout(matrix(c(1:3), 3, 1) )
-par(mar = c(0, 4.1,2.5, 2.1),oma = c(2, 0, 2, 0))
-balloonplot(t(dt_4), main =NULL, xlab ="", ylab="",
-            label = FALSE, show.margins = FALSE,
-            colsrt=40, colmar=2,
-            text.size=0.7)
-balloonplot(t(dt_5), main =NULL, xlab ="", ylab="",
-            label = FALSE, show.margins = FALSE,
-            colsrt=40, colmar=2,
-            text.size=0.7)
-balloonplot(t(dt_6), main =NULL, xlab ="", ylab="",
-            label = FALSE, show.margins = FALSE,
-            colsrt=40, colmar=2,
-            text.size=0.7)
-dev.off()
-
-
-
-
-
-####################################
-
-#balloon plot all cohorts - time
-
-NROW(unique(paste0(df$pig,df$bin)))
-head(df)
-
-# normalization for library size 
-df1 <- df %>%
-  group_by(pig,date) %>%
-  mutate(norm_value=value/sum(value)) %>% 
-  select(pig, date, taxa_2, value, norm_value) 
-
-# sum all the norm values that fall within same pig,date,taxa_2
-df2 <- df1 %>%
+# sum all the norm values that fall within same pig,date,phylum:
+df2 <- df2 %>%  
   group_by(pig,date,taxa_2) %>%
   dplyr::summarise(indiv_sum = sum(norm_value))
-  
-# take the mean of each taxa by date 
-df3 <- df2 %>%
+
+# take the mean of each phylum by date:
+df2 <- df2 %>%
   group_by(taxa_2,date) %>%
   dplyr::summarize(mean = mean(indiv_sum, na.rm=TRUE)) %>%
   mutate(perc=mean*100) %>%
-  select(taxa_2,date,perc)
-
-# now we have one value for each phylum-cohort-date (initial df same as last df)
-length(unique(paste0(df$taxa_2,df$date))) == NROW(x)
+  dplyr::select(taxa_2,date,perc)
 
 
-df4 <- df3 %>%
-  pivot_wider(names_from = taxa_2, values_from = perc)
+df2 <- as.data.frame(df2)
 
+pdf("cm_parallel_coordinates_phyla.pdf")
+ggplot(df2, aes(x=date, y=log10(perc), group=taxa_2, color=taxa_2)) + 
+  geom_line() + geom_point(size=0.8)+
+  theme_bw()+
+  theme(legend.position="right")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "collection date",
+       y = "relative abundance (log10)",
+       color = "Phylum")  +
+  theme(legend.title = element_text()) 
+dev.off()
+
+
+######################################################################################################
+
+# PHYLA composition change through time: BALLOONPLOTS - all
+
+
+df3 <- df2
+# pivot wider
+df3 <- df3 %>%
+  dplyr::select(taxa_2,date,perc) %>%
+  pivot_wider(names_from = taxa_2, values_from = perc, values_fill = list(perc = 0))
+
+df4 <- df3
 df4 <- as.data.frame(df4)
-rownames(df4) <- df4$date
-df4$date <- NULL
-
+rownames(df4) <- df4[,1]
+df4[,1] <- NULL
 m <- as.table(as.matrix(df4))
 
-pdf("phyla_time_balloon.pdf")
-balloonplot(t(m), main = "Phyla distribution from (CheckM) nearly complete bins over time", xlab ="", ylab="",
+pdf("cm_balloonplot_phyla.pdf")
+balloonplot(t(m), main =NULL, xlab ="", ylab="",
             label = FALSE, show.margins = FALSE,
             colsrt=40, colmar=2,
             text.size=0.7)
 dev.off()
 
 
+######################################################################################################
+
+# PHYLA composition change through time: HEATMAP - all
+
+pdf("cm_heatmap_phyla.pdf")
+pheatmap(t(m), display_numbers = T,
+         cluster_rows = F, cluster_cols = F, fontsize_number = 8,
+         fontsize_row = 8)
+dev.off()
+
+
+
+
+######################################################################################################
+
+# PHYLA composition change through time: BALLOONPLOTS - by cohort
+
+df2 <- df1
+
+# splitting into multiple dataframes (by cohort)
+multi_df <- split( df2 , f = df2$cohort )
+
+# construct an empty dataframe to build on 
+final <- data.frame(
+  pig = character(),
+  bin = character(),
+  date = character(),
+  taxa_2 = character(),
+  value = character(),
+  stringsAsFactors = FALSE
+)
+
+
+for (single_df in multi_df) {
+  
+  single_df <- as.data.frame(single_df)
+  coho <- as.character(single_df$cohort[1])
+  
+  # lib size normalization
+  df2 <- single_df %>% 
+    group_by(pig,date) %>% 
+    mutate(norm_value = (value/sum(value))) %>% 
+    dplyr::select(pig, date, taxa_2, value, norm_value)
+  
+  # sum all the norm values that fall within same pig,date,phylum:
+  df2 <- df2 %>%  
+    group_by(pig,date,taxa_2) %>%
+    dplyr::summarise(indiv_sum = sum(norm_value))
+  
+  # take the mean of each phylum by date:
+  df2 <- df2 %>%
+    group_by(taxa_2,date) %>%
+    dplyr::summarize(mean = mean(indiv_sum, na.rm=TRUE)) %>%
+    mutate(perc=mean*100) %>%
+    dplyr::select(taxa_2,date,perc)
+  
+  df2 <- as.data.frame(df2)
+  df2$cohort <- coho
+  
+  final <- rbind(final,df2)
+  
+}
+
+pdf("cm_balloonplot_phyla_cohorts.pdf")
+layout(matrix(c(1:3), 3, 1) )
+par(mar = c(0, 4.1,2.5, 2.1),oma = c(2, 0, 2, 0))
+# Control
+fin <- final %>%
+  dplyr::filter(cohort=="Control") %>%
+  dplyr::select(taxa_2,date,perc) %>%
+  pivot_wider(names_from = taxa_2, values_from = perc, values_fill = list(perc = 0))
+fin <- as.data.frame(fin)
+rownames(fin) <- fin[,1]
+fin[,1] <- NULL
+m <- as.table(as.matrix(fin))
+balloonplot(t(m), main =NULL, xlab ="", ylab="",
+            label = FALSE, show.margins = FALSE,
+            colsrt=40, colmar=2,
+            text.size=0.7)
+# DScour
+fin <- final %>%
+  dplyr::filter(cohort=="DScour") %>%
+  dplyr::select(taxa_2,date,perc) %>%
+  pivot_wider(names_from = taxa_2, values_from = perc, values_fill = list(perc = 0))
+fin <- as.data.frame(fin)
+rownames(fin) <- fin[,1]
+fin[,1] <- NULL
+m <- as.table(as.matrix(fin))
+balloonplot(t(m), main =NULL, xlab ="", ylab="",
+            label = FALSE, show.margins = FALSE,
+            colsrt=40, colmar=2,
+            text.size=0.7)
+# ColiGuard
+fin <- final %>%
+  dplyr::filter(cohort=="ColiGuard") %>%
+  dplyr::select(taxa_2,date,perc) %>%
+  pivot_wider(names_from = taxa_2, values_from = perc, values_fill = list(perc = 0))
+fin <- as.data.frame(fin)
+rownames(fin) <- fin[,1]
+fin[,1] <- NULL
+m <- as.table(as.matrix(fin))
+balloonplot(t(m), main =NULL, xlab ="", ylab="",
+            label = FALSE, show.margins = FALSE,
+            colsrt=40, colmar=2,
+            text.size=0.7)
+layout(matrix(c(1:3), 3, 1) )
+par(mar = c(0, 4.1,2.5, 2.1),oma = c(2, 0, 2, 0))
+# Neomycin
+fin <- final %>%
+  dplyr::filter(cohort=="Neomycin") %>%
+  dplyr::select(taxa_2,date,perc) %>%
+  pivot_wider(names_from = taxa_2, values_from = perc, values_fill = list(perc = 0))
+fin <- as.data.frame(fin)
+rownames(fin) <- fin[,1]
+fin[,1] <- NULL
+m <- as.table(as.matrix(fin))
+balloonplot(t(m), main =NULL, xlab ="", ylab="",
+            label = FALSE, show.margins = FALSE,
+            colsrt=40, colmar=2,
+            text.size=0.7)
+# NeoD
+fin <- final %>%
+  dplyr::filter(cohort=="NeoD") %>%
+  dplyr::select(taxa_2,date,perc) %>%
+  pivot_wider(names_from = taxa_2, values_from = perc, values_fill = list(perc = 0))
+fin <- as.data.frame(fin)
+rownames(fin) <- fin[,1]
+fin[,1] <- NULL
+m <- as.table(as.matrix(fin))
+balloonplot(t(m), main =NULL, xlab ="", ylab="",
+            label = FALSE, show.margins = FALSE,
+            colsrt=40, colmar=2,
+            text.size=0.7)
+# NeoC
+fin <- final %>%
+  dplyr::filter(cohort=="NeoC") %>%
+  dplyr::select(taxa_2,date,perc) %>%
+  pivot_wider(names_from = taxa_2, values_from = perc, values_fill = list(perc = 0))
+fin <- as.data.frame(fin)
+rownames(fin) <- fin[,1]
+fin[,1] <- NULL
+m <- as.table(as.matrix(fin))
+balloonplot(t(m), main =NULL, xlab ="", ylab="",
+            label = FALSE, show.margins = FALSE,
+            colsrt=40, colmar=2,
+            text.size=0.7)
+dev.off()
+
+
+
+######################################################################################################
+######################################################################################################
+
+# Principal component analysis: clustering of bins based on phyla with time (labels per cohort)
+
+
+
+
+# I hereby select taxa_2 only (corresponds to phylum) and remove any row where no phylum was resolved
+df1 <- df %>%
+  select(pig,bin,date,value,taxa_2,cohort)
+
+df1 <- as.data.frame(na.omit(df1))
+
+# remove "p__" before phylum
+df1[5] <- lapply(
+  df1[5],
+  gsub,
+  pattern = "p__",
+  replacement = "",
+  fixed = TRUE)
+
+unique(df1$taxa_2)
+
+
+#################################
+# STEP 1.
+
+# normalization for library size 
+df2 <- df1 %>%
+  dplyr::group_by(pig,date) %>%
+  dplyr::mutate(norm_value=value/sum(value)) 
+NROW(df1)
+head(df1)
+
+# # test:
+# test <- df2 %>%
+#   filter(pig=="14159") %>%
+#   filter(date=="t0") %>%
+#   dplyr::mutate(norm_value=value/sum(value))
+# head(test)
+# sum(test$norm_value)
+
+#################################
+# STEP 2.
+
+# sum all the norm values that fall within same pig,date,taxa_2
+df3 <- df2 %>%
+  dplyr::group_by(pig,date,taxa_2) %>%
+  dplyr::summarise(indiv_sum = sum(norm_value))
+head(df3)
+
+# # test: 
+# test2 <- test %>%
+#   group_by(taxa_2) %>%
+#   dplyr::summarise(indiv_sum = sum(norm_value))
+# head(test2)
+# sum(test2$indiv_sum)
+
+#################################
+# STEP 3.
+
+# long to wide format
+df4 <- df3 %>%
+  pivot_wider(names_from = taxa_2, values_from = indiv_sum, values_fill = list(indiv_sum = 0)) 
+head(df4)
+
+# # test: 
+# test3 <- test2 %>%
+#   pivot_wider(names_from = taxa_2, values_from = indiv_sum, values_fill = list(indiv_sum = 0))
+# head(test3)
+# sum(test3[1,])
+
+
+#################################
+
+# STEP 4. PCA, dots are cohort_date 
+
+# get a quick cohorts to pig table 
+cohorts <- df %>% dplyr::select(cohort,pig) %>% distinct()
+
+# join the cohort info
+df5 <- inner_join(df4,cohorts) %>%
+  dplyr::mutate(coho_date_group=paste0(date,"_",cohort)) 
+df5
+
+# 
+df6 <- df5 %>% 
+  dplyr::group_by(coho_date_group) %>% 
+  dplyr::summarise_if(is.numeric, funs(sum))
+df6
+
+
+rowSums(df6[,-1])
+df6_eclr <- cenLR(df6[,-1])
+clr_norm_df <- df6_eclr$x.clr
+
+rownames(clr_norm_df) <- df6$coho_date_group
+
+# if I set scale. = FALSE I get a downfacing horseshoe
+df4.pca <- prcomp(clr_norm_df, center = TRUE,scale. = TRUE)
+summary(df4.pca)
+
+substr(rownames(clr_norm_df),1,3)
+
+pdf("cm_PCA.pdf")
+ggbiplot(df4.pca,labels=rownames(clr_norm_df),groups=substr(rownames(clr_norm_df),1,3),ellipse=TRUE,choices = (1:2))
+dev.off()
+
+
+#################################
 
 
 
