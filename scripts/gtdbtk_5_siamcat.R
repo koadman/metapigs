@@ -90,18 +90,37 @@ head(df)
 # but if you wnat to select either family, species, genus, 
 # you d run into problems of non-uniqueness. 
 # way around it: add the gOTU_ID to each of the taxonomic levels 
-df <- df %>%
-  dplyr::mutate(species=paste0(species," ",gOTU)) %>%
-  dplyr::mutate(genus=paste0(genus," ",gOTU)) %>%
-  dplyr::mutate(family=paste0(family," ",gOTU)) %>%
-  dplyr::mutate(order=paste0(order," ",gOTU)) %>%
-  dplyr::mutate(class=paste0(class," ",gOTU)) %>%
-  dplyr::mutate(phylum=paste0(phylum," ",gOTU)) %>%
-  dplyr::mutate(domain=paste0(domain," ",gOTU))
-  
+
+# df <- df %>%
+#   dplyr::mutate(species=paste0(species," ",gOTU)) %>%
+#   dplyr::mutate(genus=paste0(genus," ",gOTU)) %>%
+#   dplyr::mutate(family=paste0(family," ",gOTU)) %>%
+#   dplyr::mutate(order=paste0(order," ",gOTU)) %>%
+#   dplyr::mutate(class=paste0(class," ",gOTU)) %>%
+#   dplyr::mutate(phylum=paste0(phylum," ",gOTU)) %>%
+#   dplyr::mutate(domain=paste0(domain," ",gOTU))
+
+substrRight <- function(x, n){
+  substr(x, nchar(x)-n+1, nchar(x))
+}
+
+#df$phylum <- paste0(factor(substr(df$phylum, start = 1, stop = 4)),"#",substrRight(df$phylum, 1))
+
+df$order <- factor(substr(df$order, start = 1, stop = 6))
+
+df$genus <- factor(substr(df$genus, start = 1, stop = 8))
+
+df$gOTU <- gsub("gOTU_","", df$gOTU)
 
 
+df$gOTU = paste0(df$phylum,"__",df$order,"__",df$genus,"__",df$gOTU)
 
+
+# df$gOTU = paste0(df$genus,"__",df$gOTU)
+
+head(df)
+
+unique(df$gOTU)
 ######################################################################
 
 # CREATE COUNTS TABLE (like feat.crc.zeller)
@@ -115,20 +134,21 @@ df2 <- df1 %>%
   dplyr::select(-value)
 
 head(df2)
+
 colnames(df2)
 
 # sum all the norm values that fall within same pig,date,species:
 df2 <- df2 %>%  
-  group_by(pig,date,species) %>%
+  group_by(pig,date,gOTU) %>%
   dplyr::summarise(indiv_sum = sum(norm_value))
 head(df2)
 
 # take the mean of each species by date:
 df3 <- df2 %>%
-  group_by(pig,species,date) %>%
+  group_by(pig,gOTU,date) %>%
   dplyr::summarize(mean = mean(indiv_sum, na.rm=TRUE)) %>%
   mutate(perc=mean) %>%
-  dplyr::select(pig,species,date,perc) 
+  dplyr::select(pig,gOTU,date,perc) 
 head(df2)
 
 
@@ -137,10 +157,12 @@ df3$sample = paste0(df3$date,"_",df3$pig)
 
 # pivot wider
 df3 <- df3 %>%
-  dplyr::select(sample,species,perc) %>%
+  dplyr::select(sample,gOTU,perc) %>%
   pivot_wider(names_from = sample, values_from = perc, values_fill = list(perc = 0))
 
 feat <- as.data.frame(df3)
+which(is.na(feat[,1]))
+
 
 rownames(feat) <- feat[,1]
 feat[,1] <- NULL
@@ -148,6 +170,8 @@ feat[,1] <- NULL
 
 head(feat)
 dim(feat)
+
+
 
 # is the sum of each columns 1? 
 sum(feat[,4])
@@ -195,10 +219,9 @@ colnames(feat)==rownames(meta)
 
 
 
-
-
 ######################################################################
 ######################################################################
+
 label.normalized <- create.label(meta=meta,
                                  label='date', 
                                  case='t2',
@@ -217,11 +240,12 @@ siamcat <- check.associations(
   siamcat,
   fn.plot = 'gt_siamcatA_t0t2.pdf',
   sort.by = 'fc',
-  alpha = 0.05,
+  alpha = 0.05, 
   mult.corr = "fdr",
-  detect.lim = 10 ^-6,
+  detect.lim = 10 ^-9,
   plot.type = "quantile.box",
-  panels = c("fc", "prevalence", "auroc"))
+  panels = c("fc"))
+
 
 ############################################
 
@@ -256,7 +280,7 @@ siamcat <-  evaluate.predictions(siamcat)
 model.interpretation.plot(
   siamcat,
   fn.plot = 'gt_siamcatH_t0t2.pdf',
-  consens.thres = 0.5,
+  consens.thres = 0.5, 
   limits = c(-3, 3),
   heatmap.type = 'zscore')
 
@@ -285,7 +309,7 @@ siamcat <- check.associations(
   mult.corr = "fdr",
   detect.lim = 10 ^-6,
   plot.type = "quantile.box",
-  panels = c("fc", "prevalence", "auroc"))
+  panels = c("fc"))
 
 ############################################
 
@@ -350,7 +374,7 @@ siamcat <- check.associations(
   mult.corr = "fdr",
   detect.lim = 10 ^-6,
   plot.type = "quantile.box",
-  panels = c("fc", "prevalence", "auroc"))
+  panels = c("fc"))
 
 ############################################
 
@@ -389,17 +413,15 @@ model.interpretation.plot(
   limits = c(-3, 3),
   heatmap.type = 'zscore')
 
+
 ######################################################################
 ######################################################################
-
-
-# una prova di trattamento! 
 
 
 label.normalized <- create.label(meta=meta,
-                                 label='group', 
-                                 case='t4_NeoD',
-                                 control='t4_Neomycin')
+                                 label='date', 
+                                 case='t8',
+                                 control='t6')
 
 siamcat <- siamcat(feat=feat,
                    label=label.normalized,
@@ -412,13 +434,13 @@ siamcat <- filter.features(siamcat,
 # check for significant associations
 siamcat <- check.associations(
   siamcat,
-  fn.plot = 'gt_siamcatA_t4_NeoNeoD.pdf',
+  fn.plot = 'gt_siamcatA_t6t8.pdf',
   sort.by = 'fc',
   alpha = 0.05,
   mult.corr = "fdr",
   detect.lim = 10 ^-6,
   plot.type = "quantile.box",
-  panels = c("fc", "prevalence", "auroc"))
+  panels = c("fc"))
 
 ############################################
 
@@ -452,23 +474,20 @@ siamcat <-  evaluate.predictions(siamcat)
 
 model.interpretation.plot(
   siamcat,
-  fn.plot = 'gt_siamcatH_t4_NeoNeoD.pdf',
+  fn.plot = 'gt_siamcatH_t6t8.pdf',
   consens.thres = 0.5,
   limits = c(-3, 3),
   heatmap.type = 'zscore')
 
+
 ######################################################################
 ######################################################################
-
-
-
-# una prova di trattamento! 
 
 
 label.normalized <- create.label(meta=meta,
-                                 label='group', 
-                                 case='t4_DScour',
-                                 control='t4_Control')
+                                 label='date', 
+                                 case='t10',
+                                 control='t8')
 
 siamcat <- siamcat(feat=feat,
                    label=label.normalized,
@@ -481,13 +500,13 @@ siamcat <- filter.features(siamcat,
 # check for significant associations
 siamcat <- check.associations(
   siamcat,
-  fn.plot = 'gt_siamcatA_t4_CtrlDScour.pdf',
+  fn.plot = 'gt_siamcatA_t8t10.pdf',
   sort.by = 'fc',
   alpha = 0.05,
   mult.corr = "fdr",
   detect.lim = 10 ^-6,
   plot.type = "quantile.box",
-  panels = c("fc", "prevalence", "auroc"))
+  panels = c("fc"))
 
 ############################################
 
@@ -521,17 +540,267 @@ siamcat <-  evaluate.predictions(siamcat)
 
 model.interpretation.plot(
   siamcat,
-  fn.plot = 'gt_siamcatH_t4_CtrlDScour.pdf',
+  fn.plot = 'gt_siamcatH_t8t10.pdf',
   consens.thres = 0.5,
   limits = c(-3, 3),
   heatmap.type = 'zscore')
 
+
+############################################################################################################################################
+############################################################################################################################################
+
 ######################################################################
 ######################################################################
 
 
+basedir = "~/Desktop/metapigs_dry/gtdbtk/"
+bac_arc <- read_csv(paste0(basedir,"bac120_arc122_dictionary"),col_names = TRUE,cols(
+  domain = col_character(),
+  phylum = col_character(),
+  class = col_character(),
+  order = col_character(),
+  family = col_character(),
+  genus = col_character(),
+  species = col_character(),
+  node = col_character()
+))
+
+
+######################################################################
+######################################################################
+
+dfz <- data.frame(
+  fc = numeric(),
+  p.adj = numeric(),
+  gOTU = character(),
+  comparison = character(),
+  stringsAsFactors = FALSE
+)
+
+comparecohorts <- function(t,c1,c2) { # where c is the cohort of interest, t0 is the start time point, t1 is the next time point)
+  
+  label.normalized <- create.label(meta=meta,
+                                   label='group', 
+                                   case= paste0(t,"_",c2),
+                                   control= paste0(t,"_",c1))
+  
+  siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
+  siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.01)
+  
+  # check for significant associations
+  siamcat <- check.associations(
+    siamcat,
+    sort.by = 'fc',
+    alpha = 0.05,
+    mult.corr = "fdr",
+    detect.lim = 10 ^-6,
+    prompt = FALSE,
+    panels = c("fc", "prevalence", "auroc"))
+  
+  yy <- SIAMCAT::associations(siamcat)
+  yy$gOTU <- rownames(yy)
+  yy <- yy %>% filter(p.adj<0.05)
+  
+  
+  if (NROW(yy)>0) {
+    yy$comparison=paste0(t,"_",c2,"_",c1)
+    yy$feat <- rownames(yy)
+    yy <- yy %>%
+      dplyr::select(comparison,gOTU,fc,p.adj)
+    dfz <- rbind(dfz,yy)
+  } else {
+    print ("No significant associations found. No plot will be produced.")
+  }
+
+  return(dfz)
+}
+
+
+NROW(last)
+View(last)
+
+last <- rbind(comparecohorts("t0","DScour","Control"),
+              comparecohorts("t2","DScour","Control"),
+              comparecohorts("t4","DScour","Control"),
+              comparecohorts("t6","DScour","Control"),
+              comparecohorts("t8","DScour","Control"),
+              comparecohorts("t10","DScour","Control"),
+              comparecohorts("t0","ColiGuard","Control"),
+              comparecohorts("t2","ColiGuard","Control"),
+              comparecohorts("t4","ColiGuard","Control"),
+              comparecohorts("t6","ColiGuard","Control"),
+              comparecohorts("t8","ColiGuard","Control"),
+              comparecohorts("t10","ColiGuard","Control"),
+              comparecohorts("t0","Neomycin","Control"),
+              comparecohorts("t2","Neomycin","Control"),
+              comparecohorts("t4","Neomycin","Control"),
+              comparecohorts("t6","Neomycin","Control"),
+              comparecohorts("t8","Neomycin","Control"),
+              comparecohorts("t10","Neomycin","Control"),
+              comparecohorts("t0","NeoD","Neomycin"),
+              comparecohorts("t2","NeoD","Neomycin"),
+              comparecohorts("t4","NeoD","Neomycin"),
+              comparecohorts("t6","NeoD","Neomycin"),
+              comparecohorts("t8","NeoD","Neomycin"),
+              comparecohorts("t10","NeoD","Neomycin"),
+              comparecohorts("t0","NeoC","Neomycin"),
+              comparecohorts("t2","NeoC","Neomycin"),
+              comparecohorts("t4","NeoC","Neomycin"),
+              comparecohorts("t6","NeoC","Neomycin"),
+              comparecohorts("t8","NeoC","Neomycin"),
+              comparecohorts("t10","NeoC","Neomycin"))
+
+
+last$p.adj <- NULL
+last
+
+sink(file = "gt_siamcat_cohorts_comparison.txt", 
+     append = TRUE, type = c("output"))
+last
+sink()
 
 
 
-####################################################################################################################################
+######################################################################
+######################################################################
+
+dfz <- data.frame(
+  fc = numeric(),
+  p.adj = numeric(),
+  gOTU = character(),
+  comparison = character(),
+  stringsAsFactors = FALSE
+)
+
+comparewithin <- function(c,t1,t2) { # where c is the cohort of interest, t0 is the start time point, t1 is the next time point)
+  
+  label.normalized <- create.label(meta=meta,
+                                   label='group', 
+                                   case= paste0(t2,"_",c),
+                                   control= paste0(t1,"_",c))
+  
+  siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
+  siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.01)
+  
+  # check for significant associations
+  siamcat <- check.associations(
+    siamcat,
+    sort.by = 'fc',
+    alpha = 0.05,
+    mult.corr = "fdr",
+    detect.lim = 10 ^-6,
+    prompt = FALSE,
+    panels = c("fc", "prevalence", "auroc"))
+  
+  yy <- SIAMCAT::associations(siamcat)
+  yy$gOTU <- rownames(yy)
+  yy <- yy %>% filter(p.adj<0.05)
+  
+  
+  if (NROW(yy)>0) {
+    yy$comparison=paste0(c,"_",t1,"_",t2)
+    yy$feat <- rownames(yy)
+    yy <- yy %>%
+      dplyr::select(comparison,gOTU,fc,p.adj)
+    dfz <- rbind(dfz,yy)
+  } else {
+    print ("No significant associations found. No plot will be produced.")
+  }
+  
+  return(dfz)
+}
+
+
+
+last <- rbind(comparewithin("Control","t0","t2"),
+              comparewithin("Control","t2","t4"),
+              # comparewithin("Control","t4","t6"),
+              # comparewithin("Control","t6","t8"),
+              comparewithin("Control","t8","t10"),
+              comparewithin("DScour","t0","t2"),
+              comparewithin("DScour","t2","t4"),
+              # comparewithin("DScour","t4","t6"),
+              # comparewithin("DScour","t6","t8"),
+              comparewithin("DScour","t8","t10"),
+              comparewithin("ColiGuard","t0","t2"),
+              comparewithin("ColiGuard","t2","t4"),
+              # comparewithin("ColiGuard","t4","t6"),
+              # comparewithin("ColiGuard","t6","t8"),
+              comparewithin("ColiGuard","t8","t10"),
+              comparewithin("Neomycin","t0","t2"),
+              comparewithin("Neomycin","t2","t4"),
+              # comparewithin("Neomycin","t4","t6"),
+              # comparewithin("Neomycin","t6","t8"),
+              comparewithin("Neomycin","t8","t10"),
+              comparewithin("NeoD","t0","t2"),
+              comparewithin("NeoD","t2","t4"),
+              # comparewithin("NeoD","t4","t6"),
+              # comparewithin("NeoD","t6","t8"),
+              comparewithin("NeoD","t8","t10"),
+              comparewithin("NeoC","t0","t2"),
+              comparewithin("NeoC","t2","t4"),
+              # comparewithin("NeoC","t4","t6"),
+              # comparewithin("NeoC","t6","t8"),
+              comparewithin("NeoC","t8","t10"))
+
+
+last$p.adj <- NULL
+last
+View(last)
+
+unique(last$comparison)
+
+
+
+
+
+sink(file = "gt_siamcatA_cohortswithin.txt", 
+     append = TRUE, type = c("output"))
+last
+sink()
+
+
+head(last)
+
+
+unique(substrRight(last$comparison, 6))
+
+last <- cSplit(last, "comparison", "_")
+last$interval <- paste0(last$comparison_2,"_",last$comparison_3)
+last$cohort <- paste0(last$comparison_1)
+
+last <- last %>%
+  dplyr::select(gOTU,interval,cohort,fc)
+
+
+# split df by time interval 
+multiple_DFs <- split( last , f = last$interval )
+
+
+pdf("gt_siamcatA_cohortswithin.pdf")
+for (single_DF in multiple_DFs) {
+  
+  DF <- as.data.frame(single_DF)
+  
+  interval <- DF$interval
+  
+  DF$interval <- NULL
+  
+  DF_wide <- DF %>%
+    pivot_wider(names_from = cohort, values_from = fc, values_fill = list(fc = 0))
+  
+  DF_wide <- as.data.frame(DF_wide)
+  
+  rownames(DF_wide) <- DF_wide[,1]
+  DF_wide[,1] <- NULL
+  
+  m <- as.matrix(DF_wide)
+  
+  pheatmap(m, fontsize_row = 5, main = interval)
+  
+}
+dev.off()
+
+
+
 
