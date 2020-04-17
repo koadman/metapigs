@@ -5,10 +5,12 @@
 library(readr)
 library(splitstackshape)
 library(tidyr)
-library(phyloseq)
 library(dplyr)
 library(ggplot2)
 library(SIAMCAT)
+library(matrixStats)
+library(data.table)
+library(pheatmap)
 
 
 setwd("~/Desktop/metapigs_dry/gtdbtk")
@@ -18,6 +20,7 @@ basedir = "~/Desktop/metapigs_dry/"
 # input files: 
 # gtdbtk_bins_completeTaxa
 # no_reps_all.csv (BINS COUNTS)
+# dictionary
 
 # OUTPUTS:
 
@@ -68,6 +71,17 @@ head(gtdbtk_bins)
 
 ######################################################################
 
+# load gtdbtk dictionary
+
+dict <- read_csv("bac120_arc122_dictionary",
+                 col_types = cols(node = col_character()))
+
+colnames(dict)[colnames(dict)=="node"] <- "gOTU"
+dict$species <- gsub(" ","_", dict$species)
+
+######################################################################
+
+
 # merge info 
 
 NROW(gtdbtk_bins)
@@ -86,41 +100,25 @@ NROW(df)
 
 head(df)
 
-# if we want to use below's code with gOTUs, there s no issues. 
-# but if you wnat to select either family, species, genus, 
-# you d run into problems of non-uniqueness. 
-# way around it: add the gOTU_ID to each of the taxonomic levels 
-
-# df <- df %>%
-#   dplyr::mutate(species=paste0(species," ",gOTU)) %>%
-#   dplyr::mutate(genus=paste0(genus," ",gOTU)) %>%
-#   dplyr::mutate(family=paste0(family," ",gOTU)) %>%
-#   dplyr::mutate(order=paste0(order," ",gOTU)) %>%
-#   dplyr::mutate(class=paste0(class," ",gOTU)) %>%
-#   dplyr::mutate(phylum=paste0(phylum," ",gOTU)) %>%
-#   dplyr::mutate(domain=paste0(domain," ",gOTU))
-
-substrRight <- function(x, n){
-  substr(x, nchar(x)-n+1, nchar(x))
-}
-
-#df$phylum <- paste0(factor(substr(df$phylum, start = 1, stop = 4)),"#",substrRight(df$phylum, 1))
-
-df$order <- factor(substr(df$order, start = 1, stop = 6))
-
-df$genus <- factor(substr(df$genus, start = 1, stop = 8))
+# substrRight <- function(x, n){
+#   substr(x, nchar(x)-n+1, nchar(x))
+# }
+# df$genus <- factor(substr(df$genus, start = 1, stop = 8))
 
 df$gOTU <- gsub("gOTU_","", df$gOTU)
 
-
-df$gOTU = paste0(df$phylum,"__",df$order,"__",df$genus,"__",df$gOTU)
-
-
-# df$gOTU = paste0(df$genus,"__",df$gOTU)
-
+NROW(df)
 head(df)
 
+
+df$gOTU <- paste0(df$phylum,"__",df$species,"__",df$gOTU)
+
+df <- df %>% 
+  dplyr::select(pig,bin,date,cohort,secondary_cluster,value,gOTU)
+
 unique(df$gOTU)
+
+
 ######################################################################
 
 # CREATE COUNTS TABLE (like feat.crc.zeller)
@@ -222,353 +220,94 @@ colnames(feat)==rownames(meta)
 ######################################################################
 ######################################################################
 
-label.normalized <- create.label(meta=meta,
-                                 label='date', 
-                                 case='t2',
-                                 control='t0')
+# create function to compare time points 
 
-siamcat <- siamcat(feat=feat,
-                   label=label.normalized,
-                   meta=meta)
-
-siamcat <- filter.features(siamcat,
-                           filter.method = 'abundance',
-                           cutoff = 0.001)
-
-# check for significant associations
-siamcat <- check.associations(
-  siamcat,
-  fn.plot = 'gt_siamcatA_t0t2.pdf',
-  sort.by = 'fc',
-  alpha = 0.05, 
-  mult.corr = "fdr",
-  detect.lim = 10 ^-9,
-  plot.type = "quantile.box",
-  panels = c("fc"))
-
-
-############################################
-
-# Model building
-
-siamcat <- normalize.features(
-  siamcat,
-  norm.method = "log.unit",
-  norm.param = list(
-    log.n0 = 1e-06,
-    n.p = 2,
-    norm.margin = 1
+comparetimepoints_full <- function(t1,t2) { # where c is the cohort of interest, t0 is the start time point, t1 is the next time point)
+  
+  label.normalized <- create.label(meta=meta,
+                                   label='date', 
+                                   case= paste0(t2),
+                                   control= paste0(t1))
+  
+  siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
+  siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.01)
+  
+  # check for significant associations
+  siamcat <- check.associations(
+    siamcat,
+    fn.plot = paste0("gt_siamcatA_",t1,t2,".pdf"),
+    sort.by = 'fc',
+    alpha = 0.05, 
+    mult.corr = "fdr",
+    detect.lim = 10 ^-6,
+    plot.type = "quantile.box",
+    panels = c("fc", "prevalence", "auroc"))
+  
+  
+  # Model building
+  
+  siamcat <- normalize.features(
+    siamcat,
+    norm.method = "log.unit",
+    norm.param = list(
+      log.n0 = 1e-06,
+      n.p = 2,
+      norm.margin = 1
+    )
   )
-)
-
-siamcat <-  create.data.split(
-  siamcat,
-  num.folds = 5,
-  num.resample = 2
-)
-
-siamcat <- train.model(
-  siamcat,
-  method = "lasso"
-)
-
-siamcat <- make.predictions(siamcat)
-pred_matrix <- pred_matrix(siamcat)
-siamcat <-  evaluate.predictions(siamcat)
-#model.evaluation.plot(siamcat)
-
-model.interpretation.plot(
-  siamcat,
-  fn.plot = 'gt_siamcatH_t0t2.pdf',
-  consens.thres = 0.5, 
-  limits = c(-3, 3),
-  heatmap.type = 'zscore')
-
-######################################################################
-######################################################################
-
-label.normalized <- create.label(meta=meta,
-                                 label='date', 
-                                 case='t4',
-                                 control='t2')
-
-siamcat <- siamcat(feat=feat,
-                   label=label.normalized,
-                   meta=meta)
-
-siamcat <- filter.features(siamcat,
-                           filter.method = 'abundance',
-                           cutoff = 0.001)
-
-# check for significant associations
-siamcat <- check.associations(
-  siamcat,
-  fn.plot = 'gt_siamcatA_t2t4.pdf',
-  sort.by = 'fc',
-  alpha = 0.05,
-  mult.corr = "fdr",
-  detect.lim = 10 ^-6,
-  plot.type = "quantile.box",
-  panels = c("fc"))
-
-############################################
-
-# Model building
-
-siamcat <- normalize.features(
-  siamcat,
-  norm.method = "log.unit",
-  norm.param = list(
-    log.n0 = 1e-06,
-    n.p = 2,
-    norm.margin = 1
+  
+  siamcat <-  create.data.split(
+    siamcat,
+    num.folds = 5,
+    num.resample = 2
   )
-)
-
-siamcat <-  create.data.split(
-  siamcat,
-  num.folds = 5,
-  num.resample = 2
-)
-
-siamcat <- train.model(
-  siamcat,
-  method = "lasso"
-)
-
-siamcat <- make.predictions(siamcat)
-pred_matrix <- pred_matrix(siamcat)
-siamcat <-  evaluate.predictions(siamcat)
-#model.evaluation.plot(siamcat)
-
-model.interpretation.plot(
-  siamcat,
-  fn.plot = 'gt_siamcatH_t2t4.pdf',
-  consens.thres = 0.5,
-  limits = c(-3, 3),
-  heatmap.type = 'zscore')
-
-######################################################################
-######################################################################
-
-
-label.normalized <- create.label(meta=meta,
-                                 label='date', 
-                                 case='t6',
-                                 control='t4')
-
-siamcat <- siamcat(feat=feat,
-                   label=label.normalized,
-                   meta=meta)
-
-siamcat <- filter.features(siamcat,
-                           filter.method = 'abundance',
-                           cutoff = 0.001)
-
-# check for significant associations
-siamcat <- check.associations(
-  siamcat,
-  fn.plot = 'gt_siamcatA_t4t6.pdf',
-  sort.by = 'fc',
-  alpha = 0.05,
-  mult.corr = "fdr",
-  detect.lim = 10 ^-6,
-  plot.type = "quantile.box",
-  panels = c("fc"))
-
-############################################
-
-# Model building
-
-siamcat <- normalize.features(
-  siamcat,
-  norm.method = "log.unit",
-  norm.param = list(
-    log.n0 = 1e-06,
-    n.p = 2,
-    norm.margin = 1
+  
+  siamcat <- train.model(
+    siamcat,
+    method = "lasso"
   )
-)
-
-siamcat <-  create.data.split(
-  siamcat,
-  num.folds = 5,
-  num.resample = 2
-)
-
-siamcat <- train.model(
-  siamcat,
-  method = "lasso"
-)
-
-siamcat <- make.predictions(siamcat)
-pred_matrix <- pred_matrix(siamcat)
-siamcat <-  evaluate.predictions(siamcat)
-#model.evaluation.plot(siamcat)
-
-model.interpretation.plot(
-  siamcat,
-  fn.plot = 'gt_siamcatH_t4t6.pdf',
-  consens.thres = 0.5,
-  limits = c(-3, 3),
-  heatmap.type = 'zscore')
+  
+  siamcat <- make.predictions(siamcat)
+  pred_matrix <- pred_matrix(siamcat)
+  siamcat <-  evaluate.predictions(siamcat)
+  #model.evaluation.plot(siamcat)
+  
+  model.interpretation.plot(
+    siamcat,
+    fn.plot = paste0("gt_siamcatH_",t1,t2,".pdf"),
+    consens.thres = 0.5, 
+    limits = c(-3, 3),
+    heatmap.type = 'zscore')
+  
+}
 
 
-######################################################################
-######################################################################
-
-
-label.normalized <- create.label(meta=meta,
-                                 label='date', 
-                                 case='t8',
-                                 control='t6')
-
-siamcat <- siamcat(feat=feat,
-                   label=label.normalized,
-                   meta=meta)
-
-siamcat <- filter.features(siamcat,
-                           filter.method = 'abundance',
-                           cutoff = 0.001)
-
-# check for significant associations
-siamcat <- check.associations(
-  siamcat,
-  fn.plot = 'gt_siamcatA_t6t8.pdf',
-  sort.by = 'fc',
-  alpha = 0.05,
-  mult.corr = "fdr",
-  detect.lim = 10 ^-6,
-  plot.type = "quantile.box",
-  panels = c("fc"))
-
-############################################
-
-# Model building
-
-siamcat <- normalize.features(
-  siamcat,
-  norm.method = "log.unit",
-  norm.param = list(
-    log.n0 = 1e-06,
-    n.p = 2,
-    norm.margin = 1
-  )
-)
-
-siamcat <-  create.data.split(
-  siamcat,
-  num.folds = 5,
-  num.resample = 2
-)
-
-siamcat <- train.model(
-  siamcat,
-  method = "lasso"
-)
-
-siamcat <- make.predictions(siamcat)
-pred_matrix <- pred_matrix(siamcat)
-siamcat <-  evaluate.predictions(siamcat)
-#model.evaluation.plot(siamcat)
-
-model.interpretation.plot(
-  siamcat,
-  fn.plot = 'gt_siamcatH_t6t8.pdf',
-  consens.thres = 0.5,
-  limits = c(-3, 3),
-  heatmap.type = 'zscore')
-
-
-######################################################################
-######################################################################
-
-
-label.normalized <- create.label(meta=meta,
-                                 label='date', 
-                                 case='t10',
-                                 control='t8')
-
-siamcat <- siamcat(feat=feat,
-                   label=label.normalized,
-                   meta=meta)
-
-siamcat <- filter.features(siamcat,
-                           filter.method = 'abundance',
-                           cutoff = 0.001)
-
-# check for significant associations
-siamcat <- check.associations(
-  siamcat,
-  fn.plot = 'gt_siamcatA_t8t10.pdf',
-  sort.by = 'fc',
-  alpha = 0.05,
-  mult.corr = "fdr",
-  detect.lim = 10 ^-6,
-  plot.type = "quantile.box",
-  panels = c("fc"))
-
-############################################
-
-# Model building
-
-siamcat <- normalize.features(
-  siamcat,
-  norm.method = "log.unit",
-  norm.param = list(
-    log.n0 = 1e-06,
-    n.p = 2,
-    norm.margin = 1
-  )
-)
-
-siamcat <-  create.data.split(
-  siamcat,
-  num.folds = 5,
-  num.resample = 2
-)
-
-siamcat <- train.model(
-  siamcat,
-  method = "lasso"
-)
-
-siamcat <- make.predictions(siamcat)
-pred_matrix <- pred_matrix(siamcat)
-siamcat <-  evaluate.predictions(siamcat)
-#model.evaluation.plot(siamcat)
-
-model.interpretation.plot(
-  siamcat,
-  fn.plot = 'gt_siamcatH_t8t10.pdf',
-  consens.thres = 0.5,
-  limits = c(-3, 3),
-  heatmap.type = 'zscore')
+# run the timepoint comparisons you want: (outputs are two plots each, automatically saved)
+# 1 week interval: 
+comparetimepoints_full("t0","t2")
+comparetimepoints_full("t2","t4")
+comparetimepoints_full("t4","t6")
+comparetimepoints_full("t6","t8")
+comparetimepoints_full("t8","t10")
+# 2 weeks interval:
+comparetimepoints_full("t0","t4")
+comparetimepoints_full("t4","t8")
+# 4 weeks interval:
+comparetimepoints_full("t0","t8")
 
 
 ############################################################################################################################################
 ############################################################################################################################################
 
-######################################################################
-######################################################################
 
-
-basedir = "~/Desktop/metapigs_dry/gtdbtk/"
-bac_arc <- read_csv(paste0(basedir,"bac120_arc122_dictionary"),col_names = TRUE,cols(
-  domain = col_character(),
-  phylum = col_character(),
-  class = col_character(),
-  order = col_character(),
-  family = col_character(),
-  genus = col_character(),
-  species = col_character(),
-  node = col_character()
-))
-
+# comparing cohorts 
 
 ######################################################################
 ######################################################################
 
+# create function to compare cohorts: 
+
+# prepare empty df to be filled
 dfz <- data.frame(
   fc = numeric(),
   p.adj = numeric(),
@@ -577,7 +316,8 @@ dfz <- data.frame(
   stringsAsFactors = FALSE
 )
 
-comparecohorts <- function(t,c1,c2) { # where c is the cohort of interest, t0 is the start time point, t1 is the next time point)
+# function to compare cohorts: 
+comparebetween <- function(t,c2,c1) { 
   
   label.normalized <- create.label(meta=meta,
                                    label='group', 
@@ -617,45 +357,45 @@ comparecohorts <- function(t,c1,c2) { # where c is the cohort of interest, t0 is
 
 
 NROW(last)
-View(last)
 
-last <- rbind(comparecohorts("t0","DScour","Control"),
-              comparecohorts("t2","DScour","Control"),
-              comparecohorts("t4","DScour","Control"),
-              comparecohorts("t6","DScour","Control"),
-              comparecohorts("t8","DScour","Control"),
-              comparecohorts("t10","DScour","Control"),
-              comparecohorts("t0","ColiGuard","Control"),
-              comparecohorts("t2","ColiGuard","Control"),
-              comparecohorts("t4","ColiGuard","Control"),
-              comparecohorts("t6","ColiGuard","Control"),
-              comparecohorts("t8","ColiGuard","Control"),
-              comparecohorts("t10","ColiGuard","Control"),
-              comparecohorts("t0","Neomycin","Control"),
-              comparecohorts("t2","Neomycin","Control"),
-              comparecohorts("t4","Neomycin","Control"),
-              comparecohorts("t6","Neomycin","Control"),
-              comparecohorts("t8","Neomycin","Control"),
-              comparecohorts("t10","Neomycin","Control"),
-              comparecohorts("t0","NeoD","Neomycin"),
-              comparecohorts("t2","NeoD","Neomycin"),
-              comparecohorts("t4","NeoD","Neomycin"),
-              comparecohorts("t6","NeoD","Neomycin"),
-              comparecohorts("t8","NeoD","Neomycin"),
-              comparecohorts("t10","NeoD","Neomycin"),
-              comparecohorts("t0","NeoC","Neomycin"),
-              comparecohorts("t2","NeoC","Neomycin"),
-              comparecohorts("t4","NeoC","Neomycin"),
-              comparecohorts("t6","NeoC","Neomycin"),
-              comparecohorts("t8","NeoC","Neomycin"),
-              comparecohorts("t10","NeoC","Neomycin"))
+# run the association tests and catch all the df outputs into one single df
+last <- rbind(comparebetween("t0","DScour","Control"),
+              comparebetween("t2","DScour","Control"),
+              comparebetween("t4","DScour","Control"),
+              comparebetween("t6","DScour","Control"),
+              comparebetween("t8","DScour","Control"),
+              comparebetween("t10","DScour","Control"),
+              comparebetween("t0","ColiGuard","Control"),
+              comparebetween("t2","ColiGuard","Control"),
+              comparebetween("t4","ColiGuard","Control"),
+              comparebetween("t6","ColiGuard","Control"),
+              comparebetween("t8","ColiGuard","Control"),
+              comparebetween("t10","ColiGuard","Control"),
+              comparebetween("t0","Neomycin","Control"),
+              comparebetween("t2","Neomycin","Control"),
+              comparebetween("t4","Neomycin","Control"),
+              comparebetween("t6","Neomycin","Control"),
+              comparebetween("t8","Neomycin","Control"),
+              comparebetween("t10","Neomycin","Control"),
+              comparebetween("t0","NeoD","Neomycin"),
+              comparebetween("t2","NeoD","Neomycin"),
+              comparebetween("t4","NeoD","Neomycin"),
+              comparebetween("t6","NeoD","Neomycin"),
+              comparebetween("t8","NeoD","Neomycin"),
+              comparebetween("t10","NeoD","Neomycin"),
+              comparebetween("t0","NeoC","Neomycin"),
+              comparebetween("t2","NeoC","Neomycin"),
+              comparebetween("t4","NeoC","Neomycin"),
+              comparebetween("t6","NeoC","Neomycin"),
+              comparebetween("t8","NeoC","Neomycin"),
+              comparebetween("t10","NeoC","Neomycin"))
 
 
 last$p.adj <- NULL
-last
 
-sink(file = "gt_siamcat_cohorts_comparison.txt", 
-     append = TRUE, type = c("output"))
+
+sink(file = "gt_siamcat_cohortsbetween.txt", 
+     append = FALSE, type = c("output"))
 last
 sink()
 
@@ -663,6 +403,8 @@ sink()
 
 ######################################################################
 ######################################################################
+
+# compare timepoints within cohorts : 
 
 dfz <- data.frame(
   fc = numeric(),
@@ -714,77 +456,116 @@ comparewithin <- function(c,t1,t2) { # where c is the cohort of interest, t0 is 
 
 last <- rbind(comparewithin("Control","t0","t2"),
               comparewithin("Control","t2","t4"),
-              # comparewithin("Control","t4","t6"),
-              # comparewithin("Control","t6","t8"),
+              comparewithin("Control","t4","t6"),
+              comparewithin("Control","t6","t8"),
               comparewithin("Control","t8","t10"),
+              comparewithin("Control","t4","t8"),
+              comparewithin("Control","t4","t10"),
+              comparewithin("Control","t2","t8"),
+              #
               comparewithin("DScour","t0","t2"),
               comparewithin("DScour","t2","t4"),
-              # comparewithin("DScour","t4","t6"),
-              # comparewithin("DScour","t6","t8"),
+              comparewithin("DScour","t4","t6"),
+              comparewithin("DScour","t6","t8"),
               comparewithin("DScour","t8","t10"),
+              comparewithin("DScour","t4","t8"),
+              comparewithin("DScour","t4","t10"),
+              comparewithin("DScour","t2","t8"),
+              #
               comparewithin("ColiGuard","t0","t2"),
               comparewithin("ColiGuard","t2","t4"),
-              # comparewithin("ColiGuard","t4","t6"),
-              # comparewithin("ColiGuard","t6","t8"),
+              comparewithin("ColiGuard","t4","t6"),
+              comparewithin("ColiGuard","t6","t8"),
               comparewithin("ColiGuard","t8","t10"),
+              comparewithin("ColiGuard","t4","t8"),
+              comparewithin("ColiGuard","t4","t10"),
+              comparewithin("ColiGuard","t2","t8"),
+              #
               comparewithin("Neomycin","t0","t2"),
               comparewithin("Neomycin","t2","t4"),
-              # comparewithin("Neomycin","t4","t6"),
-              # comparewithin("Neomycin","t6","t8"),
+              comparewithin("Neomycin","t4","t6"),
+              comparewithin("Neomycin","t6","t8"),
               comparewithin("Neomycin","t8","t10"),
+              comparewithin("Neomycin","t4","t8"),
+              comparewithin("Neomycin","t4","t10"),
+              comparewithin("Neomycin","t2","t8"),
+              #
               comparewithin("NeoD","t0","t2"),
               comparewithin("NeoD","t2","t4"),
-              # comparewithin("NeoD","t4","t6"),
-              # comparewithin("NeoD","t6","t8"),
+              comparewithin("NeoD","t4","t6"),
+              comparewithin("NeoD","t6","t8"),
               comparewithin("NeoD","t8","t10"),
+              comparewithin("NeoD","t4","t8"),
+              comparewithin("NeoD","t4","t10"),
+              comparewithin("NeoD","t2","t8"),
+              #
               comparewithin("NeoC","t0","t2"),
               comparewithin("NeoC","t2","t4"),
-              # comparewithin("NeoC","t4","t6"),
-              # comparewithin("NeoC","t6","t8"),
-              comparewithin("NeoC","t8","t10"))
+              comparewithin("NeoC","t4","t6"),
+              comparewithin("NeoC","t6","t8"),
+              comparewithin("NeoC","t8","t10"),
+              comparewithin("NeoC","t4","t8"),
+              comparewithin("NeoC","t4","t10"),
+              comparewithin("NeoC","t2","t8"))
 
 
 last$p.adj <- NULL
-last
-View(last)
 
-unique(last$comparison)
-
+toplot <- last %>%
+  dplyr::select(gOTU,interval,cohort,fc)
 
 
 
-
+# save hits as text file 
 sink(file = "gt_siamcatA_cohortswithin.txt", 
      append = TRUE, type = c("output"))
 last
 sink()
 
 
-head(last)
 
+##################
 
-unique(substrRight(last$comparison, 6))
+toplot1 <- toplot
 
-last <- cSplit(last, "comparison", "_")
-last$interval <- paste0(last$comparison_2,"_",last$comparison_3)
-last$cohort <- paste0(last$comparison_1)
+toplot1$new <- toplot1$interval
+toplot1 <- cSplit(toplot1,"new","_")
+toplot1$pre <- gsub("t","", toplot1$new_1)
+toplot1$post <- gsub("t","", toplot1$new_2)
+toplot1$dist <- as.numeric(toplot1$post)-as.numeric(toplot1$pre)
+toplot1 <- toplot1 %>%
+  dplyr::mutate(weeks=dist/2) %>%
+  dplyr::select(gOTU,interval,cohort,fc,weeks)
 
-last <- last %>%
-  dplyr::select(gOTU,interval,cohort,fc)
+colnames(toplot1)
 
 
 # split df by time interval 
-multiple_DFs <- split( last , f = last$interval )
+multiple_DFs <- split( toplot1 , f = toplot1$weeks )
 
 
 pdf("gt_siamcatA_cohortswithin.pdf")
 for (single_DF in multiple_DFs) {
   
+  
   DF <- as.data.frame(single_DF)
   
-  interval <- DF$interval
+  ########## add full name
+  z <- inner_join(DF,dict)
+  NROW(DF)
+  NROW(z)
   
+  z$gOTU <- paste0(z$phylum,"__",z$species,"__",z$gOTU)
+  DF <- as.data.frame(z) 
+  ##########
+  
+  
+  DF$cohort <- paste0(DF$interval,"_",DF$cohort)
   DF$interval <- NULL
+
+  
+  weeks <- DF$weeks
+  DF$weeks <- NULL
   
   DF_wide <- DF %>%
     pivot_wider(names_from = cohort, values_from = fc, values_fill = list(fc = 0))
@@ -796,11 +577,172 @@ for (single_DF in multiple_DFs) {
   
   m <- as.matrix(DF_wide)
   
-  pheatmap(m, fontsize_row = 5, main = interval)
+  mat <- m
+  
+  # relevant metrics per row
+  row_med <- matrixStats::rowMedians(mat)
+  row_vars <- matrixStats::rowVars(mat)
+  row_maxs <- matrixStats::rowMaxs(mat)
+  row_qntl90 <- matrixStats::rowQuantiles(mat, probs = 0.9)
+  
+  # top 50% utility function
+  top5 <- function(x) {
+    x >= quantile(x, 0.50)
+  }
+  
+  # combine all conditions
+  row_idx <- top5(row_vars) & top5(row_maxs - row_med) & top5(row_qntl90 - row_med)
+  # subscript
+  n <- mat[row_idx, , drop = FALSE]
+  
+  pheatmap(n, fontsize_row = 5, main = weeks, cluster_cols = TRUE, cluster_rows = TRUE)
   
 }
 dev.off()
 
 
+##################
+
+# all together 
 
 
+DF <- as.data.frame(toplot1)
+
+########## add full name
+z <- inner_join(DF,dict)
+NROW(DF)
+NROW(z)
+
+z$gOTU <- paste0(z$phylum,"__",z$species,"__",z$gOTU)
+DF <- as.data.frame(z) %>%
+  dplyr::select(gOTU,interval,cohort,fc,weeks)
+##########
+
+
+DF$group = paste0(DF$interval,"_",DF$cohort)
+
+DF$interval <- NULL
+DF$cohort <- NULL
+DF$weeks <- NULL
+
+DF_wide <- DF %>%
+  pivot_wider(names_from = group, values_from = fc, values_fill = list(fc = 0))
+
+DF_wide <- as.data.frame(DF_wide)
+
+rownames(DF_wide) <- DF_wide[,1]
+DF_wide[,1] <- NULL
+
+m <- as.matrix(DF_wide)
+
+
+dummy <- data.frame(my = colnames(m))
+dummy <- cSplit(dummy,"my","_")
+dummy$pre <- gsub("t","", dummy$my_1)
+dummy$post <- gsub("t","", dummy$my_2)
+dummy$diff <- as.numeric(dummy$post)-as.numeric(dummy$pre)
+
+dummy <- dummy %>%
+  group_by(my_3) %>%
+  mutate(coho_ord=order(my_3))
+
+dummy <- dummy %>%
+  group_by(coho_ord) %>%
+  arrange(as.numeric(diff),as.numeric(pre), as.numeric(pre))
+head(dummy)
+
+dummy$group = paste0(dummy$my_1,"_",dummy$my_2,"_",dummy$my_3)
+
+
+n <- m[, order(dummy$group)]
+
+mat <- n
+
+# relevant metrics per row
+row_med <- matrixStats::rowMedians(mat)
+row_vars <- matrixStats::rowVars(mat)
+row_maxs <- matrixStats::rowMaxs(mat)
+row_qntl90 <- matrixStats::rowQuantiles(mat, probs = 0.9)
+
+# top 25% utility function
+top5 <- function(x) {
+  x >= quantile(x, 0.75)
+}
+
+# combine all conditions
+row_idx <- top5(row_vars) & top5(row_maxs - row_med) & top5(row_qntl90 - row_med)
+# subscript
+n <- mat[row_idx, , drop = FALSE]
+
+
+interval_color <- data.frame(int_color = factor(substr(colnames(DF_wide), start = 1, stop = 6)))
+row.names(interval_color) <- colnames(DF_wide)
+
+pdf("gt_siamcatA_cohortswithin_all.pdf")
+pheatmap(n, fontsize_row = 5, annotation_col = interval_color)
+dev.off()
+
+
+
+##################
+
+
+
+
+
+######################################################################
+######################################################################
+
+
+
+DF <- as.data.frame(last)
+
+###################
+
+z <- inner_join(DF,dict)
+NROW(DF)
+NROW(z)
+
+z$gOTU <- paste0(z$phylum,"__",z$species,"__",z$gOTU)
+DF <- as.data.frame(z) %>%
+  dplyr::select(comparison,gOTU,fc)
+###################
+
+
+DF_wide <- DF %>%
+  pivot_wider(names_from = comparison, values_from = fc, values_fill = list(fc = 0))
+
+DF_wide <- as.data.frame(DF_wide)
+
+rownames(DF_wide) <- DF_wide[,1]
+DF_wide[,1] <- NULL
+
+m <- as.matrix(DF_wide)
+
+mat <- m
+
+# relevant metrics per row
+row_med <- matrixStats::rowMedians(mat)
+row_vars <- matrixStats::rowVars(mat)
+row_maxs <- matrixStats::rowMaxs(mat)
+row_qntl90 <- matrixStats::rowQuantiles(mat, probs = 0.9)
+
+# top 25% utility function
+top5 <- function(x) {
+  x >= quantile(x, 0.75)
+}
+
+# combine all conditions
+row_idx <- top5(row_vars) & top5(row_maxs - row_med) & top5(row_qntl90 - row_med)
+# subscript
+n <- mat[row_idx, , drop = FALSE]
+
+pdf("gt_siamcatA_time.pdf")
+pheatmap(n, fontsize_row = 10, main = "significant changes between timepoints", 
+         cluster_cols = TRUE, cluster_rows = TRUE)
+dev.off()
+
+
+
+######################################################################
+######################################################################

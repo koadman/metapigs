@@ -279,6 +279,26 @@ no_reps[1] <- lapply(
   fixed = TRUE)
 
 
+no_reps[1] <- lapply(
+  no_reps[1], 
+  gsub, 
+  pattern = "2017-08-14", 
+  replacement = "no-t-pos", 
+  fixed = TRUE)
+no_reps[1] <- lapply(
+  no_reps[1], 
+  gsub, 
+  pattern = "2018-01-24", 
+  replacement = "no-t-pos", 
+  fixed = TRUE)
+
+
+# change collection_date to match col name
+# # no-t-neg for negative control
+# no_reps <- no_reps %>%
+#   dplyr::mutate(collection_date = if_else(is.na(collection_date), "no-t-neg", collection_date))
+
+
 
 # 2nd de-replication: now there should be again replicates because we joined some dates. 
 # (take mean out of replicates)
@@ -322,8 +342,14 @@ head(dz2)
 # Write out to play with it (this is with secondary_clusters assigned only)
 # fwrite(x = tot_counts_dereplicated, file = "~/Desktop/bins_clustering_parsing_dataframes/tot_counts_dereplicated.csv")
 
+# remove piglets with SD: 29665, 29865, 29702 
+no_reps3 <- no_reps2 %>%
+  filter(!pig=="29665"|
+           pig=="29865"|
+           pig=="29702")
+
 # Write out to play with it (this is everything)
-fwrite(x = no_reps2, file = paste0(basedir,"no_reps_all.csv"))
+fwrite(x = no_reps3, file = paste0(basedir,"no_reps_all.csv"))
 
 # ########################################################
 # 
