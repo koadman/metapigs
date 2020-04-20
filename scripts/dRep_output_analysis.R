@@ -1,4 +1,5 @@
-# dRep.R
+
+# dRep_output_analysis.R
 # analysis of dRep output 
 
 library(readxl)
@@ -7,7 +8,11 @@ library(readr)
 library(tidyr)
 library(dplyr)
 library(ggplot2)
-
+library(splitstackshape)
+library(pheatmap)
+library(ggpubr)
+library(robCompositions)
+library(ggbiplot)
 
 
 
@@ -39,7 +44,25 @@ no_reps_all$bin <- gsub(".fa","", no_reps_all$bin)
 head(no_reps_all)
 NROW(no_reps_all)
 
-##########################
+no_reps_all$primary_cluster <- paste0(no_reps_all$secondary_cluster)
+no_reps_all <- cSplit(no_reps_all,"primary_cluster","_")
+no_reps_all$primary_cluster_2 <- NULL
+colnames(no_reps_all)[colnames(no_reps_all)=="primary_cluster_1"] <- "primary_cluster"
+
+######################################################################
+
+# load gtdbtk assignments of the bins
+
+# load gtdbtk assignments of the bins
+gtdbtk_bins <- read_csv("/Users/12705859/Desktop/metapigs_dry/gtdbtk/gtdbtk_bins_completeTaxa",
+                        col_types = cols(node = col_character(),
+                                         pig = col_character()))
+
+
+head(gtdbtk_bins)
+
+######################################################################
+
 
 # create text file to contain dRep text output
 
@@ -47,8 +70,19 @@ sink(file = "dRep_numbers.txt",
      append = FALSE, type = c("output"))
 sink()
 
+
 ###########################
 
+
+sink(file = "dRep_numbers.txt", 
+     append = TRUE, type = c("output"))
+paste0("Number of dRep-clustered bins: ", NROW(C1) )
+paste0("of which primary clusters: ", length(unique(C1$primary_cluster)) )
+paste0("of which secondary clusters ", length(unique(C1$secondary_cluster)) )
+sink()
+
+
+##########################
 
 # Bins distribution:
 # how many bins each subject has:
@@ -57,20 +91,37 @@ az <- no_reps_all %>%
   distinct() 
 
 az <- az %>%
-  mutate(group = ifelse(cohort == "Mothers", "sows (n=42)","piglets (n=126)"))
+  mutate(group = ifelse(cohort == "Mothers", "mothers (n=42)","piglets (n=126)"))
 
 az <- az %>%
   group_by(group,pig) %>%
-  summarise(`number of metagenomes obtained`= n()) 
+  dplyr::summarise(`number of metagenomes obtained`= n()) 
 tail(az)
 
-
-pdf("dRep_bins_distribution_subjects.pdf")
+pdf("dRep_#bins_subject.pdf")
 ggplot(data=az, mapping=aes(x=group, y=`number of metagenomes obtained`)) + 
   geom_boxplot(outlier.shape = NA) + 
   geom_jitter(width = 0.1)
 dev.off()
-  
+
+
+##########################
+
+# Bins per cohort: 
+az2 <- no_reps_all %>%
+  select(cohort,bin,pig) %>%
+  group_by(cohort,pig) %>%
+  dplyr::summarise(`number of metagenomes obtained`= n()) 
+tail(az2)
+
+pdf("dRep_#bins_cohort.pdf")
+ggplot(data=az2, mapping=aes(x=cohort, y=`number of metagenomes obtained`)) + 
+  geom_boxplot(outlier.shape = NA) + 
+  geom_jitter(width = 0.1)
+dev.off()
+
+##########################
+
 
 # Get the numbers: 
 az <- no_reps_all %>%
@@ -81,38 +132,11 @@ cz <- data.frame(table(bz$pig))
 sink(file = "dRep_numbers.txt", 
      append = TRUE, type = c("output"))
 paste0("total of bins (excludes the pos and neg controls bins): ", sum(cz$Freq) )
-paste0("Bins distribution across subjects: ")
-summary(cz$Freq)
 sink()
 
 
 ##########################
 
-# Bins per timepoint: 
-
-az <- no_reps_all %>%
-  dplyr::select(bin, pig, date) %>%
-  distinct() 
-
-
-az <- az %>%
-  group_by(date,pig) %>%
-  summarise(`number of metagenomes obtained`= n()) 
-tail(az)
-
-
-pdf("dRep_bins_distribution_subjects.pdf")
-ggplot(data=az, mapping=aes(x=date, y=`number of metagenomes obtained`)) + 
-  geom_boxplot(outlier.shape = NA) + 
-  geom_jitter(width = 0.1) +
-  labs(title="Number of metagenomes obtained per timepoint", 
-       x = "timepoint",
-       y = "number of metagenomes obtained",
-       subtitle=NULL)
-dev.off()
-
-
-##########################
 
 # number of samples per time point: 
 
@@ -123,7 +147,7 @@ az <- no_reps_all %>%
 
 az <- az %>%
   group_by(date) %>%
-  summarise(`number of samples`= n()) 
+  dplyr::summarise(`number of samples`= n()) 
 tail(az)
 
 # reorder dates 
@@ -143,264 +167,353 @@ az <- az %>%
                       date == "t4" | date == "t6" | 
                       date == "t8" | date == "t10" , "all subjects", "subset"))
 
-pdf("dRep_samples_per_subject.pdf")
+pdf("dRep_#samples_per_timepoint.pdf")
 ggplot(data=az, mapping=aes(x=date, y=`number of samples`, color=sampling)) + 
   geom_point() +
   geom_line(aes(group = sampling), linetype = 2) +
   theme_bw() + 
-  labs(title="Number of samples per timepoint", 
-                  x = "number of samples",
-                  y = "timepoints",
+  labs(title="Number of collected samples per timepoint", 
+                  x = "timepoint",
+                  y = "number of samples",
                   subtitle=NULL)
 dev.off()
 
 
-
-
-
-
-
-
-# continue cleaning from here 
-
-
-
-
-sink(file = "dRep_numbers.txt", 
-     append = TRUE, type = c("output"))
-paste0("Timepoints per subject: ")
-summary(cz2$Freq)
-sink()
-
 ##########################
+
 
 # Correlation between timepoints available and bins obtained per subject: 
 # How many timepoints scale to how many bins? 
 
-colnames(cz2)[colnames(cz2)=="Freq"] <- "Freq2"
+# BINS PER SUBJ
+az1 <- no_reps_all %>%
+  dplyr::select(bin, pig) %>%
+  distinct() %>%
+  group_by(pig) %>%
+  dplyr::summarise(`number of metagenomes per subject`= n()) 
+tail(az1)
+NROW(az1)
+head(az1)
 
-bins_timepoints <- cbind(cz,cz2)
-bins_timepoints$Var1 <- NULL
+sink(file = "dRep_numbers.txt", 
+     append = TRUE, type = c("output"))
+paste0("Bins per subject: ")
+summary(az1$`number of metagenomes per subject`)
+sink()
 
-pdf("/Users/12705859/Desktop/metapigs_dry/dRep_timepoints_to_bins.pdf")
-ggplot(data = bins_timepoints, aes(x = Freq, y = Freq2)) + 
-  geom_point(color='blue') +
-  geom_smooth(method = "lm", se = FALSE)+
+# TIMEPOINTS PER SUBJ
+az2 <- no_reps_all %>%
+  dplyr::select(date, pig) %>%
+  distinct() %>%
+  group_by(pig) %>%
+  dplyr::summarise(`number of timepoints per subject`= n()) 
+tail(az2)
+NROW(az2)
+
+sink(file = "dRep_numbers.txt", 
+     append = TRUE, type = c("output"))
+paste0("Timepoints per subject: ")
+summary(az2$`number of timepoints per subject`)
+sink()
+
+
+az3 <- cbind(az1,az2)
+az3$pig <- NULL
+
+pdf("dRep_#bins_vs_#timepoints.pdf")
+ggplot(data=az3, mapping=aes(x=`number of timepoints per subject`, y=`number of metagenomes per subject`)) + 
+  geom_point(color='blue', size=0.6) +
+  #geom_smooth(method = "lm", se = FALSE)+
   labs(title="Bins obtained versus number of timepoints available from each subject", 
-       x = "number of bins obtained per subject",
-       y = "number of timepoints available per subject",
+       x = "number of timepoints available per subject",
+       y = "number of bins obtained per subject",
        subtitle=NULL)
 dev.off()
 
 
-##########################
 
-# Bins per cohort: 
-az2 <- no_reps_all %>%
-  select(cohort,bin,pig)
-bz2 <- unique(az2)
-cz2 <- data.frame(table(bz2$cohort))
-sum(cz2$Freq)
-pdf("dRep_bins_per_cohort.pdf")
-g <- ggplot(cz2, aes(Var1, Freq))
-g + geom_bar(stat="identity", width = 0.3, fill="tomato2") + 
-  labs(title="Bins distribution across subjects", 
-       x = "cohorts",
-       y = "Frequency",
-       subtitle=NULL) +
-  theme(axis.title.x=element_text(),
-        axis.text.x=element_text())
-dev.off()
 
-##########################
+########################################################################################################
+
+
+# Extent of agreement between dRep and GTDBTK classification: 
+
+
+df <- merge(no_reps_all, gtdbtk_bins, by=c("pig","bin"))
+
+
+# Primary clusters: 
+
+
+b <- df %>%
+  dplyr::group_by(primary_cluster) %>%
+  #dplyr::filter(n()>300) %>%               # this is optional; comment out to look at all
+  dplyr::filter(!primary_cluster=="no_cluster") %>%
+  dplyr::group_by(primary_cluster) %>%
+  dplyr::select(node,domain,phylum,order,family,genus,species,primary_cluster) 
+
+NROW(unique(b$primary_cluster))
+
+# most frequent primary clusters 
+
+
+b_species <- b %>%
+  dplyr::group_by(primary_cluster,species) %>%
+  dplyr::summarise(num= n())  %>%
+  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::group_by(primary_cluster) %>%
+  dplyr::top_n(1, num2) %>% 
+  dplyr::select(primary_cluster,num2,species) %>%
+  dplyr::rename(., species_agree = num2) 
+
+b_genus <- b %>%
+  dplyr::group_by(primary_cluster,genus) %>%
+  dplyr::summarise(num= n())  %>%
+  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::group_by(primary_cluster) %>%
+  dplyr::top_n(1, num2) %>% 
+  dplyr::select(primary_cluster,num2) %>%
+  dplyr::rename(., genus_agree = num2) 
+
+b_family <- b %>%
+  dplyr::group_by(primary_cluster,family) %>%
+  dplyr::summarise(num= n())  %>%
+  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::group_by(primary_cluster) %>%
+  dplyr::top_n(1, num2) %>% 
+  dplyr::select(primary_cluster,num2,family) %>%
+  dplyr::rename(., family_agree = num2) 
+
+b_order <- b %>%
+  dplyr::group_by(primary_cluster,order) %>%
+  dplyr::summarise(num= n())  %>%
+  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::group_by(primary_cluster) %>%
+  dplyr::top_n(1, num2) %>% 
+  dplyr::select(primary_cluster,num2) %>%
+  dplyr::rename(., order_agree = num2) 
+
+
+# saving these as variables before removing columns, to (optionally) use later as "fuller" taxa names
+family_names <- b_family$family
+b_family$family <- NULL
+species_names <- b_species$species
+b_species$species <- NULL
+
+a <- merge(b_genus, b_species)
+a <- merge(a,b_family)
+a <- merge(a,b_order)
+a
+
+rownames(a) <- a[,1]
+a[,1] <- NULL
 
 
 sink(file = "dRep_numbers.txt", 
      append = TRUE, type = c("output"))
-paste0("Number of dRep-clustered bins: ", NROW(C1) )
-paste0("of which primary clusters: ", length(unique(C1$primary_cluster)) )
-paste0("of which secondary clusters ", length(unique(C1$secondary_cluster)) )
+paste0("Extent of agreement between dRep classificantion and gtdbtk assignment of bins")
+paste0("Primary clusters: ")
+summary(a)
 sink()
+
+
+
+######################################################################
+
+
+# Secondary clusters: 
+
+
+b <- df %>%
+  dplyr::group_by(secondary_cluster) %>%
+  #dplyr::filter(n()>300) %>%               # this is optional; comment out to look at all
+  dplyr::filter(!secondary_cluster=="no_cluster") %>%
+  dplyr::group_by(secondary_cluster) %>%
+  dplyr::select(node,domain,phylum,order,family,genus,species,secondary_cluster) 
+
+NROW(unique(b$secondary_cluster))
+
+# most frequent secondary clusters 
+
+
+b_species <- b %>%
+  group_by(secondary_cluster,species) %>%
+  dplyr::summarise(num= n())  %>%
+  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::group_by(secondary_cluster) %>%
+  dplyr::top_n(1, num2) %>% 
+  dplyr::select(secondary_cluster,num2,species) %>%
+  dplyr::rename(., species_agree = num2) 
+
+b_genus <- b %>%
+  dplyr::group_by(secondary_cluster,genus) %>%
+  dplyr::summarise(num= n())  %>%
+  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::group_by(secondary_cluster) %>%
+  dplyr::top_n(1, num2) %>% 
+  dplyr::select(secondary_cluster,num2) %>%
+  dplyr::rename(., genus_agree = num2) 
+
+b_family <- b %>%
+  dplyr::group_by(secondary_cluster,family) %>%
+  dplyr::summarise(num= n())  %>%
+  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::group_by(secondary_cluster) %>%
+  dplyr::top_n(1, num2) %>% 
+  dplyr::select(secondary_cluster,num2,family) %>%
+  dplyr::rename(., family_agree = num2) 
+
+b_order <- b %>%
+  dplyr::group_by(secondary_cluster,order) %>%
+  dplyr::summarise(num= n())  %>%
+  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::group_by(secondary_cluster) %>%
+  dplyr::top_n(1, num2) %>% 
+  dplyr::select(secondary_cluster,num2) %>%
+  dplyr::rename(., order_agree = num2) 
+
+
+# saving these as variables before removing columns, to (optionally) use later as "fuller" taxa names
+family_names <- b_family$family
+b_family$family <- NULL
+species_names <- b_species$species
+b_species$species <- NULL
+
+a <- merge(b_genus, b_species)
+a <- merge(a,b_family)
+a <- merge(a,b_order)
+a
+
+rownames(a) <- a[,1]
+a[,1] <- NULL
+
+a
+
+sink(file = "dRep_numbers.txt", 
+     append = TRUE, type = c("output"))
+paste0("Extent of agreement between dRep classificantion and gtdbtk assignment of bins")
+paste0("Secondary clusters: ")
+summary(a)
+sink()
+
+
+
+
+######################################################################
+######################################################################
 
 ########################################################################################################
 
 
 
-# left join because there is clustered bins from dRep (Cdb) we 
-# can t merge to no_reps_all as we excluded bins from the pos controls 
-# in script 1_5_HPC.R
-
-
-NROW(no_reps_all)
-NROW(C1)
-head(no_reps_all)
-head(C1)
-
-new_dataset <- no_reps_all %>% left_join(C1, by=c("pig","bin"))
-head(new_dataset)
-NROW(new_dataset)
-
-
-# these are the frequencies of most frequent (>300) 
-# unique primary clusters 
-a <- new_dataset %>%
-  group_by(primary_cluster) %>%
-  filter(!is.na(primary_cluster)) %>%
-  filter(n()>300)
-a
-
-counts <- setDT(new_dataset)[, .(Freq = .N), by = .(secondary_cluster.x,cohort)]
-View(counts)
-
-
-
-
-length(unique(a$primary_cluster))
-pdf("/Users/12705859/Desktop/metapigs_dry/most_frequent_primary_clusters_distribution_cohorts.pdf")
-g <- ggplot(a, aes(primary_cluster))
-g + geom_bar(aes(fill=date), width = 0.5) + 
-  theme(axis.text.x = element_blank(),
-        axis.title.x=element_text()) +
-  labs(title="Distribution among cohorts of most common primary clusters (95% ANI)", 
-       subtitle="Primary clusters appearing >300 times in the dataset",
-       x="most common (n=190) clusters (95% ANI)",
-       y="Frequency")
-dev.off()
-
-
-# these are the frequencies of most frequent (>300) 
-# unique secondary clusters
-a <- new_dataset %>%
-  group_by(secondary_cluster) %>%
-  filter(!is.na(secondary_cluster)) %>%
-  filter(n()>300)
-length(unique(a$secondary_cluster))
-pdf("/Users/12705859/Desktop/metapigs_dry/most_frequent_secondary_clusters_distribution_cohorts.pdf")
-g <- ggplot(a, aes(secondary_cluster))
-g + geom_bar(aes(fill=cohort), width = 0.5) + 
-  theme(axis.text.x = element_blank(),
-        axis.title.x=element_text()) +
-  labs(title="Distribution among cohorts of most common secondary clusters (99% ANI)", 
-       subtitle="Secondary clusters appearing >300 times in the dataset",
-       x="most common (n=141) clusters (99% ANI)",
-       y="Frequency")
-dev.off()
-# what species do these common secondary clusters correspond to ? 
-# testing question in other script: dRep_to_taxa.R
-
-
-###################################################
-
 # Display amount of shared vs unique clusters 
 
-# separate mothers from piglets 
-a <- merge.data.frame(C1, cohorts, by.x="pig", by.y = "Animal ID")
 
-mothers <- a %>% filter(
-  `Cohort Name` == "Mothers")
-piglets <- a %>% filter(
-  `Cohort Name` == "Control" |
-    `Cohort Name` == "Neomycin" |
-    `Cohort Name` == "ColiGuard" |
-    `Cohort Name` == "D-scour" |
-    `Cohort Name` == "Neomycin+D-scour" |
-    `Cohort Name` == "Neomycin+ColiGuard"
-)
-
-
-# in piglets
-a <- piglets %>%
-  select(pig,bin,primary_cluster,secondary_cluster)
-# primary clusters: 
-a <- a %>% 
-  group_by(primary_cluster) %>% 
-  mutate(type = ifelse(n() > 1, "common","unique"))
-pdf("/Users/12705859/Desktop/metapigs_dry/dRep/shared_vs_common_primary_piglets.pdf")
-g <- ggplot(a, aes(pig))
-g + geom_bar(aes(fill=type), width = 0.5) + 
+# primary clusters, piglets
+primary_piglets <- no_reps_all %>%
+  filter(!cohort=="Mothers") %>%
+  select(pig,primary_cluster) %>% 
+  distinct() %>%
+  group_by(primary_cluster) %>%
+  dplyr::mutate(type = ifelse(n() > 1, "common","unique")) %>%
+  ggplot(., aes(pig)) +
+  geom_bar(aes(fill=type), width = 0.5) + 
   theme(axis.text.x = element_text(angle=65, vjust=0.6)) +
   labs(title="Shared versus common primary clusters (95% ANI)", 
        subtitle="distribution among piglets",
        x = "piglets",
        y = "clustered bins") +
   theme(axis.text.x = element_blank(),
-        axis.title.x=element_text())
-dev.off()
-length(which(a$type=="unique"))
-NROW(a)
-length(which(a$type=="unique"))/NROW(a)*100
-# 291 of 21400 ( 1.36% ) unique primary clusters
-# secondary clusters: 
-a <- a %>% 
-  group_by(secondary_cluster) %>% 
-  mutate(type = ifelse(n() > 1, "common","unique"))
-pdf("/Users/12705859/Desktop/metapigs_dry/dRep/shared_vs_common_secondary_piglets.pdf")
-g <- ggplot(a, aes(pig))
-g + geom_bar(aes(fill=type), width = 0.5) + 
+        axis.title.x=element_text(),
+        title=element_text(size=7))
+
+# secondary clusters, piglets
+secondary_piglets <- no_reps_all %>%
+  filter(!cohort=="Mothers") %>%
+  select(pig,secondary_cluster) %>% 
+  distinct() %>%
+  group_by(secondary_cluster) %>%
+  dplyr::mutate(type = ifelse(n() > 1, "common","unique")) %>%
+  ggplot(., aes(pig)) +
+  geom_bar(aes(fill=type), width = 0.5) + 
   theme(axis.text.x = element_text(angle=65, vjust=0.6)) +
   labs(title="Shared versus common secondary clusters (99% ANI)", 
        subtitle="distribution among piglets",
        x = "piglets",
        y = "clustered bins") +
   theme(axis.text.x = element_blank(),
-        axis.title.x=element_text())
-dev.off()
-length(which(a$type=="unique"))
-NROW(a)
-length(which(a$type=="unique"))/NROW(a)*100
-# 2951 of 21400 ( 13.79% ) unique secondary clusters
+        axis.title.x=element_text(),
+        title=element_text(size=7))
 
-# in mothers
-a <- mothers %>%
-  select(pig,bin,primary_cluster,secondary_cluster)
-# primary clusters: 
-a <- a %>% 
-  group_by(primary_cluster) %>% 
-  mutate(type = ifelse(n() > 1, "common","unique"))
-pdf("/Users/12705859/Desktop/metapigs_dry/dRep/shared_vs_common_primary_mothers.pdf")
-g <- ggplot(a, aes(pig))
-g + geom_bar(aes(fill=type), width = 0.5) + 
+
+
+
+# primary clusters, mothers
+primary_mothers <- no_reps_all %>%
+  filter(cohort=="Mothers") %>%
+  select(pig,primary_cluster) %>% 
+  distinct() %>%
+  group_by(primary_cluster) %>%
+  dplyr::mutate(type = ifelse(n() > 1, "common","unique")) %>%
+  ggplot(., aes(pig)) +
+  geom_bar(aes(fill=type), width = 0.5) + 
   theme(axis.text.x = element_text(angle=65, vjust=0.6)) +
   labs(title="Shared versus common primary clusters (95% ANI)", 
        subtitle="distribution among mothers",
        x = "mothers",
        y = "clustered bins") +
   theme(axis.text.x = element_blank(),
-        axis.title.x=element_text())
-dev.off()
-length(which(a$type=="unique"))
-NROW(a)
-length(which(a$type=="unique"))/NROW(a)*100
-# 76 of 839 ( 9.06%% ) unique primary clusters
-# secondary clusters: 
-a <- a %>% 
-  group_by(secondary_cluster) %>% 
-  mutate(type = ifelse(n() > 1, "common","unique"))
-pdf("/Users/12705859/Desktop/metapigs_dry/dRep/shared_vs_common_secondary_mothers.pdf")
-g <- ggplot(a, aes(pig))
-g + geom_bar(aes(fill=type), width = 0.5) + 
+        axis.title.x=element_text(),
+        title=element_text(size=7))
+
+# secondary clusters, mothers
+secondary_mothers <- no_reps_all %>%
+  filter(cohort=="Mothers") %>%
+  select(pig,secondary_cluster) %>% 
+  distinct() %>%
+  group_by(secondary_cluster) %>%
+  dplyr::mutate(type = ifelse(n() > 1, "common","unique")) %>%
+  ggplot(., aes(pig)) +
+  geom_bar(aes(fill=type), width = 0.5) + 
   theme(axis.text.x = element_text(angle=65, vjust=0.6)) +
   labs(title="Shared versus common secondary clusters (99% ANI)", 
        subtitle="distribution among mothers",
        x = "mothers",
        y = "clustered bins") +
   theme(axis.text.x = element_blank(),
-        axis.title.x=element_text())
+        axis.title.x=element_text(),
+        title=element_text(size=7))
+
+
+
+tosave <- ggarrange(primary_piglets,
+          secondary_piglets,
+          primary_mothers,
+          secondary_mothers,
+          ncol=2,
+          nrow=2,
+          common.legend = TRUE,
+          widths = c(1,1),
+          heights = c(1,1))
+
+
+pdf("dRep_common_vs_unique_clusters.pdf")
+tosave
 dev.off()
-length(which(a$type=="unique"))
-NROW(a)
-length(which(a$type=="unique"))/NROW(a)*100
-# 246 of 839 ( 29.32% ) unique primary clusters
 
 
-
-
-
-
-
-
-
-
+sink(file = "dRep_numbers.txt", 
+     append = TRUE, type = c("output"))
+paste0("Percentage of shared primary clusters among piglets:")
+NROW(which(primary_piglets$data$type=="common"))/NROW(primary_piglets$data)*100
+paste0("Percentage of shared secondary clusters among piglets:")
+NROW(which(secondary_piglets$data$type=="common"))/NROW(secondary_piglets$data)*100
+paste0("#######")
+paste0("Percentage of shared primary clusters among mothers:")
+NROW(which(primary_mothers$data$type=="common"))/NROW(primary_mothers$data)*100
+paste0("Percentage of shared secondary clusters among mothers:")
+NROW(which(secondary_mothers$data$type=="common"))/NROW(secondary_mothers$data)*100
+sink()
 
 
 
@@ -413,12 +526,12 @@ length(which(a$type=="unique"))/NROW(a)*100
 
 
 # I hereby select taxa_2 only (corresponds to phylum) and remove any row where no phylum was resolved
-df1 <- new_dataset %>%
-  select(pig,bin,date,value,secondary_cluster.y,cohort)
+df1 <- no_reps_all %>%
+  select(pig,bin,date,value,secondary_cluster,cohort)
 
 df1 <- as.data.frame(na.omit(df1))
 
-unique(df1$secondary_cluster.y)
+unique(df1$secondary_cluster)
 
 
 #################################
@@ -426,6 +539,7 @@ unique(df1$secondary_cluster.y)
 
 # normalization for library size 
 df2 <- df1 %>%
+  filter(!secondary_cluster=="no_cluster") %>%
   dplyr::group_by(pig,date) %>%
   dplyr::mutate(norm_value=value/sum(value)) 
 NROW(df1)
@@ -444,9 +558,13 @@ head(df1)
 
 # sum all the norm values that fall within same pig,date,taxa_2
 df3 <- df2 %>%
-  dplyr::group_by(pig,date,secondary_cluster.y) %>%
+  dplyr::group_by(pig,date,secondary_cluster) %>%
   dplyr::summarise(indiv_sum = sum(norm_value))
 head(df3)
+
+df3$sample<- paste0(df3$date,"_",df3$pig)
+df3$pig <- NULL
+df3$date <- NULL
 
 # # test:
 # test2 <- test %>%
@@ -460,49 +578,43 @@ head(df3)
 
 # long to wide format
 df4 <- df3 %>%
-  pivot_wider(names_from = secondary_cluster.y, values_from = indiv_sum, values_fill = list(indiv_sum = 0)) 
+  pivot_wider(names_from = secondary_cluster, values_from = indiv_sum, values_fill = list(indiv_sum = 0)) 
 head(df4)
-
+colnames(df4)
 # # test:
 # test3 <- test2 %>%
 #   pivot_wider(names_from = secondary_cluster.y, values_from = indiv_sum, values_fill = list(indiv_sum = 0))
 # head(test3)
 # sum(test3[1,])
 
+df4 <- as.data.frame(df4)
+rowSums(df4[,-1])
 
 #################################
 
-# STEP 4. PCA, dots are cohort_date 
 
-# get a quick cohorts to pig table 
-cohorts <- new_dataset %>% dplyr::select(cohort,pig) %>% distinct()
-
-# join the cohort info
-df5 <- inner_join(df4,cohorts) %>%
-  dplyr::mutate(coho_date_group=paste0(date,"_",cohort)) 
-df5
-colnames(df5)
-# 
-df6 <- df5 %>% 
-  dplyr::group_by(coho_date_group) %>% 
-  dplyr::summarise_if(is.numeric, funs(sum))
-df6
+# get a quick cohorts to pig table
+cohorts <- df %>% dplyr::select(cohort,pig,date) %>% distinct()
+cohorts$sample <- paste0(cohorts$date,"_",cohorts$pig)
+cohorts <- as.data.frame(cohorts)
 
 
-rowSums(df6[,-1])
-df6_eclr <- cenLR(df6[,-1])
-clr_norm_df <- df6_eclr$x.clr
+rownames(df4) <- df4$sample
+df4$sample <- NULL
+m <- as.matrix(df4)
 
-rownames(clr_norm_df) <- df6$coho_date_group
-
-# if I set scale. = FALSE I get a downfacing horseshoe
-df4.pca <- prcomp(clr_norm_df, center = TRUE,scale. = TRUE)
+df4.pca <- prcomp(m, center = FALSE,scale. = FALSE)
 summary(df4.pca)
 
-substr(rownames(clr_norm_df),1,3)
+# to get samples info showing on PCA plot
+this_mat_samples <- data.frame(sample=rownames(m))
+this_mat_samples <- inner_join(this_mat_samples,cohorts)
+NROW(this_mat_samples)
 
-pdf("cm_PCA.pdf")
-ggbiplot(df4.pca,labels=rownames(clr_norm_df),groups=substr(rownames(clr_norm_df),1,3),ellipse=TRUE,choices = (1:2))
+
+pdf("dRep_PCA.pdf")
+ggbiplot(df4.pca,groups = this_mat_samples$date,ellipse=FALSE,var.axes = FALSE,choices = (1:2)) +
+  theme_bw()
 dev.off()
 
 
