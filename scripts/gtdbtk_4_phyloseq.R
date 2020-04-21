@@ -291,27 +291,19 @@ dev.off()
 ######################
 
 
-# # BAR PLOT
-# 
-# #pdf("gt_phylo_barplot.pdf")
-# # BAR GRAPH - all samples
-# plot_bar(carbom, fill = "phylum") +
-#   geom_bar(aes(color=phylum, fill=phylum), stat="identity", position="stack") +
-#   theme(axis.text.x = element_blank())
-# dev.off()
-# 
-# # BAR GRAPH - by time point
-# plot_bar(carbom, fill = "phylum") +
-#   geom_bar(aes(color=phylum, fill=phylum), stat="identity", position="stack") +
-#   facet_grid(~date,scales="free_x") +
-#   theme(axis.text.x = element_blank())
-# pdf("gt_phylo_barplot.pdf")
-# # BAR GRAPH - by time point - class
-# plot_bar(carbom.abund, fill = "phylum") +
-#   geom_bar(aes(color=phylum, fill=phylum), stat="identity", position="stack") +
-#   #facet_grid(~date,scales="free_x") +
-#   theme(axis.text.x = element_blank())
-# dev.off()
+# BAR PLOT
+
+# BAR GRAPH - by time point
+pdf("gt_phylo_barplot_time.pdf")
+plot_bar(carbom_abund, fill = "phylum") +
+  geom_bar(aes(color=phylum, fill=phylum), stat="identity", position="stack") +
+  facet_grid(~date,scales="free_x") +
+  theme(axis.text.x = element_blank())
+plot_bar(carbom_abund, fill = "class") +
+  geom_bar(aes(color=class, fill=class), stat="identity", position="stack") +
+  facet_grid(~date,scales="free_x") +
+  theme(axis.text.x = element_blank())
+dev.off()
 
 
 ######################

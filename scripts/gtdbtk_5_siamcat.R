@@ -100,11 +100,6 @@ NROW(df)
 
 head(df)
 
-# substrRight <- function(x, n){
-#   substr(x, nchar(x)-n+1, nchar(x))
-# }
-# df$genus <- factor(substr(df$genus, start = 1, stop = 8))
-
 df$gOTU <- gsub("gOTU_","", df$gOTU)
 
 NROW(df)
@@ -230,7 +225,7 @@ comparetimepoints_full <- function(t1,t2) { # where c is the cohort of interest,
                                    control= paste0(t1))
   
   siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
-  siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.01)
+  siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.0001)
   
   # check for significant associations
   siamcat <- check.associations(
@@ -250,7 +245,7 @@ comparetimepoints_full <- function(t1,t2) { # where c is the cohort of interest,
     siamcat,
     norm.method = "log.unit",
     norm.param = list(
-      log.n0 = 1e-06,
+      log.n0 = 1e-06, 
       n.p = 2,
       norm.margin = 1
     )
@@ -325,7 +320,7 @@ comparebetween <- function(t,c2,c1) {
                                    control= paste0(t,"_",c1))
   
   siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
-  siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.01)
+  siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.0001)
   
   # check for significant associations
   siamcat <- check.associations(
@@ -422,7 +417,7 @@ comparewithin <- function(c,t1,t2) { # where c is the cohort of interest, t0 is 
                                    control= paste0(t1,"_",c))
   
   siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
-  siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.01)
+  siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.0001)
   
   # check for significant associations
   siamcat <- check.associations(
@@ -512,7 +507,7 @@ last <- rbind(comparewithin("Control","t0","t2"),
 last$p.adj <- NULL
 
 toplot <- last %>%
-  dplyr::select(gOTU,interval,cohort,fc)
+  dplyr::select(gOTU,comparison,fc)
 
 
 
@@ -524,24 +519,17 @@ sink()
 
 
 
-##################
+toplot <- cSplit(toplot, "comparison", "_")
+toplot$interval <- paste0(toplot$comparison_2,"_",toplot$comparison_3)
 
-toplot1 <- toplot
+toplot <- toplot %>%
+  dplyr::select(gOTU,comparison_1,interval,fc)
 
-toplot1$new <- toplot1$interval
-toplot1 <- cSplit(toplot1,"new","_")
-toplot1$pre <- gsub("t","", toplot1$new_1)
-toplot1$post <- gsub("t","", toplot1$new_2)
-toplot1$dist <- as.numeric(toplot1$post)-as.numeric(toplot1$pre)
-toplot1 <- toplot1 %>%
-  dplyr::mutate(weeks=dist/2) %>%
-  dplyr::select(gOTU,interval,cohort,fc,weeks)
-
-colnames(toplot1)
+colnames(toplot) <- c("gOTU","cohort","interval","fc")
 
 
 # split df by time interval 
-multiple_DFs <- split( toplot1 , f = toplot1$weeks )
+multiple_DFs <- split( toplot , f = toplot$interval )
 
 
 pdf("gt_siamcatA_cohortswithin.pdf")
@@ -550,199 +538,54 @@ for (single_DF in multiple_DFs) {
   
   DF <- as.data.frame(single_DF)
   
-  ########## add full name
-  z <- inner_join(DF,dict)
-  NROW(DF)
-  NROW(z)
-  
-  z$gOTU <- paste0(z$phylum,"__",z$species,"__",z$gOTU)
-  DF <- as.data.frame(z) 
-  ##########
-  
-  
-  DF$cohort <- paste0(DF$interval,"_",DF$cohort)
-  DF$interval <- NULL
-
-  
-  weeks <- DF$weeks
-  DF$weeks <- NULL
+  interval <- DF$interval[1]
   
   DF_wide <- DF %>%
     pivot_wider(names_from = cohort, values_from = fc, values_fill = list(fc = 0))
   
-  DF_wide <- as.data.frame(DF_wide)
-  
-  rownames(DF_wide) <- DF_wide[,1]
-  DF_wide[,1] <- NULL
-  
-  m <- as.matrix(DF_wide)
-  
-  mat <- m
-  
-  # relevant metrics per row
-  row_med <- matrixStats::rowMedians(mat)
-  row_vars <- matrixStats::rowVars(mat)
-  row_maxs <- matrixStats::rowMaxs(mat)
-  row_qntl90 <- matrixStats::rowQuantiles(mat, probs = 0.9)
-  
-  # top 50% utility function
-  top5 <- function(x) {
-    x >= quantile(x, 0.50)
+  if (NCOL(DF_wide) > 1) {
+    
+    DF_wide <- as.data.frame(DF_wide)
+    
+    rownames(DF_wide) <- DF_wide[,1]
+    DF_wide[,1] <- NULL
+    DF_wide$interval <- NULL
+    
+    m <- as.matrix(DF_wide)
+    
+    pheatmap(m, fontsize_row = 5, main = interval, display_numbers = TRUE, cluster_cols = FALSE)
+    
   }
   
-  # combine all conditions
-  row_idx <- top5(row_vars) & top5(row_maxs - row_med) & top5(row_qntl90 - row_med)
-  # subscript
-  n <- mat[row_idx, , drop = FALSE]
-  
-  pheatmap(n, fontsize_row = 5, main = weeks, cluster_cols = TRUE, cluster_rows = TRUE)
   
 }
 dev.off()
 
 
-##################
-
-# all together 
-
-
-DF <- as.data.frame(toplot1)
-
-########## add full name
-z <- inner_join(DF,dict)
-NROW(DF)
-NROW(z)
-
-z$gOTU <- paste0(z$phylum,"__",z$species,"__",z$gOTU)
-DF <- as.data.frame(z) %>%
-  dplyr::select(gOTU,interval,cohort,fc,weeks)
-##########
-
-
-DF$group = paste0(DF$interval,"_",DF$cohort)
-
-DF$interval <- NULL
-DF$cohort <- NULL
-DF$weeks <- NULL
-
-DF_wide <- DF %>%
-  pivot_wider(names_from = group, values_from = fc, values_fill = list(fc = 0))
-
-DF_wide <- as.data.frame(DF_wide)
-
-rownames(DF_wide) <- DF_wide[,1]
-DF_wide[,1] <- NULL
-
-m <- as.matrix(DF_wide)
-
-
-dummy <- data.frame(my = colnames(m))
-dummy <- cSplit(dummy,"my","_")
-dummy$pre <- gsub("t","", dummy$my_1)
-dummy$post <- gsub("t","", dummy$my_2)
-dummy$diff <- as.numeric(dummy$post)-as.numeric(dummy$pre)
-
-dummy <- dummy %>%
-  group_by(my_3) %>%
-  mutate(coho_ord=order(my_3))
-
-dummy <- dummy %>%
-  group_by(coho_ord) %>%
-  arrange(as.numeric(diff),as.numeric(pre), as.numeric(pre))
-head(dummy)
-
-dummy$group = paste0(dummy$my_1,"_",dummy$my_2,"_",dummy$my_3)
-
-
-n <- m[, order(dummy$group)]
-
-mat <- n
-
-# relevant metrics per row
-row_med <- matrixStats::rowMedians(mat)
-row_vars <- matrixStats::rowVars(mat)
-row_maxs <- matrixStats::rowMaxs(mat)
-row_qntl90 <- matrixStats::rowQuantiles(mat, probs = 0.9)
-
-# top 25% utility function
-top5 <- function(x) {
-  x >= quantile(x, 0.75)
-}
-
-# combine all conditions
-row_idx <- top5(row_vars) & top5(row_maxs - row_med) & top5(row_qntl90 - row_med)
-# subscript
-n <- mat[row_idx, , drop = FALSE]
-
-
-interval_color <- data.frame(int_color = factor(substr(colnames(DF_wide), start = 1, stop = 6)))
-row.names(interval_color) <- colnames(DF_wide)
-
-pdf("gt_siamcatA_cohortswithin_all.pdf")
-pheatmap(n, fontsize_row = 5, annotation_col = interval_color)
-dev.off()
 
 
 
-##################
+# matrix subsetting when heatmap too crowded : 
+
+  
+  # mat <- m
+  # 
+  # # relevant metrics per row
+  # row_med <- matrixStats::rowMedians(mat)
+  # row_vars <- matrixStats::rowVars(mat)
+  # row_maxs <- matrixStats::rowMaxs(mat)
+  # row_qntl90 <- matrixStats::rowQuantiles(mat, probs = 0.9)
+  # 
+  # # top 50% utility function
+  # top5 <- function(x) {
+  #   x >= quantile(x, 0.50)
+  # }
+  # 
+  # # combine all conditions
+  # row_idx <- top5(row_vars) & top5(row_maxs - row_med) & top5(row_qntl90 - row_med)
+  # # subscript
+  # n <- mat[row_idx, , drop = FALSE]
 
 
 
 
-
-######################################################################
-######################################################################
-
-
-
-DF <- as.data.frame(last)
-
-###################
-
-z <- inner_join(DF,dict)
-NROW(DF)
-NROW(z)
-
-z$gOTU <- paste0(z$phylum,"__",z$species,"__",z$gOTU)
-DF <- as.data.frame(z) %>%
-  dplyr::select(comparison,gOTU,fc)
-###################
-
-
-DF_wide <- DF %>%
-  pivot_wider(names_from = comparison, values_from = fc, values_fill = list(fc = 0))
-
-DF_wide <- as.data.frame(DF_wide)
-
-rownames(DF_wide) <- DF_wide[,1]
-DF_wide[,1] <- NULL
-
-m <- as.matrix(DF_wide)
-
-mat <- m
-
-# relevant metrics per row
-row_med <- matrixStats::rowMedians(mat)
-row_vars <- matrixStats::rowVars(mat)
-row_maxs <- matrixStats::rowMaxs(mat)
-row_qntl90 <- matrixStats::rowQuantiles(mat, probs = 0.9)
-
-# top 25% utility function
-top5 <- function(x) {
-  x >= quantile(x, 0.75)
-}
-
-# combine all conditions
-row_idx <- top5(row_vars) & top5(row_maxs - row_med) & top5(row_qntl90 - row_med)
-# subscript
-n <- mat[row_idx, , drop = FALSE]
-
-pdf("gt_siamcatA_time.pdf")
-pheatmap(n, fontsize_row = 10, main = "significant changes between timepoints", 
-         cluster_cols = TRUE, cluster_rows = TRUE)
-dev.off()
-
-
-
-######################################################################
-######################################################################

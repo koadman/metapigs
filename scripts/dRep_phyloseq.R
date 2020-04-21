@@ -14,6 +14,12 @@ library(pheatmap)
 library(ComplexHeatmap)
 library(cluster)
 library(circlize)
+library(readxl)
+
+
+
+setwd("~/Desktop/metapigs_dry/dRep/")
+basedir = "~/Desktop/metapigs_dry/"
 
 
 ######################################################################
@@ -78,7 +84,6 @@ colnames(mdat)
 
 df0 <- merge(df, gtdbtk_bins, by=c("pig","bin"))
 NROW(df0)
-
 
 ######################################################################
 

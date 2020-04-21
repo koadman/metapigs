@@ -256,26 +256,32 @@ sample_variables(carbom)
 
 # PLOT
 
+# keep only very abundant gOTUs
+carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.20) > 0, TRUE)
+
+
 ######################
 
 # BAR PLOT
 
-pdf("cm_phylo_barplot.pdf")
-# BAR GRAPH - all samples 
-plot_bar(carbom, fill = "phylum") + 
-  geom_bar(aes(color=phylum, fill=phylum), stat="identity", position="stack") +
-  theme(axis.text.x = element_blank())
+######################
+
 # BAR GRAPH - by time point
-plot_bar(carbom, fill = "phylum") + 
+pdf("cm_phylo_barplot_time.pdf")
+plot_bar(carbom_abund, fill = "phylum") +
   geom_bar(aes(color=phylum, fill=phylum), stat="identity", position="stack") +
   facet_grid(~date,scales="free_x") +
   theme(axis.text.x = element_blank())
-# BAR GRAPH - by time point - class
-plot_bar(carbom, fill = "class") + 
+plot_bar(carbom_abund, fill = "class") +
   geom_bar(aes(color=class, fill=class), stat="identity", position="stack") +
   facet_grid(~date,scales="free_x") +
   theme(axis.text.x = element_blank())
+plot_bar(carbom_abund, fill = "order") +
+  geom_bar(aes(color=order, fill=order), stat="identity", position="stack") +
+  facet_grid(~date,scales="free_x") +
+  theme(axis.text.x = element_blank())
 dev.off()
+
 
 ######################
 
@@ -283,16 +289,25 @@ dev.off()
 
 # plot_heatmap(carbom, method = "NMDS", distance = "bray")
 
-# keep only very abundant gOTUs
-carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.20) > 0, TRUE)
-
 # HEATMAP with only most abundant gOTUs
 # plot_heatmap(carbom_abund, method = "NMDS", distance = "bray")
 
 # HEATMAP with only most abundant gOTUs - with names 
 pdf("cm_phylo_heatmap.pdf")
 plot_heatmap(carbom_abund, method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
-             taxa.label = "order", taxa.order = "order", 
+             taxa.label = "genus", taxa.order = "genus", 
+             trans=NULL, low="beige", high="red", na.value="beige")
+plot_heatmap(carbom_abund, method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
+             taxa.label = "family", taxa.order = "genus", 
+             trans=NULL, low="beige", high="red", na.value="beige")
+plot_heatmap(carbom_abund, method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
+             taxa.label = "order", taxa.order = "genus", 
+             trans=NULL, low="beige", high="red", na.value="beige")
+plot_heatmap(carbom_abund, method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
+             taxa.label = "class", taxa.order = "genus", 
+             trans=NULL, low="beige", high="red", na.value="beige")
+plot_heatmap(carbom_abund, method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
+             taxa.label = "phylum", taxa.order = "genus", 
              trans=NULL, low="beige", high="red", na.value="beige")
 dev.off()
 

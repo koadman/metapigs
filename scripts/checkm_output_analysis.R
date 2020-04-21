@@ -13,6 +13,7 @@ library(data.table)
 library(readxl)
 library(pheatmap)
 library(robCompositions)
+library(ggbiplot)
 
 basedir = "/Users/12705859/Desktop/metapigs_dry/"
 setwd("/Users/12705859/Desktop/metapigs_dry/checkm/")
