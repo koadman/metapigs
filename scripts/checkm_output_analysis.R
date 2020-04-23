@@ -870,8 +870,8 @@ unique(df1$taxa_2)
 df2 <- df1 %>%
   dplyr::group_by(pig,date) %>%
   dplyr::mutate(norm_value=value/sum(value)) 
-NROW(df1)
-head(df1)
+NROW(df2)
+head(df2)
 
 # # test:
 # test <- df2 %>%
@@ -890,7 +890,7 @@ df3 <- df2 %>%
   dplyr::summarise(indiv_sum = sum(norm_value))
 head(df3)
 
-# # test: 
+# # test:
 # test2 <- test %>%
 #   group_by(taxa_2) %>%
 #   dplyr::summarise(indiv_sum = sum(norm_value))
@@ -905,7 +905,7 @@ df4 <- df3 %>%
   pivot_wider(names_from = taxa_2, values_from = indiv_sum, values_fill = list(indiv_sum = 0)) 
 head(df4)
 
-# # test: 
+# # test:
 # test3 <- test2 %>%
 #   pivot_wider(names_from = taxa_2, values_from = indiv_sum, values_fill = list(indiv_sum = 0))
 # head(test3)

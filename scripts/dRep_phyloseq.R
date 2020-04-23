@@ -15,6 +15,7 @@ library(ComplexHeatmap)
 library(cluster)
 library(circlize)
 library(readxl)
+library(data.table)
 
 
 
@@ -335,42 +336,61 @@ dev.off()
 
 # CO-HOUSING community structure test: 
 
+######################################################################
 
-mdat1 <- mdat %>%
-  dplyr::filter(`*collection_date`=="2017-02-28") %>%
+# load metadata 
+mdat <- read_excel(paste0(basedir,"Metagenome.environmental_20190308_2.xlsx"),
+                   col_types = c("text", "numeric", "numeric", "text", "text",
+                                 "text", "date", "text","text", "text", "numeric",
+                                 "numeric", "numeric", "numeric", "numeric", "numeric",
+                                 "numeric", "text", "text","text", "text", "text", "text",
+                                 "text","text", "text", "text", "text", "text","text", "text"),
+                   skip = 12)
+
+mdat$`*collection_date` <- as.character(mdat$`*collection_date`)
+mdat$Cohort <- gsub("Sows","Sows",mdat$Cohort)
+colnames(mdat)
+
+mdat <- mdat %>%
+  dplyr::filter(!Cohort=="Sows")  %>%
+  dplyr::filter(!`*collection_date`=="2017-01-31"|
+                  `*collection_date`=="2017-02-01"|
+                  `*collection_date`=="2017-02-03") %>%
   dplyr::select(isolation_source,PigPen)
 
+colnames(mdat) <- c("pig","pen")
+head(mdat)
+mdat <- as.data.frame(mdat)
+class(mdat)
 
-mdat1 <- as.data.frame(mdat1)
-mdat1$isolation_source <- as.character(mdat1$isolation_source)
+mdat1 <- mdat %>%
+  group_by(pig) %>%
+  distinct()
+NROW(mdat1)
+
+mdat1$pen <- gsub("nan",NA,mdat1$pen)
+mdat1 <- na.omit(mdat1)
+
+# we need to keep only record of pigs that were not relocated. 
+mdat2 <- setDT(mdat1)[,if(.N ==1) .SD,by=pig]
+
 
 ######################################################################
+
 
 # SAMPLES 
 
 # create a sample table for phyloseq 
 
-
-piggies_that_stay <- mdat1$isolation_source
+# create a sample table for phyloseq 
 
 sample_df <- df
-
-sample_df <- subset(sample_df, pig %in% piggies_that_stay)
-NROW(sample_df)
-
-sample_df <- as.data.frame(sample_df)
-sample_df$pig <- as.character(sample_df$pig)
-
-
-sample_df <- inner_join(sample_df, mdat1, by=c("pig"="isolation_source"))
-NROW(sample_df)
-
 
 sample_df$sample <- paste0(sample_df$date,"_",sample_df$pig)
 NROW(unique(sample_df$sample))
 
 sample_df <- sample_df %>%
-  dplyr::select(sample,pig,date,cohort,PigPen) %>%
+  dplyr::select(sample,pig,date,cohort) %>%
   group_by(sample) %>%
   slice(1)
 
@@ -379,6 +399,23 @@ sample_df <- as.data.frame(sample_df)
 
 NROW(sample_df)
 head(sample_df)
+
+#########################
+
+# IMPORTANT: here is where I add the Pig Pen info: 
+
+NROW(mdat2)
+NROW(sample_df)
+
+sample_df$pig <- as.character(sample_df$pig)
+mdat2$pig <- as.character(mdat2$pig)
+mdat2 <- as.data.frame(mdat2)
+
+
+sample_df <- dplyr::left_join(sample_df,mdat2)
+NROW(sample_df)
+head(sample_df)
+
 
 #########################
 
@@ -393,7 +430,8 @@ sample_df$date  = factor(sample_df$date, levels=c("t0",
                                                   "t7",
                                                   "t8",
                                                   "t9",
-                                                  "t10"))
+                                                  "t10",
+                                                  "no-t"))
 
 # reorder cohorts 
 sample_df$cohort  = factor(sample_df$cohort, levels=c("Control", 
@@ -406,240 +444,220 @@ sample_df$cohort  = factor(sample_df$cohort, levels=c("Control",
 rownames(sample_df) <- sample_df[,1]
 # ready
 
+
+
+# ready
+
 ######################################################################
 
-# 
+# create phyloseq object
+
 OTU = otu_table(gOTU_mat, taxa_are_rows = TRUE)
 TAX = tax_table(taxa_mat)
 samples = sample_data(sample_df)
 
+###################################
+
+
 # Control 
 ######################
 carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (cohort %in% c("Control")))
 carbom <- subset_samples(carbom, (date %in% c("t0")))
+carbom <- subset_samples(carbom, (cohort %in% c("Control")))
 # NORMALIZATION 
 total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "NMDS", "bray")
-ctrl2 <- plot_ordination(carbom, carbom.ord, type="samples", color="PigPen", shape="PigPen",
-                        title="Control t0") + 
-  geom_point(size=2)
+ctrlt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                          title="Control") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
 ######################
 carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (cohort %in% c("Control")))
 carbom <- subset_samples(carbom, (date %in% c("t8")))
+carbom <- subset_samples(carbom, (cohort %in% c("Control")))
 # NORMALIZATION 
 total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "NMDS", "bray")
-ctrl8 <- plot_ordination(carbom, carbom.ord, type="samples", color="PigPen", shape="PigPen",
-                         title="Control t8") + 
-  geom_point(size=2)
-######################
+ctrlt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                          title="Control") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
 ######################
 # DScour 
 ######################
 carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (cohort %in% c("DScour")))
 carbom <- subset_samples(carbom, (date %in% c("t0")))
+carbom <- subset_samples(carbom, (cohort %in% c("DScour")))
 # NORMALIZATION 
 total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "NMDS", "bray")
-DScour2 <- plot_ordination(carbom, carbom.ord, type="samples", color="PigPen", shape="PigPen",
-                         title="DScour - t0") + 
-  geom_point(size=2)
+dscourt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                            title="D-Scour") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
 ######################
 carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (cohort %in% c("DScour")))
 carbom <- subset_samples(carbom, (date %in% c("t8")))
+carbom <- subset_samples(carbom, (cohort %in% c("DScour")))
 # NORMALIZATION 
 total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "NMDS", "bray")
-DScour8 <- plot_ordination(carbom, carbom.ord, type="samples", color="PigPen", shape="PigPen",
-                         title="DScour - t8") + 
-  geom_point(size=2)
-######################
+dscourt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                            title="D-Scour") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
 ######################
 # ColiGuard 
 ######################
 carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (cohort %in% c("ColiGuard")))
 carbom <- subset_samples(carbom, (date %in% c("t0")))
+carbom <- subset_samples(carbom, (cohort %in% c("ColiGuard")))
 # NORMALIZATION 
 total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "NMDS", "bray")
-ColiGuard2 <- plot_ordination(carbom, carbom.ord, type="samples", color="PigPen", shape="PigPen",
-                           title="ColiGuard - t0") + 
-  geom_point(size=2)
+coligt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                           title="ColiGuard") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
 ######################
 carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (cohort %in% c("ColiGuard")))
 carbom <- subset_samples(carbom, (date %in% c("t8")))
+carbom <- subset_samples(carbom, (cohort %in% c("ColiGuard")))
 # NORMALIZATION 
 total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "NMDS", "bray")
-ColiGuard8 <- plot_ordination(carbom, carbom.ord, type="samples", color="PigPen", shape="PigPen",
-                           title="ColiGuard - t8") + 
-  geom_point(size=2)
-######################
+coligt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                           title="ColiGuard") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
 ######################
 # Neomycin
 ######################
 carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t0")))
 carbom <- subset_samples(carbom, (cohort %in% c("Neomycin")))
-carbom <- subset_samples(carbom, (date %in% c("t0")))
 # NORMALIZATION 
 total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "NMDS", "bray")
-Neomycin2 <- plot_ordination(carbom, carbom.ord, type="samples", color="PigPen", shape="PigPen",
-                              title="Neomycin - t0") + 
-  geom_point(size=2)
+neot0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                         title="Neomycin") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
 ######################
 carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t8")))
 carbom <- subset_samples(carbom, (cohort %in% c("Neomycin")))
-carbom <- subset_samples(carbom, (date %in% c("t8")))
 # NORMALIZATION 
 total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "NMDS", "bray")
-Neomycin8 <- plot_ordination(carbom, carbom.ord, type="samples", color="PigPen", shape="PigPen",
-                              title="Neomycin - t8") + 
-  geom_point(size=2)
+neot8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                         title="Neomycin") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
 ######################
-######################
-# NeoD
+# NeoD 
 ######################
 carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (cohort %in% c("NeoD")))
 carbom <- subset_samples(carbom, (date %in% c("t0")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
-NeoD2 <- plot_ordination(carbom, carbom.ord, type="samples", color="PigPen", shape="PigPen",
-                             title="NeoD - t0") + 
-  geom_point(size=2)
-######################
-carbom <- phyloseq(OTU,TAX,samples)
 carbom <- subset_samples(carbom, (cohort %in% c("NeoD")))
-carbom <- subset_samples(carbom, (date %in% c("t8")))
 # NORMALIZATION 
 total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "NMDS", "bray")
-NeoD8 <- plot_ordination(carbom, carbom.ord, type="samples", color="PigPen", shape="PigPen",
-                             title="NeoD - t8") + 
-  geom_point(size=2)
-######################
-######################
-# NeoC
+neoDt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                          title="NeoD") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
 ######################
 carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (cohort %in% c("NeoC")))
+carbom <- subset_samples(carbom, (date %in% c("t8")))
+carbom <- subset_samples(carbom, (cohort %in% c("NeoD")))
+# NORMALIZATION 
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "NMDS", "bray")
+neoDt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                          title="NeoD") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
+######################
+# NeoC 
+######################
+carbom <- phyloseq(OTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t0")))
+carbom <- subset_samples(carbom, (cohort %in% c("NeoC")))
 # NORMALIZATION 
 total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "NMDS", "bray")
-NeoC2 <- plot_ordination(carbom, carbom.ord, type="samples", color="PigPen", shape="PigPen",
-                         title="NeoC - t0") + 
-  geom_point(size=2)
+neoCt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                          title="NeoC") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
 ######################
 carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (cohort %in% c("NeoC")))
 carbom <- subset_samples(carbom, (date %in% c("t8")))
+carbom <- subset_samples(carbom, (cohort %in% c("NeoC")))
 # NORMALIZATION 
 total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "NMDS", "bray")
-NeoC8 <- plot_ordination(carbom, carbom.ord, type="samples", color="PigPen", shape="PigPen",
-                         title="NeoC - t8") + 
-  geom_point(size=2)
+neoCt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                          title="NeoC") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
 ######################
-######################
 
 
-ctrl <- ggarrange(
-  ctrl2, ctrl8, ncol=2, common.legend = TRUE
-)
-DScour <- ggarrange(
-  DScour2, DScour8, ncol=2, common.legend = TRUE
-)
-ColiGuard <- ggarrange(
-  ColiGuard2, ColiGuard8, ncol=2, common.legend = TRUE
-)
-Neomycin <- ggarrange(
-  Neomycin2, Neomycin8, ncol=2, common.legend = TRUE
-)
-NeoD <- ggarrange(
-  NeoD2, NeoD8, ncol=2, common.legend = TRUE
-)
-NeoC <- ggarrange(
-  NeoC2, NeoC8, ncol=2, common.legend = TRUE
-)
+ctrl <- ggarrange(ctrlt0,ctrlt8)
+neo <- ggarrange(neot0,neot8)
+dscour <- ggarrange(dscourt0,dscourt8)
+colig <- ggarrange(coligt0,coligt8)
+neoD <- ggarrange(neoDt0,neoDt8)
+neoC <- ggarrange(neoCt0,neoCt8)
 
-
-tosave <- ggarrange(
-  ctrl, Neomycin,
-  DScour, ColiGuard,
-  NeoD, NeoC, 
-  nrow=3, 
-  ncol=2,
-  common.legend = FALSE,
-  labels=c("A","B","C","D","E","F")
+pdf("dRep_phylo_cohousing.pdf")
+ggarrange(
+  ctrl, neo, nrow=2, labels=c("A","B")
 )
-
-
-
-pdf("dRep_cohousing.pdf")
-tosave
+ggarrange(
+  dscour, colig, nrow=2, labels=c("A","B")
+)
+ggarrange(
+  neoD, neoC, nrow=2, labels=c("A","B")
+)
 dev.off()
 
 ########################################################################################
-
-# test distance for statistical significance: 
-
-cohousing_df <- rbind(ctrl2$data,
-      ctrl2$data,
-      DScour2$data,
-      DScour8$data,
-      ColiGuard2$data,
-      ColiGuard8$data,
-      Neomycin2$data,
-      Neomycin8$data,
-      NeoD2$data,
-      NeoD8$data,
-      NeoC2$data,
-      NeoC8$data)
-
-
