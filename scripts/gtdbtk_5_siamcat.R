@@ -503,10 +503,12 @@ last <- rbind(comparewithin("Control","t0","t2"),
               comparewithin("NeoC","t4","t10"),
               comparewithin("NeoC","t2","t8"))
 
+last_to_use <- last 
 
-last$p.adj <- NULL
+NROW(last_to_use)
+last_to_use$p.adj <- NULL
 
-toplot <- last %>%
+toplot <- last_to_use %>%
   dplyr::select(gOTU,comparison,fc)
 
 
@@ -514,7 +516,7 @@ toplot <- last %>%
 # save hits as text file 
 sink(file = "gt_siamcatA_cohortswithin.txt", 
      append = TRUE, type = c("output"))
-last
+last_to_use
 sink()
 
 
@@ -543,7 +545,7 @@ for (single_DF in multiple_DFs) {
   DF_wide <- DF %>%
     pivot_wider(names_from = cohort, values_from = fc, values_fill = list(fc = 0))
   
-  if (NCOL(DF_wide) > 1) {
+  if (NCOL(DF_wide) > 1 & NROW(DF_wide) >1 ) {
     
     DF_wide <- as.data.frame(DF_wide)
     
