@@ -82,156 +82,6 @@ paste0("of which secondary clusters ", length(unique(C1$secondary_cluster)) )
 sink()
 
 
-##########################
-
-# Bins distribution:
-# how many bins each subject has:
-az <- no_reps_all %>%
-  dplyr::select(bin, pig, cohort) %>%
-  distinct() 
-
-az <- az %>%
-  mutate(group = ifelse(cohort == "Mothers", "mothers (n=42)","piglets (n=126)"))
-
-az <- az %>%
-  group_by(group,pig) %>%
-  dplyr::summarise(`number of metagenomes obtained`= n()) 
-tail(az)
-
-pdf("dRep_#bins_subject.pdf")
-ggplot(data=az, mapping=aes(x=group, y=`number of metagenomes obtained`)) + 
-  geom_boxplot(outlier.shape = NA) + 
-  geom_jitter(width = 0.1)
-dev.off()
-
-
-##########################
-
-# Bins per cohort: 
-az2 <- no_reps_all %>%
-  select(cohort,bin,pig) %>%
-  group_by(cohort,pig) %>%
-  dplyr::summarise(`number of metagenomes obtained`= n()) 
-tail(az2)
-
-pdf("dRep_#bins_cohort.pdf")
-ggplot(data=az2, mapping=aes(x=cohort, y=`number of metagenomes obtained`)) + 
-  geom_boxplot(outlier.shape = NA) + 
-  geom_jitter(width = 0.1)
-dev.off()
-
-##########################
-
-
-# Get the numbers: 
-az <- no_reps_all %>%
-  dplyr::select(bin,pig)
-bz <- unique(az)
-cz <- data.frame(table(bz$pig))
-
-sink(file = "dRep_numbers.txt", 
-     append = TRUE, type = c("output"))
-paste0("total of bins (excludes the pos and neg controls bins): ", sum(cz$Freq) )
-sink()
-
-
-##########################
-
-
-# number of samples per time point: 
-
-az <- no_reps_all %>%
-  filter(!cohort=="Mothers") %>%
-  dplyr::select(pig, date) %>%
-  distinct() 
-
-az <- az %>%
-  group_by(date) %>%
-  dplyr::summarise(`number of samples`= n()) 
-tail(az)
-
-# reorder dates 
-az$date  = factor(az$date, levels=c("t0",
-                                                  "t1", 
-                                                  "t2",
-                                                  "t3",
-                                                  "t4",
-                                                  "t5",
-                                                  "t6",
-                                                  "t7",
-                                                  "t8",
-                                                  "t9",
-                                                  "t10"))
-az <- az %>%
-  mutate(sampling = ifelse(date == "t0" | date == "t2" | 
-                      date == "t4" | date == "t6" | 
-                      date == "t8" | date == "t10" , "all subjects", "subset"))
-
-pdf("dRep_#samples_per_timepoint.pdf")
-ggplot(data=az, mapping=aes(x=date, y=`number of samples`, color=sampling)) + 
-  geom_point() +
-  geom_line(aes(group = sampling), linetype = 2) +
-  theme_bw() + 
-  labs(title="Number of collected samples per timepoint", 
-                  x = "timepoint",
-                  y = "number of samples",
-                  subtitle=NULL)
-dev.off()
-
-
-##########################
-
-
-# Correlation between timepoints available and bins obtained per subject: 
-# How many timepoints scale to how many bins? 
-
-# BINS PER SUBJ
-az1 <- no_reps_all %>%
-  dplyr::select(bin, pig) %>%
-  distinct() %>%
-  group_by(pig) %>%
-  dplyr::summarise(`number of metagenomes per subject`= n()) 
-tail(az1)
-NROW(az1)
-head(az1)
-
-sink(file = "dRep_numbers.txt", 
-     append = TRUE, type = c("output"))
-paste0("Bins per subject: ")
-summary(az1$`number of metagenomes per subject`)
-sink()
-
-# TIMEPOINTS PER SUBJ
-az2 <- no_reps_all %>%
-  dplyr::select(date, pig) %>%
-  distinct() %>%
-  group_by(pig) %>%
-  dplyr::summarise(`number of timepoints per subject`= n()) 
-tail(az2)
-NROW(az2)
-
-sink(file = "dRep_numbers.txt", 
-     append = TRUE, type = c("output"))
-paste0("Timepoints per subject: ")
-summary(az2$`number of timepoints per subject`)
-sink()
-
-
-az3 <- cbind(az1,az2)
-az3$pig <- NULL
-
-pdf("dRep_#bins_vs_#timepoints.pdf")
-ggplot(data=az3, mapping=aes(x=`number of timepoints per subject`, y=`number of metagenomes per subject`)) + 
-  geom_point(color='blue', size=0.6) +
-  #geom_smooth(method = "lm", se = FALSE)+
-  labs(title="Bins obtained versus number of timepoints available from each subject", 
-       x = "number of timepoints available per subject",
-       y = "number of bins obtained per subject",
-       subtitle=NULL)
-dev.off()
-
-
-
 
 ########################################################################################################
 
@@ -308,12 +158,14 @@ a
 rownames(a) <- a[,1]
 a[,1] <- NULL
 
+summary_a <- as.data.frame.array(summary(a))
+
 
 sink(file = "dRep_numbers.txt", 
      append = TRUE, type = c("output"))
 paste0("Extent of agreement between dRep classificantion and gtdbtk assignment of bins")
 paste0("Primary clusters: ")
-summary(a)
+summary_a
 sink()
 
 
@@ -387,13 +239,14 @@ a
 rownames(a) <- a[,1]
 a[,1] <- NULL
 
-a
+summary_a <- as.data.frame.array(summary(a))
+
 
 sink(file = "dRep_numbers.txt", 
      append = TRUE, type = c("output"))
 paste0("Extent of agreement between dRep classificantion and gtdbtk assignment of bins")
 paste0("Secondary clusters: ")
-summary(a)
+summary_a
 sink()
 
 

@@ -254,8 +254,11 @@ sample_variables(carbom)
 
 # HEATMAP
 
+# HEATMAP
+
 # keep only very abundant OTUs
-carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.2) > 1, TRUE)
+# taking gOTUs that represent at least 3% of the sample and present in at least 40 samples 
+carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.03) > 40, TRUE)
 
 # HEATMAP with only most abundant OTUs
 # plot_heatmap(carbom_abund, method = "NMDS", distance = "bray")
@@ -266,31 +269,34 @@ sampleOrder = sort(sample_names(carbom_abund))
 # HEATMAP time - genus, family, order, etc ...
 pdf("dRep_phylo_heatmap.pdf")
 plot_heatmap(carbom_abund, method = "MDS", distance="unifrac",weighted=TRUE, 
-             taxa.label = "gOTU_1", taxa.order = "gOTU_2", sample.order = sampleOrder,
+             taxa.label = "gOTU_2", taxa.order = "species", sample.order = sampleOrder,
              trans=NULL, low="blue", high="red", na.value="blue") +
-  ggtitle(label = "Primary clusters (dRep)")
+  ggtitle(label = "Microbe Diversity by secondary cluster") 
 plot_heatmap(carbom_abund, method = "MDS", distance="unifrac",weighted=TRUE, 
-             taxa.label = "gOTU_2", taxa.order = "gOTU_2", sample.order = sampleOrder,
+             taxa.label = "species", taxa.order = "species", sample.order = sampleOrder,
              trans=NULL, low="blue", high="red", na.value="blue") +
-  ggtitle(label = "Secondary clusters (dRep)") 
+  ggtitle(label = "Microbe Diversity by secondary cluster (Species)")
 plot_heatmap(carbom_abund, method = "MDS", distance="unifrac",weighted=TRUE, 
-             taxa.label = "species", taxa.order = "gOTU_2", sample.order = sampleOrder,
+             taxa.label = "genus", taxa.order = "species", sample.order = sampleOrder,
              trans=NULL, low="blue", high="red", na.value="blue") +
-  ggtitle(label = "Species (GTDBTK)")
+  ggtitle(label = "Microbe Diversity by secondary cluster (Genus)")
 plot_heatmap(carbom_abund, method = "MDS", distance="unifrac",weighted=TRUE, 
-             taxa.label = "family", taxa.order = "gOTU_2", sample.order = sampleOrder,
+             taxa.label = "family", taxa.order = "species", sample.order = sampleOrder,
              trans=NULL, low="blue", high="red", na.value="blue") +
-  ggtitle(label = "Family (GTDBTK)") 
+  ggtitle(label = "Microbe Diversity by secondary cluster (Family)")
 plot_heatmap(carbom_abund, method = "MDS", distance="unifrac",weighted=TRUE, 
-             taxa.label = "order", taxa.order = "gOTU_2", sample.order = sampleOrder,
+             taxa.label = "order", taxa.order = "species", sample.order = sampleOrder,
              trans=NULL, low="blue", high="red", na.value="blue") +
-  ggtitle(label = "Order (GTDBTK)") 
-plot_heatmap(carbom_abund, method = "MDS", distance="unifrac",weighted=TRUE, 
-             taxa.label = "phylum", taxa.order = "gOTU_2", sample.order = sampleOrder,
+  ggtitle(label = "Microbe Diversity by secondary cluster (Order)")
+plot_heatmap(carbom_abund, method = "MDS", distance="unifrac",weighted=TRUE,
+             taxa.label = "class", taxa.order = "species", sample.order = sampleOrder,
              trans=NULL, low="blue", high="red", na.value="blue") +
-  ggtitle(label = "Phylum (GTDBTK)") 
+  ggtitle(label = "Microbe Diversity by secondary cluster (Class)")
+plot_heatmap(carbom_abund, method = "MDS", distance="unifrac",weighted=TRUE,
+             taxa.label = "phylum", taxa.order = "species", sample.order = sampleOrder,
+             trans=NULL, low="blue", high="red", na.value="blue") +
+  ggtitle(label = "Microbe Diversity by secondary cluster (Phylum)")
 dev.off()
-
 
 
 ######################

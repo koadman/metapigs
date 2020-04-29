@@ -7,7 +7,8 @@ library(data.table)
 library(tidyr)
 library(ggplot2)
 library(ggpubr)
-
+library(robCompositions)
+library(ggbiplot)
 
 setwd("~/Desktop/metapigs_dry/gtdbtk")
 basedir = "~/Desktop/metapigs_dry/"
@@ -76,7 +77,7 @@ treemap(phylum_counts_most_ab, #Your data frame object
         index=c("label"),  #A list of your categorical variables
         vSize = "perc",  #This is your quantitative variable
         type="index", #Type sets the organization and color scheme of your treemap
-        title="Phyla distribution from all MAGs (gtdbtk) - most abundant", #Customize your title
+        title="Phyla distribution from all MAGs (gtdbtk) - most common", #Customize your title
         fontsize.title = 15 #Change the font size of the title
         #fontsize.labels = 8
 )
@@ -85,11 +86,126 @@ treemap(phylum_counts_least_ab, #Your data frame object
         index=c("label"),  #A list of your categorical variables
         vSize = "perc",  #This is your quantitative variable
         type="index", #Type sets the organization and color scheme of your treemap
-        title="Phyla distribution from all MAGs (gtdbtk) - least abundant", #Customize your title
+        title="Phyla distribution from all MAGs (gtdbtk) - least common", #Customize your title
         fontsize.title = 15 #Change the font size of the title
         #fontsize.labels = 8
 )
 dev.off()
+
+
+
+
+######################################################################
+
+
+
+# Species overall - based on gtdbtk assignment
+
+
+species_counts <- setDT(gtdbtk_bins)[, .(Freq = .N), by = .(species)]
+
+# all 
+species_counts <- species_counts %>%
+  #filter(!Freq<10) %>% # two bins in the whole dataset matching a phylum are not worth taking along
+  mutate(perc=round(Freq/sum(Freq)*100,2)) %>%
+  arrange(desc(perc))
+species_counts$label <- paste(paste(species_counts$species,
+                                    species_counts$perc,sep = "\n"),"%")
+
+# most abundant 
+species_counts_most_ab <- species_counts[1:50]
+
+# least abundant
+species_counts_least_ab <- species_counts[51:100]
+
+
+pdf("gt_treemap_species.pdf")
+# all 
+treemap(species_counts, #Your data frame object
+        index=c("label"),  #A list of your categorical variables
+        vSize = "Freq",  #This is your quantitative variable
+        type="index", #Type sets the organization and color scheme of your treemap
+        title="Species distribution from all MAGs (gtdbtk) - all", #Customize your title
+        fontsize.title = 15 #Change the font size of the title
+        #fontsize.labels = 8
+)
+# most abundant 
+treemap(species_counts_most_ab, #Your data frame object
+        index=c("label"),  #A list of your categorical variables
+        vSize = "Freq",  #This is your quantitative variable
+        type="index", #Type sets the organization and color scheme of your treemap
+        title="Species distribution from all MAGs (gtdbtk) - 50 most common", #Customize your title
+        fontsize.title = 15 #Change the font size of the title
+        #fontsize.labels = 8
+)
+# least abundant 
+treemap(species_counts_least_ab, #Your data frame object
+        index=c("label"),  #A list of your categorical variables
+        vSize = "Freq",  #This is your quantitative variable
+        type="index", #Type sets the organization and color scheme of your treemap
+        title="Species distribution from all MAGs (gtdbtk) - from 50th to 100th most common", #Customize your title
+        fontsize.title = 15 #Change the font size of the title
+        #fontsize.labels = 8
+)
+dev.off()
+
+
+
+
+######################################################################
+
+
+
+# Genus overall - based on gtdbtk assignment
+
+
+genus_counts <- setDT(gtdbtk_bins)[, .(Freq = .N), by = .(genus)]
+
+# all 
+genus_counts <- genus_counts %>%
+  #filter(!Freq<10) %>% # two bins in the whole dataset matching a phylum are not worth taking along
+  mutate(perc=round(Freq/sum(Freq)*100,2)) %>%
+  arrange(desc(perc))
+genus_counts$label <- paste(paste(genus_counts$genus,
+                                  genus_counts$perc,sep = "\n"),"%")
+
+# most abundant 
+genus_counts_most_ab <- genus_counts[1:50]
+
+# least abundant
+genus_counts_least_ab <- genus_counts[51:100]
+
+
+pdf("gt_treemap_genus.pdf")
+# all 
+treemap(genus_counts, #Your data frame object
+        index=c("label"),  #A list of your categorical variables
+        vSize = "Freq",  #This is your quantitative variable
+        type="index", #Type sets the organization and color scheme of your treemap
+        title="genus distribution from all MAGs (gtdbtk) - all", #Customize your title
+        fontsize.title = 15 #Change the font size of the title
+        #fontsize.labels = 8
+)
+# most abundant 
+treemap(genus_counts_most_ab, #Your data frame object
+        index=c("label"),  #A list of your categorical variables
+        vSize = "Freq",  #This is your quantitative variable
+        type="index", #Type sets the organization and color scheme of your treemap
+        title="genus distribution from all MAGs (gtdbtk) - 50 most common", #Customize your title
+        fontsize.title = 15 #Change the font size of the title
+        #fontsize.labels = 8
+)
+# least abundant 
+treemap(genus_counts_least_ab, #Your data frame object
+        index=c("label"),  #A list of your categorical variables
+        vSize = "Freq",  #This is your quantitative variable
+        type="index", #Type sets the organization and color scheme of your treemap
+        title="genus distribution from all MAGs (gtdbtk) - from 50th to 100th most common", #Customize your title
+        fontsize.title = 15 #Change the font size of the title
+        #fontsize.labels = 8
+)
+dev.off()
+
 
 
 ######################################################################################################
@@ -398,3 +514,5 @@ PCA_family
 PCA_genus
 PCA_species
 dev.off()
+
+

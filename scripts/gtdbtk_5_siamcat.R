@@ -56,6 +56,21 @@ no_reps_all$bin <- gsub(".fa","", no_reps_all$bin)
 head(no_reps_all)
 NROW(no_reps_all)
 
+###### run this part if you want to only retain piglets that
+# where present throughput trial (not euthanised)
+
+# to_keep <- no_reps_all %>%
+#   filter(date=="t8") %>%
+#   dplyr::select(pig) %>%
+#   distinct()
+# 
+# to_keep <- as.character(to_keep$pig)
+# 
+# no_reps_all <- subset(no_reps_all, (pig %in% to_keep))
+# NROW(unique(no_reps_all$pig))
+
+############################################################
+
 
 ######################################################################
 
@@ -395,11 +410,97 @@ last
 sink()
 
 
-
 ######################################################################
 ######################################################################
 
-# compare timepoints within cohorts : 
+# Function to plot the significant changes per cohort for each time interval : 
+
+comparewithin_plots <- function(c,t1,t2) { # where c is the cohort of interest, t0 is the start time point, t1 is the next time point)
+  
+  label.normalized <- create.label(meta=meta,
+                                   label='group', 
+                                   case= paste0(t2,"_",c),
+                                   control= paste0(t1,"_",c))
+  
+  siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
+  siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.0001)
+  
+  
+  # check for significant associations
+  siamcat <- check.associations(
+    siamcat,
+    fn.plot = paste0("gt_siamcatA_",c,"_",t1,"_",t2,".pdf"),
+    sort.by = 'fc',
+    alpha = 0.05, 
+    mult.corr = "fdr",
+    detect.lim = 10 ^-6,
+    plot.type = "quantile.box",
+    panels = c("fc", "prevalence", "auroc"))
+  
+  
+}
+
+
+# Plot : 
+
+comparewithin_plots("Control","t0","t2")
+comparewithin_plots("Control","t2","t4")
+comparewithin_plots("Control","t4","t6")
+comparewithin_plots("Control","t6","t8")
+comparewithin_plots("Control","t8","t10")
+comparewithin_plots("Control","t4","t8")
+comparewithin_plots("Control","t4","t10")
+comparewithin_plots("Control","t2","t8")
+#
+comparewithin_plots("DScour","t0","t2")
+comparewithin_plots("DScour","t2","t4")
+comparewithin_plots("DScour","t4","t6")
+comparewithin_plots("DScour","t6","t8")
+comparewithin_plots("DScour","t8","t10")
+comparewithin_plots("DScour","t4","t8")
+comparewithin_plots("DScour","t4","t10")
+comparewithin_plots("DScour","t2","t8")
+#
+comparewithin_plots("ColiGuard","t0","t2")
+comparewithin_plots("ColiGuard","t2","t4")
+comparewithin_plots("ColiGuard","t4","t6")
+comparewithin_plots("ColiGuard","t6","t8")
+comparewithin_plots("ColiGuard","t8","t10")
+comparewithin_plots("ColiGuard","t4","t8")
+comparewithin_plots("ColiGuard","t4","t10")
+comparewithin_plots("ColiGuard","t2","t8")
+#
+comparewithin_plots("Neomycin","t0","t2")
+comparewithin_plots("Neomycin","t2","t4")
+comparewithin_plots("Neomycin","t4","t6")
+comparewithin_plots("Neomycin","t6","t8")
+comparewithin_plots("Neomycin","t8","t10")
+comparewithin_plots("Neomycin","t4","t8")
+comparewithin_plots("Neomycin","t4","t10")
+comparewithin_plots("Neomycin","t2","t8")
+#
+comparewithin_plots("NeoD","t0","t2")
+comparewithin_plots("NeoD","t2","t4")
+comparewithin_plots("NeoD","t4","t6")
+comparewithin_plots("NeoD","t6","t8")
+comparewithin_plots("NeoD","t8","t10")
+comparewithin_plots("NeoD","t4","t8")
+comparewithin_plots("NeoD","t4","t10")
+comparewithin_plots("NeoD","t2","t8")
+#
+comparewithin_plots("NeoC","t0","t2")
+comparewithin_plots("NeoC","t2","t4")
+comparewithin_plots("NeoC","t4","t6")
+comparewithin_plots("NeoC","t6","t8")
+comparewithin_plots("NeoC","t8","t10")
+comparewithin_plots("NeoC","t4","t8")
+comparewithin_plots("NeoC","t4","t10")
+comparewithin_plots("NeoC","t2","t8")
+
+
+######################################################################
+
+# Function to obtain the (data only) significant changes per cohort for each time interval : 
 
 dfz <- data.frame(
   fc = numeric(),
@@ -530,6 +631,10 @@ toplot <- toplot %>%
 colnames(toplot) <- c("gOTU","cohort","interval","fc")
 
 
+# I am adding this here because the pdf below often doesn t get printed
+closeAllConnections()
+
+
 # split df by time interval 
 multiple_DFs <- split( toplot , f = toplot$interval )
 
@@ -587,7 +692,4 @@ dev.off()
   # row_idx <- top5(row_vars) & top5(row_maxs - row_med) & top5(row_qntl90 - row_med)
   # # subscript
   # n <- mat[row_idx, , drop = FALSE]
-
-
-
 
