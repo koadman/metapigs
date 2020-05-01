@@ -45,10 +45,11 @@ mash_out <- mash_output_all %>%
 NROW(mash_out)
 head(mash_out)
 
-sink(file = "....", 
-     append = TRUE, type = c("output"))
+sink(file = "mash_output.txt", 
+     append = FALSE, type = c("output"))
 paste0("Total number of mash comparisons : ",NROW(mash_output_all))
 paste0("Total number of mash comparisons where p-value is not 1 : ",NROW(mash_out))
+sink()
 
 mash_out <- cSplit(mash_out,"X1","/") 
 mash_out <- cSplit(mash_out,"X2","/")
@@ -66,6 +67,13 @@ mash_out <- mash_out %>%
 
 colnames(mash_out) <- c("reference","isolation_source", "bin", "mash_dist","p_value","match_percentage")
 
+summary(mash_out$match_percentage)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.100   0.100   0.100   1.095   0.100  95.100 
+
+summary(mash_out$mash_dist)
+# Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+# 0.001211 0.295981 0.295981 0.274610 0.295981 0.295981
 
 ######################################################################
 

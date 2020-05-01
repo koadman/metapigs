@@ -59,7 +59,6 @@ gtdbtk_bins <- read_csv("/Users/12705859/Desktop/metapigs_dry/gtdbtk/gtdbtk_bins
                                          pig = col_character()))
 
 
-head(gtdbtk_bins)
 
 ######################################################################
 
@@ -76,7 +75,10 @@ sink()
 
 sink(file = "dRep_numbers.txt", 
      append = TRUE, type = c("output"))
-paste0("Number of dRep-clustered bins: ", NROW(C1) )
+paste0("dRep-clustered bins: ", 
+       round(NROW(C1)/NROW(gtdbtk_bins)*100,2),
+       "%",
+       " (n=",NROW(C1),")" )
 paste0("of which primary clusters: ", length(unique(C1$primary_cluster)) )
 paste0("of which secondary clusters ", length(unique(C1$secondary_cluster)) )
 sink()
@@ -100,12 +102,7 @@ b <- df %>%
   #dplyr::filter(n()>300) %>%               # this is optional; comment out to look at all
   dplyr::filter(!primary_cluster=="no_cluster") %>%
   dplyr::group_by(primary_cluster) %>%
-  dplyr::select(node,domain,phylum,order,family,genus,species,primary_cluster) 
-
-NROW(unique(b$primary_cluster))
-
-# most frequent primary clusters 
-
+  dplyr::select(node,domain,phylum,class,order,family,genus,species,primary_cluster) 
 
 b_species <- b %>%
   dplyr::group_by(primary_cluster,species) %>%
@@ -115,6 +112,8 @@ b_species <- b %>%
   dplyr::top_n(1, num2) %>% 
   dplyr::select(primary_cluster,num2,species) %>%
   dplyr::rename(., species_agree = num2) 
+b_species <- as.data.frame.array(summary(b_species))
+b_species <- as.data.frame(b_species[,2])
 
 b_genus <- b %>%
   dplyr::group_by(primary_cluster,genus) %>%
@@ -124,6 +123,8 @@ b_genus <- b %>%
   dplyr::top_n(1, num2) %>% 
   dplyr::select(primary_cluster,num2) %>%
   dplyr::rename(., genus_agree = num2) 
+b_genus <- as.data.frame.array(summary(b_genus))
+b_genus <- as.data.frame(b_genus[,2])
 
 b_family <- b %>%
   dplyr::group_by(primary_cluster,family) %>%
@@ -133,6 +134,8 @@ b_family <- b %>%
   dplyr::top_n(1, num2) %>% 
   dplyr::select(primary_cluster,num2,family) %>%
   dplyr::rename(., family_agree = num2) 
+b_family <- as.data.frame.array(summary(b_family))
+b_family <- as.data.frame(b_family[,2])
 
 b_order <- b %>%
   dplyr::group_by(primary_cluster,order) %>%
@@ -142,32 +145,47 @@ b_order <- b %>%
   dplyr::top_n(1, num2) %>% 
   dplyr::select(primary_cluster,num2) %>%
   dplyr::rename(., order_agree = num2) 
+b_order <- as.data.frame.array(summary(b_order))
+b_order <- as.data.frame(b_order[,2])
 
+b_class <- b %>%
+  dplyr::group_by(primary_cluster,class) %>%
+  dplyr::summarise(num= n())  %>%
+  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::group_by(primary_cluster) %>%
+  dplyr::top_n(1, num2) %>% 
+  dplyr::select(primary_cluster,num2) %>%
+  dplyr::rename(., class_agree = num2) 
+b_class <- as.data.frame.array(summary(b_class))
+b_class <- as.data.frame(b_class[,2])
 
-# saving these as variables before removing columns, to (optionally) use later as "fuller" taxa names
-family_names <- b_family$family
-b_family$family <- NULL
-species_names <- b_species$species
-b_species$species <- NULL
+b_phylum <- b %>%
+  dplyr::group_by(primary_cluster,phylum) %>%
+  dplyr::summarise(num= n())  %>%
+  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::group_by(primary_cluster) %>%
+  dplyr::top_n(1, num2) %>% 
+  dplyr::select(primary_cluster,num2) %>%
+  dplyr::rename(., phylum_agree = num2) 
+b_phylum <- as.data.frame.array(summary(b_phylum))
+b_phylum <- as.data.frame(b_phylum[,2])
 
-a <- merge(b_genus, b_species)
-a <- merge(a,b_family)
-a <- merge(a,b_order)
-a
-
-rownames(a) <- a[,1]
-a[,1] <- NULL
-
-summary_a <- as.data.frame.array(summary(a))
-
+prim_clu_agree <- cbind(b_phylum,
+      b_class,
+      b_order,
+      b_family,
+      b_genus,
+      b_species)
+colnames(prim_clu_agree) <- c("phylum","class",
+                             "order","family",
+                             "genus","species")
 
 sink(file = "dRep_numbers.txt", 
      append = TRUE, type = c("output"))
-paste0("Extent of agreement between dRep classificantion and gtdbtk assignment of bins")
+paste0("Extent of agreement between dRep classification and gtdbtk assignment of bins")
 paste0("Primary clusters: ")
-summary_a
+prim_clu_agree
 sink()
-
 
 
 ######################################################################
@@ -181,21 +199,19 @@ b <- df %>%
   #dplyr::filter(n()>300) %>%               # this is optional; comment out to look at all
   dplyr::filter(!secondary_cluster=="no_cluster") %>%
   dplyr::group_by(secondary_cluster) %>%
-  dplyr::select(node,domain,phylum,order,family,genus,species,secondary_cluster) 
-
-NROW(unique(b$secondary_cluster))
-
-# most frequent secondary clusters 
+  dplyr::select(node,domain,phylum,class,order,family,genus,species,secondary_cluster) 
 
 
 b_species <- b %>%
-  group_by(secondary_cluster,species) %>%
+  dplyr::group_by(secondary_cluster,species) %>%
   dplyr::summarise(num= n())  %>%
   dplyr::mutate(num2= num/sum(num))  %>%
   dplyr::group_by(secondary_cluster) %>%
   dplyr::top_n(1, num2) %>% 
   dplyr::select(secondary_cluster,num2,species) %>%
   dplyr::rename(., species_agree = num2) 
+b_species <- as.data.frame.array(summary(b_species))
+b_species <- as.data.frame(b_species[,2])
 
 b_genus <- b %>%
   dplyr::group_by(secondary_cluster,genus) %>%
@@ -205,6 +221,8 @@ b_genus <- b %>%
   dplyr::top_n(1, num2) %>% 
   dplyr::select(secondary_cluster,num2) %>%
   dplyr::rename(., genus_agree = num2) 
+b_genus <- as.data.frame.array(summary(b_genus))
+b_genus <- as.data.frame(b_genus[,2])
 
 b_family <- b %>%
   dplyr::group_by(secondary_cluster,family) %>%
@@ -214,6 +232,8 @@ b_family <- b %>%
   dplyr::top_n(1, num2) %>% 
   dplyr::select(secondary_cluster,num2,family) %>%
   dplyr::rename(., family_agree = num2) 
+b_family <- as.data.frame.array(summary(b_family))
+b_family <- as.data.frame(b_family[,2])
 
 b_order <- b %>%
   dplyr::group_by(secondary_cluster,order) %>%
@@ -223,30 +243,46 @@ b_order <- b %>%
   dplyr::top_n(1, num2) %>% 
   dplyr::select(secondary_cluster,num2) %>%
   dplyr::rename(., order_agree = num2) 
+b_order <- as.data.frame.array(summary(b_order))
+b_order <- as.data.frame(b_order[,2])
 
+b_class <- b %>%
+  dplyr::group_by(secondary_cluster,class) %>%
+  dplyr::summarise(num= n())  %>%
+  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::group_by(secondary_cluster) %>%
+  dplyr::top_n(1, num2) %>% 
+  dplyr::select(secondary_cluster,num2) %>%
+  dplyr::rename(., class_agree = num2) 
+b_class <- as.data.frame.array(summary(b_class))
+b_class <- as.data.frame(b_class[,2])
 
-# saving these as variables before removing columns, to (optionally) use later as "fuller" taxa names
-family_names <- b_family$family
-b_family$family <- NULL
-species_names <- b_species$species
-b_species$species <- NULL
-
-a <- merge(b_genus, b_species)
-a <- merge(a,b_family)
-a <- merge(a,b_order)
-a
-
-rownames(a) <- a[,1]
-a[,1] <- NULL
-
-summary_a <- as.data.frame.array(summary(a))
-
+b_phylum <- b %>%
+  dplyr::group_by(secondary_cluster,phylum) %>%
+  dplyr::summarise(num= n())  %>%
+  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::group_by(secondary_cluster) %>%
+  dplyr::top_n(1, num2) %>% 
+  dplyr::select(secondary_cluster,num2) %>%
+  dplyr::rename(., phylum_agree = num2) 
+b_phylum <- as.data.frame.array(summary(b_phylum))
+b_phylum <- as.data.frame(b_phylum[,2])
+class(sec_clu_agree)
+sec_clu_agree <- cbind(b_phylum,
+                        b_class,
+                        b_order,
+                        b_family,
+                        b_genus,
+                        b_species)
+colnames(sec_clu_agree) <- c("phylum","class",
+                             "order","family",
+                             "genus","species")
 
 sink(file = "dRep_numbers.txt", 
      append = TRUE, type = c("output"))
-paste0("Extent of agreement between dRep classificantion and gtdbtk assignment of bins")
+paste0("Extent of agreement between dRep classification and gtdbtk assignment of bins")
 paste0("Secondary clusters: ")
-summary_a
+sec_clu_agree
 sink()
 
 

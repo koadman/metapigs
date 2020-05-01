@@ -102,7 +102,8 @@ dev.off()
 # Species overall - based on gtdbtk assignment
 
 
-species_counts <- setDT(gtdbtk_bins)[, .(Freq = .N), by = .(species)]
+
+species_counts <- setDT(gtdbtk_bins)[, .(Freq = .N), by = .(family,species)]
 
 # all 
 species_counts <- species_counts %>%
@@ -110,46 +111,32 @@ species_counts <- species_counts %>%
   mutate(perc=round(Freq/sum(Freq)*100,2)) %>%
   arrange(desc(perc))
 species_counts$label <- paste(paste(species_counts$species,
-                                    species_counts$perc,sep = "\n"),"%")
+                                    species_counts$perc),"%")
 
 # most abundant 
 species_counts_most_ab <- species_counts[1:50]
 
-# least abundant
-species_counts_least_ab <- species_counts[51:100]
-
 
 pdf("gt_treemap_species.pdf")
-# all 
-treemap(species_counts, #Your data frame object
-        index=c("label"),  #A list of your categorical variables
-        vSize = "Freq",  #This is your quantitative variable
-        type="index", #Type sets the organization and color scheme of your treemap
-        title="Species distribution from all MAGs (gtdbtk) - all", #Customize your title
-        fontsize.title = 15 #Change the font size of the title
-        #fontsize.labels = 8
-)
 # most abundant 
 treemap(species_counts_most_ab, #Your data frame object
-        index=c("label"),  #A list of your categorical variables
+        index=c("family","label"),  #A list of your categorical variables
         vSize = "Freq",  #This is your quantitative variable
         type="index", #Type sets the organization and color scheme of your treemap
         title="Species distribution from all MAGs (gtdbtk) - 50 most common", #Customize your title
-        fontsize.title = 15 #Change the font size of the title
-        #fontsize.labels = 8
-)
-# least abundant 
-treemap(species_counts_least_ab, #Your data frame object
-        index=c("label"),  #A list of your categorical variables
-        vSize = "Freq",  #This is your quantitative variable
-        type="index", #Type sets the organization and color scheme of your treemap
-        title="Species distribution from all MAGs (gtdbtk) - from 50th to 100th most common", #Customize your title
-        fontsize.title = 15 #Change the font size of the title
+        fontsize.title = 15, #Change the font size of the title
+        overlap.labels=0,
+        fontsize.labels=c(13,10),                # size of labels. Give the size per level of aggregation: size for group, size for subgroup, sub-subgroups...
+        fontcolor.labels=c("white","black"),    # Color of labels
+        fontface.labels=c(2,1),                  # Font of labels: 1,2,3,4 for normal, bold, italic, bold-italic...
+        bg.labels=c("transparent"),              # Background color of labels
+        align.labels=list(
+          c("left", "top"), 
+          c("right", "bottom")
+        )
         #fontsize.labels = 8
 )
 dev.off()
-
-
 
 
 ######################################################################
@@ -159,7 +146,8 @@ dev.off()
 # Genus overall - based on gtdbtk assignment
 
 
-genus_counts <- setDT(gtdbtk_bins)[, .(Freq = .N), by = .(genus)]
+
+genus_counts <- setDT(gtdbtk_bins)[, .(Freq = .N), by = .(order,genus)]
 
 # all 
 genus_counts <- genus_counts %>%
@@ -167,41 +155,29 @@ genus_counts <- genus_counts %>%
   mutate(perc=round(Freq/sum(Freq)*100,2)) %>%
   arrange(desc(perc))
 genus_counts$label <- paste(paste(genus_counts$genus,
-                                  genus_counts$perc,sep = "\n"),"%")
+                                  genus_counts$perc),"%")
 
 # most abundant 
 genus_counts_most_ab <- genus_counts[1:50]
 
-# least abundant
-genus_counts_least_ab <- genus_counts[51:100]
-
 
 pdf("gt_treemap_genus.pdf")
-# all 
-treemap(genus_counts, #Your data frame object
-        index=c("label"),  #A list of your categorical variables
-        vSize = "Freq",  #This is your quantitative variable
-        type="index", #Type sets the organization and color scheme of your treemap
-        title="genus distribution from all MAGs (gtdbtk) - all", #Customize your title
-        fontsize.title = 15 #Change the font size of the title
-        #fontsize.labels = 8
-)
 # most abundant 
 treemap(genus_counts_most_ab, #Your data frame object
-        index=c("label"),  #A list of your categorical variables
+        index=c("order","label"),  #A list of your categorical variables
         vSize = "Freq",  #This is your quantitative variable
         type="index", #Type sets the organization and color scheme of your treemap
-        title="genus distribution from all MAGs (gtdbtk) - 50 most common", #Customize your title
-        fontsize.title = 15 #Change the font size of the title
-        #fontsize.labels = 8
-)
-# least abundant 
-treemap(genus_counts_least_ab, #Your data frame object
-        index=c("label"),  #A list of your categorical variables
-        vSize = "Freq",  #This is your quantitative variable
-        type="index", #Type sets the organization and color scheme of your treemap
-        title="genus distribution from all MAGs (gtdbtk) - from 50th to 100th most common", #Customize your title
-        fontsize.title = 15 #Change the font size of the title
+        title="Genus distribution from all MAGs (gtdbtk) - 50 most common", #Customize your title
+        fontsize.title = 15, #Change the font size of the title
+        overlap.labels=0,
+        fontsize.labels=c(13,10),                # size of labels. Give the size per level of aggregation: size for group, size for subgroup, sub-subgroups...
+        fontcolor.labels=c("white","black"),    # Color of labels
+        fontface.labels=c(2,1),                  # Font of labels: 1,2,3,4 for normal, bold, italic, bold-italic...
+        bg.labels=c("transparent"),              # Background color of labels
+        align.labels=list(
+          c("left", "top"), 
+          c("right", "bottom")
+        )
         #fontsize.labels = 8
 )
 dev.off()

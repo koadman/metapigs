@@ -14,6 +14,7 @@ library(readxl)
 library(pheatmap)
 library(robCompositions)
 library(ggbiplot)
+library(EnvStats)
 
 basedir = "/Users/12705859/Desktop/metapigs_dry/"
 setwd("/Users/12705859/Desktop/metapigs_dry/checkm/")
@@ -97,7 +98,6 @@ checkm_all_nearly <- read_delim("checkm_all_nearly",
                                 trim_ws = TRUE)
 
 
-
 ######################################################################
 
 
@@ -139,37 +139,114 @@ tail(az)
 pdf("#bins_subject.pdf")
 ggplot(data=az, mapping=aes(x=group, y=`number of metagenomes obtained`)) + 
   geom_boxplot(outlier.shape = NA) + 
-  geom_jitter(width = 0.1)
+  geom_jitter(width = 0.1) +
+  theme_bw()
 dev.off()
 
 
 ##########################
 
 # Bins per cohort: 
+
+# calculate number of MAGs obtaiend per subject
 az2 <- no_reps_all %>%
-  select(cohort,bin,pig) %>%
-  group_by(cohort,pig) %>%
+  select(date,bin,pig) %>%
+  group_by(date,pig) %>%
   dplyr::summarise(`number of metagenomes obtained`= n()) 
 tail(az2)
+az2$date <- NULL
+
+az2 <- az2 %>%
+  group_by(pig,`number of metagenomes obtained`) %>%
+  dplyr::summarise(mean_bins= mean(`number of metagenomes obtained`),
+                   median_bins= median(`number of metagenomes obtained`),
+                   tot_bins= sum(`number of metagenomes obtained`))
+
+# TIMEPOINTS PER SUBJ
+az3 <- no_reps_all %>%
+  dplyr::select(date,pig,cohort) %>%
+  distinct() %>%
+  group_by(pig,cohort) %>%
+  dplyr::summarise(sampling_frequency= n())
+tail(az3)
+
+
+final_pig <- left_join(az2,az3)
+
+# reorder cohorts 
+final_pig$cohort  = factor(final_pig$cohort, levels=c("Control", 
+                                          "DScour",
+                                          "ColiGuard", 
+                                          "Neomycin",
+                                          "NeoD",
+                                          "NeoC",
+                                          "Mothers"))
+
+
+# mean - Bins per cohort: 
+final_cohort <- final_pig %>%
+  group_by(cohort) %>%
+  dplyr::summarise(mean_bins= mean(`number of metagenomes obtained`),
+                   median_bins= median(`number of metagenomes obtained`),
+                   tot_bins= sum(`number of metagenomes obtained`),
+                   mean_sampling_frequency=mean(sampling_frequency),
+                   median_sampling_frequency=median(sampling_frequency))
+
+sink(file = "numbers.txt", 
+     append = TRUE, type = c("output"))
+paste0("Total bins and sampling frequency per cohort ")
+as.data.frame(final_cohort)
+sink()
+
+# means as labels in plot
+tot <- final_cohort %>%
+  dplyr::select(cohort,tot_bins)
+labs <- round(tot$tot_bins)
+
 
 pdf("#bins_cohort.pdf")
-ggplot(data=az2, mapping=aes(x=cohort, y=`number of metagenomes obtained`)) + 
+final_pig %>%
+  ggplot(data=., mapping=aes(x=cohort, y=`number of metagenomes obtained`)) + 
   geom_boxplot(outlier.shape = NA) + 
-  geom_jitter(width = 0.1)
+  geom_jitter(width = 0.1, size=0.5,aes(colour = sampling_frequency)) +
+  stat_n_text(size = 3) +
+  theme_bw() +
+  scale_color_gradient(low = "blue", high = "green") +
+  annotate("text", label = labs[1], x = 1, y = 835, size = 3, colour = "black") +
+  annotate("text", label = labs[2], x = 2, y = 835, size = 3, colour = "black") +
+  annotate("text", label = labs[3], x = 3, y = 835, size = 3, colour = "black") +
+  annotate("text", label = labs[4], x = 4, y = 835, size = 3, colour = "black") +
+  annotate("text", label = labs[5], x = 5, y = 835, size = 3, colour = "black") +
+  annotate("text", label = labs[6], x = 6, y = 835, size = 3, colour = "black") +
+  annotate("text", label = labs[7], x = 7, y = 835, size = 3, colour = "black")
 dev.off()
+
+
+
 
 ##########################
 
 
 # Get the numbers: 
-az <- no_reps_all %>%
+az_piglets <- no_reps_all %>%
+  filter(!cohort=="Mothers") %>%
   dplyr::select(bin,pig)
-bz <- unique(az)
-cz <- data.frame(table(bz$pig))
+bz_piglets <- unique(az_piglets)
+cz_piglets <- data.frame(table(bz_piglets$pig))
+
+az_mothers <- no_reps_all %>%
+  filter(cohort=="Mothers") %>%
+  dplyr::select(bin,pig)
+bz_mothers <- unique(az_mothers)
+cz_mothers <- data.frame(table(bz_mothers$pig))
+
+
 
 sink(file = "numbers.txt", 
      append = TRUE, type = c("output"))
-paste0("total of bins (excludes the pos and neg controls bins): ", sum(cz$Freq) )
+paste0("total of bins from Piglets: ", sum(cz_piglets$Freq), " Percentage: ", round(sum(cz_piglets$Freq)/51170*100,2) )
+paste0("total of bins from Mothers: ", sum(cz_mothers$Freq), " Percentage: ", round(sum(cz_mothers$Freq)/51170*100,2) )
+paste0("total of bins from pos and neg controls: ", 51175-NROW(bz_piglets)-NROW(bz_mothers) , " Percentage: ", round((51175-NROW(bz_piglets)-NROW(bz_mothers))/51170*100,2) )
 sink()
 
 
@@ -265,10 +342,38 @@ ggplot(data=az3, mapping=aes(x=`number of timepoints per subject`, y=`number of 
   labs(title="Bins obtained versus number of timepoints available from each subject", 
        x = "number of timepoints available per subject",
        y = "number of bins obtained per subject",
-       subtitle=NULL)
+       subtitle=NULL) +
+  theme_bw()
 dev.off()
 
 
+az4 <- az3 %>%
+  group_by(`number of timepoints per subject`) %>%
+  dplyr::summarise(`mean_bins`= mean(`number of metagenomes per subject`),
+                   `median_bins`= median(`number of metagenomes per subject`)) 
+
+sink(file = "numbers.txt", 
+     append = TRUE, type = c("output"))
+paste0("Correlation timepoint sample/ mean bins obtained: ")
+as.data.frame(az4)
+sink()
+
+
+# TIMEPOINTS PER PIGGIES SUBJECT
+az2 <- no_reps_all %>%
+  filter(!cohort=="Mothers") %>%
+  dplyr::select(date, pig) %>%
+  distinct() %>%
+  group_by(pig) %>%
+  dplyr::summarise(`number of timepoints per subject`= n()) 
+tail(az2)
+NROW(az2)
+
+sink(file = "numbers.txt", 
+     append = TRUE, type = c("output"))
+paste0("Timepoints per subject (piggies): ")
+summary(az2$`number of timepoints per subject`)
+sink()
 
 ######################################################################
 
@@ -282,78 +387,75 @@ test <- no_reps_all %>%
   tally()  %>%
   mutate(perc=round(n/sum(n)*100,2)) 
 
-# DT <- data.table(test)
-# 
-# DT[, id := seq_len(.N), by = cohort]
-# DT[, id := rowid(cohort)]
-# 
-# DT <- DT %>%
-#   mutate(newID = paste0("s",id))
+# reorder cohorts 
+test$cohort  = factor(test$cohort, levels=c("Control", 
+                                        "DScour",
+                                        "ColiGuard", 
+                                        "Neomycin",
+                                        "NeoD",
+                                        "NeoC"))
 
 pdf("bins_distribution_over_cohorts_piglets.pdf")
 treemap(test, 
         index=c("cohort","pig"), 
         vSize="perc", 
         type="index",                            # How you color the treemap. type help(treemap) for more info
-        palette = "Set1",                        # Select your color palette from the RColorBrewer presets or make your own.
+        palette = "Pastel1",                        # Select your color palette from the RColorBrewer presets or make your own.
         fontsize.title=12,                       # Size of the title
         title=paste0("Bins distribution over cohorts and piglets (",NROW(unique(paste0(no_reps_all$pig,no_reps_all$bin))),")")
 )
 dev.off()
 
+# library(RColorBrewer)
+# brewer.pal(n=6, "Pastel1")
+# display.brewer.pal(n=6, "Pastel1")
 
 ######################################################################
 
 
 # preparing data for Completeness vs Contamination dot plot
 
-# keep (for the plot) only bins with >70% completeness and <10% contamination
-df_70 <- all_checkm_output %>%
-  filter(Completeness >= 70)
-df_70_10 <- df_70 %>%
-  filter(Contamination <= 10)
+# nearly complete genomes 
+df_90100 <- subset(all_checkm_output, Completeness>= 90 & Completeness <= 100)
+df_90100_5 <- subset(df_90100, Contamination <=5)
+df_90100_5$type = paste0(paste0("Nearly complete: ",
+                                 round(NROW(df_90100_5)/NROW(all_checkm_output)*100,2),
+                                 "%",
+                                 " (n=",
+                                 NROW(df_90100_5),
+                                 ")"))
 
-# assign name for plot legend 
-df_70_10$type <- ifelse(df_70_10$Completeness >=90 & df_70_10$Contamination <=5, "high", "low")
+# Medium quality
+df_8090 <- subset(all_checkm_output, Completeness>= 80 & Completeness < 90)
+df_8090_10 <- subset(df_8090, Contamination <=10)
+# add completeness between 90 and 100, where contamination is between 5 and 10 
+df_90100 <- subset(all_checkm_output, Completeness>= 90 & Completeness <= 100)
+df_90100_510 <- subset(df_90100, Contamination >5 & Contamination <= 10)
+medium_quality <- rbind(df_8090_10, df_90100_510)
 
-# removing data less than <80 Complete to plot neatly
-df_80_10 <- df_70_10 %>%
-  filter(Completeness >= 80)
-NROW(checkm_all_nearly)
-df_80_10$type <- gsub("high",
-                      paste0("Nearly complete genomes: ",
-                             NROW(checkm_all_nearly),
-                             " (",
-                             round(NROW(checkm_all_nearly)/NROW(all_checkm_output)*100,2),
-                             "%)"),
-                      df_80_10$type)
+medium_quality$type = paste0(paste0("Medium quality: ",
+                                 round(NROW(medium_quality)/NROW(all_checkm_output)*100,2),
+                                 "%",
+                                 " (n=",
+                                 NROW(medium_quality),
+                                 ")"))
 
-medium_quality_almost <- df_70_10 %>%
-  filter(Completeness >= 80) %>%
-  filter(Completeness <= 100) %>%
-  filter(Contamination <= 10)
-medium_quality <- NROW(medium_quality_almost)-NROW(checkm_all_nearly)
 
-df_80_10$type <- gsub("low",
-                      paste0("Medium quality genomes: ",
-                             medium_quality,
-                             " (",
-                             round(medium_quality/NROW(all_checkm_output)*100,2),
-                             "%)"),
-                      df_80_10$type)
-
+best <- rbind(df_90100_5,medium_quality)
 
 # Assessment of genome quality
 pdf("cm_Compl_vs_Contam.pdf")
-ggplot(df_80_10, aes(x=Completeness, y=Contamination)) + 
+ggplot(best, aes(x=Completeness, y=Contamination)) + 
   geom_point(aes(color=factor(type)),size=0.1,shape=21)+
   ylab("Contamination (%)")+
   xlab("Completeness (%)")+
   xlim(75,100)+
   theme_minimal()+
-  theme(axis.title.x = element_text(),
-        axis.title.y = element_text(),
-        legend.title = element_blank())
+  theme(axis.title.x = element_text(size=10),
+        axis.title.y = element_text(size=10),
+        legend.title = element_blank(),
+        legend.text = element_text(size=10),
+        legend.position = "top")
 dev.off()
 
 # similar to https://www.nature.com/articles/s41564-017-0012-7#Sec2
@@ -362,30 +464,27 @@ dev.off()
 # library(scales)
 # scales::hue_pal()(3)
 
-# nearly complete bins 
-df_90 <- all_checkm_output %>%
-  filter(Completeness >= 90)
-df_90_5 <- df_90 %>%
-  filter(Contamination <= 5)
 
 # perfect bins
-df_99 <- all_checkm_output %>%
-  filter(Completeness > 99)
-df_perfect <- df_99 %>%
-  filter(Contamination < 0.1)
+df_99100 <- subset(all_checkm_output, Completeness>= 99 & Completeness <= 100)
+df_99100_01 <- subset(df_99100, Contamination <=0.1)
+
+
+# perfect bins
+df_70100 <- subset(all_checkm_output, Completeness>= 70 & Completeness <= 100)
+df_70100_10 <- subset(df_70100, Contamination <=10)
+
 
 sink(file = "cm_numbers.txt", 
      append = TRUE, type = c("output"))
 paste0("Total number of bins is:   ",
        NROW(all_checkm_output))
-paste0("Of which: >70% completeness and <10% contamination:   ",
-       NROW(df_70_10)," ", round(NROW(df_70_10)/NROW(all_checkm_output),4)*100,"%")
-paste0("Of which: >80% completeness and <10% contamination: ",
-       NROW(df_80_10)," ", round(NROW(df_80_10)/NROW(all_checkm_output),4)*100,"%")
-paste0("Of which: >=90% completeness and <=5% contamination: ",
-       NROW(df_90_5)," ", round(NROW(df_90_5)/NROW(all_checkm_output),4)*100,"%")
-paste0("Of which: >99% completeness and <0.1% contamination: ",
-       NROW(df_perfect)," ", round(NROW(df_perfect)/NROW(all_checkm_output),4)*100,"%")
+paste0("Of which: >=70 <=10):   ",
+       NROW(df_70100_10)," ", round(NROW(df_70100_10)/NROW(all_checkm_output),4)*100,"%")
+paste0("Of which: nearly complete (>=90 <=5):   ",
+       NROW(df_90100_5)," ", round(NROW(df_90100_5)/NROW(all_checkm_output),4)*100,"%")
+paste0("Of which: =>99% completeness and <=0.1% contamination: ",
+       NROW(df_99100_01)," ", round(NROW(df_99100_01)/NROW(all_checkm_output),4)*100,"%")
 sink()
 
 
@@ -395,26 +494,25 @@ sink()
 # Contig number and N50 distribution 
 
 # as numeric 
-df_90_5$`N50 (scaffolds)` <- as.numeric(df_90_5$`N50 (scaffolds)`)
-df_90_5$`# contigs` <- as.numeric(df_90_5$`# contigs`)
+df_90100_5$`N50 (scaffolds)` <- as.numeric(df_90100_5$`N50 (scaffolds)`)
+df_90100_5$`# scaffolds` <- as.numeric(df_90100_5$`# scaffolds`)
 
+sink(file = "cm_numbers.txt", 
+     append = TRUE, type = c("output"))
+paste0("Nearly complete genomes, scaffolds stats :   ")
+summary(df_90100_5$`# scaffolds`)
+paste0("Nearly complete genomes, scaffolds N50 stats :   ")
+summary(df_90100_5$`N50 (scaffolds)`)
+sink()
 
-pdf("cm_contigs_distribution.pdf")
+pdf("cm_scaffolds_distribution.pdf")
 # Distribution of contig number across bins 
-hist(df_90_5$`# contigs`, 
-     main = "Distribution of # of contigs across nearly complete genomes",
-     breaks=100,
-     xlab = "contigs")
-hist(log10(df_90_5$`# contigs`), 
-     main = "Distribution of # of contigs across nearly complete genomes",
-     breaks=100,
-     xlab = "log10(contigs)")
-hist(df_90_5$`N50 (scaffolds)`, 
+hist(df_90100_5$`N50 (scaffolds)`, 
      main = "Distribution of N50 (scaffolds) across nearly complete genomes",
      breaks=100,
-     xlab = "log10(N50 scaffolds)",
+     xlab = "N50 scaffolds",
      xlim=c(0,3e+05))
-hist(log10(df_90_5$`N50 (scaffolds)`), 
+hist(log10(df_90100_5$`N50 (scaffolds)`), 
      main = "Distribution of N50 (scaffolds) across nearly complete genomes",
      breaks=100,
      xlab = "log10(N50 scaffolds)",
@@ -422,82 +520,58 @@ hist(log10(df_90_5$`N50 (scaffolds)`),
 dev.off()
 
 
-new <- all_checkm_output %>%
-  select(`Bin Id`,`# genomes`,Completeness,Contamination, `# scaffolds`,`# predicted genes`)
-new$id <- paste0(new$`Bin Id`,"_",new$`# genomes`)
+# create another category: partial quality: 
+# Completeness => 60 <80
+# Contamination <= 10
+df_6080 <- subset(all_checkm_output, Completeness>= 60 & Completeness < 80)
+df_6080_10 <- subset(df_6080, Contamination <=10)
+df_6080_10$type <- paste0("Partial quality: ",
+                    round(NROW(df_6080_10)/NROW(all_checkm_output)*100,2),
+                    "%",
+                    " (n=",
+                    NROW(df_6080_10),
+                    ")")
+
+toplot <- rbind(df_90100_5,medium_quality,df_6080_10)
+
+toplot$type <- as.factor(toplot$type)
+types <- as.character(levels(toplot$type))
+
+# reorder type 
+toplot$type  = factor(toplot$type, levels=c(
+  types[3],
+  types[1],
+  types[2]))
 
 
-new$`# scaffolds` <- as.numeric(new$`# scaffolds`)
-new$`# predicted genes` <- as.numeric(new$`# predicted genes`)
 
+toplot$`# scaffolds` <- as.numeric(toplot$`# scaffolds`)
+toplot$`# predicted genes` <- as.numeric(toplot$`# predicted genes`)
 
-new1 <- new %>%
-  filter(Completeness >= 50) %>%
-  filter(Completeness < 70) %>%
-  filter(Contamination <= 10) %>%
-  mutate(type="Compl50-70_Contam<10")
-
-new2 <- new %>%
-  filter(Completeness >= 70) %>%
-  filter(Completeness < 90) %>%
-  filter(Contamination <= 10) %>%
-  mutate(type="Compl70-90_Contam<10")
-
-new3 <- new %>%
-  filter(Completeness >= 90) %>%
-  filter(Contamination <= 10) %>%
-  filter(Contamination > 5) %>%
-  mutate(type="Compl>90_Contam5-10")
-
-new4 <- new %>%
-  filter(Completeness >= 90) %>%
-  filter(Contamination <= 5) %>%
-  mutate(type="Compl>90_Contam<5")
-
-new0 <- new %>%
-  filter(Completeness > 50) %>%
-  filter(Contamination > 10) %>%
-  mutate(type="Compl>50_Contam>10")
-
-new00 <- new %>%
-  filter(Completeness < 50) %>%
-  mutate(type="Compl<50")
-
-new_tot <- rbind(new00,new0,new1,new2,new3,new4)
-NROW(new_tot)
-NROW(all_checkm_output)
-
-new23 <- rbind(new2,new3)
-
-new23$type <- "Medium quality"
-
-new1$type <- "Partial"
-
-new4$type <- "Nearly complete"
-
-new_plot <- rbind(new1,new23,new4)
-
-new_plot$type  = factor(new_plot$type, levels=c("Nearly complete",
-                                                "Medium quality",
-                                                "Partial"))
-
-pdf("cm_scaffolds_predicted_genes.pdf")
-ggplot(data= new_plot, aes(x=`# scaffolds`, fill=type)) +
+plot_scaffolds <- ggplot(data= toplot, aes(x=`# scaffolds`, fill=type)) +
   geom_histogram(alpha=0.6, position = 'stack', binwidth=15) +
-  scale_fill_manual(values=c("#45B4B8", #blue
+  scale_fill_manual(values=c("#6C6C6C", #grey
                              "#F8766D", #red
-                             "#6C6C6C")) + #grey
+                             "#45B4B8" #blue
+  )) + 
   theme_bw() +
   labs(fill="") +
   lims(x=c(0,750))
-ggplot(data= new_plot, aes(x=`# predicted genes`, fill=type)) +
+
+plot_pred_genes <- ggplot(data= toplot, aes(x=`# predicted genes`, fill=type)) +
   geom_histogram(alpha=0.6, position = 'stack', binwidth=15) +
-  scale_fill_manual(values=c("#45B4B8", #blue
+  scale_fill_manual(values=c("#6C6C6C", #grey
                              "#F8766D", #red
-                             "#6C6C6C")) + #grey
+                             "#45B4B8" #blue
+                             )) + 
   theme_bw() +
   labs(fill="") +
   lims(x=c(0,5000))
+
+plots <- ggarrange(plot_scaffolds,plot_pred_genes, common.legend=TRUE)
+
+pdf("cm_scaffolds_predicted_genes.pdf")
+plots
 dev.off()
 
 
@@ -509,7 +583,8 @@ dev.off()
 # -- proportion of >=90 and <=5 bins assigned to phylum/order/etc... : 
 
 # how many of >90 <5 bins are classified at the each level? 
-nn <- checkm_all_nearly %>% dplyr::rename(taxa = `Taxonomy (contained)`)
+nn <- checkm_all_nearly %>% 
+  dplyr::rename(taxa = `Taxonomy (contained)`)
 NROW(nn)
 
 archaea <- filter(nn, grepl('k__Archaea', taxa))
@@ -548,8 +623,6 @@ sink()
 ######################################################################
 
 # -- Proportions of ALL TAXA in the >90 <5 bins: 
-
-
 
 
 k <- kingdom %>%
@@ -609,6 +682,8 @@ s <- species %>%
   arrange(desc(perc))
 
 
+
+
 p <- as.data.frame(p)
 c <- as.data.frame(c)
 o <- as.data.frame(o)
@@ -618,27 +693,27 @@ s <- as.data.frame(s)
 
 sink(file = "cm_numbers.txt", 
      append = TRUE, type = c("output"))
-paste0("######################################################################")
+paste0("################################ PIGGIES  #############################")
 paste0(" Kingdom distribution : ")
-k
+as.data.frame(k)
 paste0("######################################################################")
 paste0(" Phyla distribution : ")
-p
+as.data.frame(p)
 paste0("######################################################################")
 paste0(" Class distribution : ")
-c
+as.data.frame(c)
 paste0("######################################################################")
 paste0(" Order distribution : ")
-o
+as.data.frame(o)
 paste0("######################################################################")
 paste0(" Family distribution : ")
-f
+as.data.frame(f)
 paste0("######################################################################")
 paste0(" Genus distribution : ")
-g
+as.data.frame(g)
 paste0("######################################################################")
 paste0(" Species distribution : ")
-s
+as.data.frame(s)
 sink()
 
 
