@@ -16,6 +16,7 @@ library(cluster)
 library(circlize)
 library(readxl)
 library(data.table)
+library(dunn.test)
 
 
 
@@ -252,13 +253,52 @@ sample_variables(carbom)
 
 ######################
 
-# HEATMAP
-
-# HEATMAP
 
 # keep only very abundant OTUs
 # taking gOTUs that represent at least 3% of the sample and present in at least 40 samples 
 carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.03) > 40, TRUE)
+
+
+# ORDINATION 
+
+carbom_dRep <- carbom
+carbom.ord_dRep <- ordinate(carbom_dRep, "NMDS", "bray")
+
+dRep_ordination_plot <- plot_ordination(carbom_dRep, carbom.ord_dRep, type="samples", color="date") + 
+  geom_point(size=1) +
+  #facet_wrap(~cohort) +
+  theme_bw() +
+  theme(axis.title = element_text(size=9),
+        axis.text = element_text(size=7))+
+  guides(colour = guide_legend(nrow = 1))
+
+pdf("dRep_phylo_ordination.pdf")
+dRep_ordination_plot+
+  facet_wrap(~cohort)+
+  theme(legend.position="top")
+dev.off()
+
+######################
+
+# NETWORK ANALYSIS 
+
+carbom_abund_dRep <- carbom_abund
+  
+ig = make_network(carbom_abund_dRep, type = "samples", distance = "bray", max.dist = 0.3)
+dRep_network_plot <- plot_network(ig, carbom_abund_dRep, color = "date", shape = "cohort", line_weight = 0.3, 
+                                label = NULL, point_size = 1)+
+  theme(legend.position = "bottom")+
+  guides(shape = guide_legend(nrow = 1))+
+  guides(size = "legend", colour = "none")
+
+pdf("dRep_phylo_network.pdf")
+dRep_network_plot
+dev.off()
+
+
+######################
+
+# HEATMAP 
 
 # HEATMAP with only most abundant OTUs
 # plot_heatmap(carbom_abund, method = "NMDS", distance = "bray")
@@ -310,31 +350,6 @@ dev.off()
 
 
 ######################
-
-# ORDINATION 
-
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
-
-pdf("dRep_phylo_ordination.pdf")
-plot_ordination(carbom, carbom.ord, type="samples", color="date", #shape= "cohort", 
-                title="Based on secondary clusters (99% ANI) (dRep)") + 
-  geom_point(size=2) +
-  facet_wrap(~cohort)
-dev.off()
-
-######################
-
-# NETWORK ANALYSIS 
-
-
-pdf("dRep_phylo_network.pdf")
-ig = make_network(carbom_abund, type = "samples", distance = "bray", max.dist = 0.3)
-plot_network(ig, carbom_abund, color = "date", shape = "cohort", line_weight = 0.3, 
-             label = NULL, title = "sample network - Bray-Curtis distance")
-dev.off()
-
-
-
 
 ######################################################################
 ######################################################################
@@ -475,7 +490,7 @@ total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
 ctrlt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                           title="Control") + 
   geom_point(size=2) +
@@ -489,7 +504,7 @@ total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
 ctrlt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                           title="Control") + 
   geom_point(size=2) +
@@ -505,7 +520,7 @@ total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
 dscourt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                             title="D-Scour") + 
   geom_point(size=2) +
@@ -519,7 +534,7 @@ total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
 dscourt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                             title="D-Scour") + 
   geom_point(size=2) +
@@ -535,7 +550,7 @@ total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
 coligt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                            title="ColiGuard") + 
   geom_point(size=2) +
@@ -549,7 +564,7 @@ total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
 coligt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                            title="ColiGuard") + 
   geom_point(size=2) +
@@ -565,7 +580,7 @@ total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
 neot0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                          title="Neomycin") + 
   geom_point(size=2) +
@@ -579,7 +594,7 @@ total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
 neot8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                          title="Neomycin") + 
   geom_point(size=2) +
@@ -595,7 +610,7 @@ total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
 neoDt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                           title="NeoD") + 
   geom_point(size=2) +
@@ -609,7 +624,7 @@ total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
 neoDt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                           title="NeoD") + 
   geom_point(size=2) +
@@ -625,7 +640,7 @@ total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
 neoCt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                           title="NeoC") + 
   geom_point(size=2) +
@@ -639,7 +654,7 @@ total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
 neoCt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                           title="NeoC") + 
   geom_point(size=2) +
@@ -654,7 +669,7 @@ colig <- ggarrange(coligt0,coligt8)
 neoD <- ggarrange(neoDt0,neoDt8)
 neoC <- ggarrange(neoCt0,neoCt8)
 
-pdf("dRep_phylo_cohousing.pdf")
+pdf("dRep_phylo_ordination_cohousing.pdf")
 ggarrange(
   ctrl, neo, nrow=2, labels=c("A","B")
 )
@@ -666,4 +681,51 @@ ggarrange(
 )
 dev.off()
 
+
+# function to test correlation with Dunn.test
+myf <- function(df) {
+  df1 <- df
+  date <- df1$date
+  coho <- df1$cohort
+  x <- dunnTest(Axis.1~as.factor(pen),data=df1,method = "bonferroni")
+  x <- as.data.frame(x$res)
+  x$axis = "Axis.1"
+  y <- dunnTest(Axis.2~as.factor(pen),data=df1,method = "bonferroni")
+  y <- as.data.frame(y$res)
+  y$axis = "Axis.2"
+  xy <- rbind(x,y)
+  xy$comparison <- paste0(date[1],"_",coho[1])
+  return(xy)
+}
+
+
+cohousing_stats <- rbind(myf(ctrlt0$data),
+                         myf(ctrlt8$data),
+                         myf(dscourt0$data),
+                         myf(dscourt0$data),
+                         myf(coligt0$data),
+                         myf(coligt8$data),
+                         myf(neot0$data),
+                         myf(neot8$data),
+                         myf(neoCt0$data),
+                         myf(neoCt8$data),
+                         myf(neoDt0$data),
+                         myf(neoDt8$data))
+
+
+
+sink(file = "dRep_phylo_ordination_cohousing.txt", 
+     append = FALSE, type = c("output"))
+paste0("Effect of cohousing on PCA - origin of data: phyloseq ordination data ")
+paste0("PCoA  ------ Dunn (1964) Kruskal-Wallis multiple comparison
+       p-values adjusted with the Bonferroni method.")
+cohousing_stats
+sink()
+
 ########################################################################################
+
+
+      
+
+
+

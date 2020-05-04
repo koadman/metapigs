@@ -444,8 +444,7 @@ medium_quality$type = paste0(paste0("Medium quality: ",
 best <- rbind(df_90100_5,medium_quality)
 
 # Assessment of genome quality
-pdf("cm_Compl_vs_Contam.pdf")
-ggplot(best, aes(x=Completeness, y=Contamination)) + 
+cm_Compl_vs_Contam <- ggplot(best, aes(x=Completeness, y=Contamination)) + 
   geom_point(aes(color=factor(type)),size=0.1,shape=21)+
   ylab("Contamination (%)")+
   xlab("Completeness (%)")+
@@ -455,8 +454,7 @@ ggplot(best, aes(x=Completeness, y=Contamination)) +
         axis.title.y = element_text(size=10),
         legend.title = element_blank(),
         legend.text = element_text(size=10),
-        legend.position = "top")
-dev.off()
+        legend.position = "none")
 
 # similar to https://www.nature.com/articles/s41564-017-0012-7#Sec2
 
@@ -554,7 +552,7 @@ plot_scaffolds <- ggplot(data= toplot, aes(x=`# scaffolds`, fill=type)) +
                              "#F8766D", #red
                              "#45B4B8" #blue
   )) + 
-  theme_bw() +
+  theme_minimal()+
   labs(fill="") +
   lims(x=c(0,750))
 
@@ -564,13 +562,15 @@ plot_pred_genes <- ggplot(data= toplot, aes(x=`# predicted genes`, fill=type)) +
                              "#F8766D", #red
                              "#45B4B8" #blue
                              )) + 
-  theme_bw() +
+  theme_minimal()+
   labs(fill="") +
   lims(x=c(0,5000))
 
-plots <- ggarrange(plot_scaffolds,plot_pred_genes, common.legend=TRUE)
 
-pdf("cm_scaffolds_predicted_genes.pdf")
+plots <- ggarrange(plot_scaffolds,plot_pred_genes,cm_Compl_vs_Contam,nrow=1,
+                   common.legend=TRUE)
+
+pdf("cm_Compl_vs_Contam_scaffolds_genes.pdf")
 plots
 dev.off()
 
@@ -1176,19 +1176,19 @@ dev.off()
 
 # I hereby select taxa_2 only (corresponds to phylum) and remove any row where no phylum was resolved
 df1 <- df %>%
-  select(pig,bin,date,value,taxa_2,cohort)
+  select(pig,bin,date,value,taxa_7,cohort)
 
 df1 <- as.data.frame(na.omit(df1))
-
+NCOL(df1)
 # remove "p__" before phylum
-df1[5] <- lapply(
-  df1[5],
+df1[6] <- lapply(
+  df1[6],
   gsub,
-  pattern = "p__",
+  pattern = "s__",
   replacement = "",
   fixed = TRUE)
 
-unique(df1$taxa_2)
+unique(df1$taxa_7)
 
 
 #################################
@@ -1214,7 +1214,7 @@ head(df2)
 
 # sum all the norm values that fall within same pig,date,taxa_2
 df3 <- df2 %>%
-  dplyr::group_by(pig,date,taxa_2) %>%
+  dplyr::group_by(pig,date,taxa_7) %>%
   dplyr::summarise(indiv_sum = sum(norm_value))
 head(df3)
 
@@ -1230,7 +1230,7 @@ head(df3)
 
 # long to wide format
 df4 <- df3 %>%
-  pivot_wider(names_from = taxa_2, values_from = indiv_sum, values_fill = list(indiv_sum = 0)) 
+  pivot_wider(names_from = taxa_7, values_from = indiv_sum, values_fill = list(indiv_sum = 0)) 
 head(df4)
 
 # # test:
@@ -1242,44 +1242,89 @@ head(df4)
 
 #################################
 
-# STEP 4. PCA, dots are cohort_date 
-
-# get a quick cohorts to pig table 
-cohorts <- df %>% dplyr::select(cohort,pig) %>% distinct()
-
-# join the cohort info
-df5 <- inner_join(df4,cohorts) %>%
-  dplyr::mutate(coho_date_group=paste0(date,"_",cohort)) 
-df5
-
-# 
-df6 <- df5 %>% 
-  dplyr::group_by(coho_date_group) %>% 
-  dplyr::summarise_if(is.numeric, funs(sum))
-df6
 
 
+# get a quick cohorts to pig table
+cohorts <- df %>% dplyr::select(cohort,pig,date) %>% distinct()
+cohorts$sample <- paste0(cohorts$date,"_",cohorts$pig)
+cohorts <- as.data.frame(cohorts)
+
+
+df5 <- inner_join(cohorts,df4) 
+df5$sample <- paste0(df5$date,"_",df5$cohort)
+
+df5$pig <- NULL
+df5$date <- NULL
+df5$cohort <- NULL
+
+
+
+df6 <- df5 %>%
+  group_by(sample) %>%
+  summarise_if(is.numeric, mean, na.rm = TRUE)
+
+
+df6 <- as.data.frame(df6)
 rowSums(df6[,-1])
-df6_eclr <- cenLR(df6[,-1])
-clr_norm_df <- df6_eclr$x.clr
 
-rownames(clr_norm_df) <- df6$coho_date_group
 
-# if I set scale. = FALSE I get a downfacing horseshoe
-df4.pca <- prcomp(clr_norm_df, center = TRUE,scale. = TRUE)
-summary(df4.pca)
 
-substr(rownames(clr_norm_df),1,3)
+rownames(df6) <- df6$sample
+df6$sample <- NULL
+m <- as.matrix(df6)
+
+df6.pca <- prcomp(m, center = FALSE,scale. = FALSE)
+summary(df6.pca)
+
+# to get samples info showing on PCA plot
+this_mat_samples <- data.frame(sample=rownames(m)) 
+this_mat_samples <- cSplit(indt = this_mat_samples, "sample", sep = "_", drop = NA)
+
+# reorder dates 
+this_mat_samples$sample_1  = factor(this_mat_samples$sample_1, levels=c("t0",
+                                    "t1", 
+                                    "t2",
+                                    "t3",
+                                    "t4",
+                                    "t5",
+                                    "t6",
+                                    "t7",
+                                    "t8",
+                                    "t9",
+                                    "t10"))
+
+cm_PC12 <- ggbiplot(df6.pca,
+         labels=this_mat_samples$sample,
+         groups=this_mat_samples$sample_1,
+         ellipse=TRUE,
+         var.axes = FALSE,
+         labels.size = 2,
+         choices = (1:2)) +
+  theme_bw() +
+  xlim(c(-2,1)) +
+  guides(color = guide_legend(nrow = 1))
+cm_PC34 <- ggbiplot(df6.pca,
+         labels=this_mat_samples$sample,
+         groups=this_mat_samples$sample_1,
+         ellipse=TRUE,
+         var.axes = FALSE,
+         labels.size = 2,
+         choices = (3:4)) +
+  theme_bw() +
+  guides(color = guide_legend(nrow = 1)) 
+
+
+cm_PCA <- ggarrange(cm_PC12,cm_PC34,
+                    ncol=2,
+                    common.legend=TRUE)
+
+
 
 pdf("cm_PCA.pdf")
-ggbiplot(df4.pca,labels=rownames(clr_norm_df),groups=substr(rownames(clr_norm_df),1,3),ellipse=TRUE,choices = (1:2))+
-  theme_minimal()
+annotate_figure(cm_PCA,
+                top = text_grob("PCA from piglets' nearly complete MAGs (CheckM) (n=12486) ",
+                                size = 13))
 dev.off()
-
-
-#################################
-
-
 
 
 

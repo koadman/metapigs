@@ -198,7 +198,7 @@ weights6$weight_category <- NA
 
 weights <- rbind(weights_rest,weights6) %>%
   dplyr::select(pig,date,weight_category)
-NROW(weights)
+head(weights)
 
 
 ######################################################################
@@ -391,6 +391,7 @@ carbom <- phyloseq(OTU,TAX,samples)
 
 carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5", "t6","t7","t8","t9")))
 
+
 #subset to what you want & remove phyla == NA
 unique_phyla <- unique(taxa_mat_df$phylum)
 unique_phyla <- unique_phyla[!is.na(unique_phyla)]
@@ -414,11 +415,54 @@ sample_variables(carbom)
 
 ######################
 
-# HEATMAP
-
 # keep only very abundant OTUs
 # taking gOTUs that represent at least 3% of the sample and present in at least 100 samples 
 carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.03) > 40, TRUE)
+
+
+
+# ORDINATION 
+carbom_gt <- carbom
+carbom.ord_gt <- ordinate(carbom_gt, "NMDS", "bray")
+
+gt_ordination_plot <- plot_ordination(carbom_gt, carbom.ord_gt, type="samples", color="date") + 
+  geom_point(size=1) +
+  #facet_wrap(~cohort) +
+  theme_bw()+
+  theme(axis.title = element_text(size=9),
+        axis.text = element_text(size=7))+
+  guides(colour = guide_legend(nrow = 1))
+
+pdf("gt_phylo_ordination.pdf")
+gt_ordination_plot+
+  facet_wrap(~cohort)+
+  theme(legend.position="top")
+dev.off()
+
+
+########################################################################################
+
+# NETWORK ANALYSIS 
+
+carbom_abund_gt <- carbom_abund
+
+ig = make_network(carbom_abund_gt, type = "samples", distance = "bray", max.dist = 0.3)
+gt_network_plot <- plot_network(ig, carbom_abund_gt, color = "date", shape = "cohort", line_weight = 0.3, 
+                                label = NULL, point_size = 1)+
+  theme(legend.position = "bottom")+
+  guides(shape = guide_legend(nrow = 1))+
+  guides(size = "legend", colour = "none")
+
+pdf("gt_phylo_network.pdf")
+gt_network_plot
+dev.off()
+
+
+########################################################################################
+
+
+# HEATMAP
+
 
 random_tree = rtree(ntaxa(carbom_abund), rooted=TRUE, tip.label=taxa_names(carbom_abund))
 physeq1 = merge_phyloseq(carbom_abund,random_tree)
@@ -583,20 +627,6 @@ dev.off()
 
 ########################################################################################
 
-# ORDINATION 
-
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
-
-pdf("gt_phylo_ordination.pdf")
-plot_ordination(carbom, carbom.ord, type="samples", color="date") + 
-  geom_point(size=2) +
-  facet_wrap(~cohort) +
-  theme_bw()
-dev.off()
-
-
-########################################################################################
-
 
 # ORDINATION  - effect of weight 
 
@@ -686,28 +716,42 @@ pdf("gt_phylo_ordination_weight.pdf")
 weight_effect_plot
 dev.off()
 
+
+
+
+# # function to test correlation with Dunn.test
+# myf_weight <- function(df) {
+#   df1 <- df
+#   weight_category <- df$weight_category
+#   birth_day <- df$birth_day
+#   x <- dunnTest(Axis.1~as.factor(weight_category),data=df1,method = "bonferroni")
+#   x <- as.data.frame(x$res)
+#   x$axis = "Axis.1"
+#   y <- dunnTest(Axis.2~as.factor(weight_category),data=df1,method = "bonferroni")
+#   y <- as.data.frame(y$res)
+#   y$axis = "Axis.2"
+#   xy <- rbind(x,y)
+#   xy$comparison <- paste0(weight_category[1],"_",birth_day[1])
+#   return(xy)
+# }
+
+
+
+weight_stats <- rbind(myf_weight(p_t0$data),
+                      myf_weight(p_t2$data),
+                      myf_weight(p_t4$data),
+                      myf_weight(p_t6$data),
+                      myf_weight(p_t8$data),
+                      myf_weight(p_t10$data))
+
+
+
 sink(file = "gt_phylo_ordination_weight.txt", 
      append = FALSE, type = c("output"))
-paste0("Effect of weight on PCA - two weight categories - origin of data: phyloseq ordination data ")
-paste0("PC1 and PC2 respectively ------ Dunn test + Bonferroni correction applied")
-paste0("t0")
-dunnTest(Axis.1~weight_category,data=as.data.frame(p_t0$data),method = "bonferroni")
-dunnTest(Axis.2~weight_category,data=as.data.frame(p_t0$data),method = "bonferroni")
-paste0("t2")
-dunnTest(Axis.1~weight_category,data=as.data.frame(p_t2$data),method = "bonferroni")
-dunnTest(Axis.2~weight_category,data=as.data.frame(p_t2$data),method = "bonferroni")
-paste0("t4")
-dunnTest(Axis.1~weight_category,data=as.data.frame(p_t4$data),method = "bonferroni")
-dunnTest(Axis.2~weight_category,data=as.data.frame(p_t4$data),method = "bonferroni")
-paste0("t6")
-dunnTest(Axis.1~weight_category,data=as.data.frame(p_t6$data),method = "bonferroni")
-dunnTest(Axis.2~weight_category,data=as.data.frame(p_t6$data),method = "bonferroni")
-paste0("t8")
-dunnTest(Axis.1~weight_category,data=as.data.frame(p_t8$data),method = "bonferroni")
-dunnTest(Axis.2~weight_category,data=as.data.frame(p_t8$data),method = "bonferroni")
-paste0("t10")
-dunnTest(Axis.1~weight_category,data=as.data.frame(p_t10$data),method = "bonferroni")
-dunnTest(Axis.2~weight_category,data=as.data.frame(p_t10$data),method = "bonferroni")
+paste0("Effect of weight on PCA - origin of data: phyloseq ordination data ")
+paste0("PCoA  ------ Dunn (1964) Kruskal-Wallis multiple comparison
+       p-values adjusted with the Bonferroni method.")
+weight_stats
 sink()
 
 
@@ -718,7 +762,7 @@ sink()
 
 ######################
 
-# weight effect - all
+# age effect - all
 
 
 # t0
@@ -769,7 +813,10 @@ leg_all <- get_legend(dummy_all)
 all_age_and_breed <- ggarrange(p_t0,p_t2,p_t4,leg_all)
 
 
-sink(file = "gt_phylo_ordination_age.txt", 
+# plotted below togetehr with subset 
+
+
+sink(file = "gt_phylo_ordination_age.txt",
      append = FALSE, type = c("output"))
 paste0("Effect of age on PCA - ALL birth_day categories - origin of data: phyloseq ordination data ")
 paste0("PC1 and PC2 respectively ------ Dunn (1964) Kruskal-Wallis multiple comparison
@@ -788,7 +835,7 @@ sink()
 ######################
 
 
-# weight effect - subset
+# age effect - subset
 
 
 # t0
@@ -1184,17 +1231,6 @@ sink()
 ########################################################################################
 ########################################################################################
 ########################################################################################
-
-
-# NETWORK ANALYSIS 
-
-pdf("gt_phylo_network.pdf")
-ig = make_network(carbom_abund, type = "samples", distance = "bray", max.dist = 0.3)
-plot_network(ig, carbom_abund, color = "date", shape = "cohort", line_weight = 0.3, 
-             label = NULL, title = "sample network - Bray-Curtis distance")
-dev.off()
-
-
 
 ############################################################################################################
 ############################################################################################################

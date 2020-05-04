@@ -247,207 +247,11 @@ df2
 ######################################################################################################
 
 
-# PHYLUM
+# SPECIES
 
 # STEP 2.
 
 # sum all the norm values that fall within same pig,date,taxa_2
-df3 <- df2 %>%
-  dplyr::group_by(pig,date,phylum) %>%
-  dplyr::summarise(indiv_sum = sum(norm_value))
-head(df3)
-
-df3$sample =paste0(df3$date,"_",df3$pig)
-df3$date <- NULL
-df3$pig <- NULL
-
-# long to wide format
-df4 <- df3 %>%
-  pivot_wider(names_from = phylum, values_from = indiv_sum, values_fill = list(indiv_sum = 0)) 
-
-sample <- data.frame(sample = df4[,1])
-df4 <- df4[,-1]
-
-my_minimum <- (min(df4[df4 > 0])*0.1)*0.1
-
-df4 <- df4+my_minimum
-
-rownames(df4) <- sample$sample
-
-#################
-
-rowSums(df4)
-df4_eclr <- cenLR(df4)
-clr_norm_df <- df4_eclr$x.clr
-
-# run PCA
-df4.pca <- prcomp(clr_norm_df, center = TRUE,scale. = FALSE)
-
-PCA_phylum <- ggbiplot(df4.pca,
-                        var.axes = TRUE, labels = NULL,
-                        groups=substr(rownames(clr_norm_df),1,3),
-                        ellipse=TRUE,
-                        choices = (1:2)) +
-  theme_minimal() +
-  ggtitle("Principal component analysis (cenLR) based on phylum (gtdbtk)")
-
-###################################################################################################
-
-# CLASS
-
-df3 <- df2 %>%
-  dplyr::group_by(pig,date,class) %>%
-  dplyr::summarise(indiv_sum = sum(norm_value))
-head(df3)
-
-df3$sample =paste0(df3$date,"_",df3$pig)
-df3$date <- NULL
-df3$pig <- NULL
-
-df4 <- df3 %>%
-  pivot_wider(names_from = class, values_from = indiv_sum, values_fill = list(indiv_sum = 0)) 
-
-sample <- data.frame(sample = df4[,1])
-df4 <- df4[,-1]
-my_minimum <- (min(df4[df4 > 0])*0.1)*0.1
-df4 <- df4+my_minimum
-rownames(df4) <- sample$sample
-
-rowSums(df4)
-df4_eclr <- cenLR(df4)
-clr_norm_df <- df4_eclr$x.clr
-
-# run PCA
-df4.pca <- prcomp(clr_norm_df, center = TRUE,scale. = FALSE)
-
-PCA_class <- ggbiplot(df4.pca,
-                      var.axes = TRUE, labels = NULL,
-                      groups=substr(rownames(clr_norm_df),1,3),
-                      ellipse=TRUE,
-                      choices = (1:2)) +
-  theme_minimal() +
-  ggtitle("Principal component analysis (cenLR) based on class (gtdbtk)")
-
-######################################################################################################
-
-# ORDER
-
-df3 <- df2 %>%
-  dplyr::group_by(pig,date,order) %>%
-  dplyr::summarise(indiv_sum = sum(norm_value))
-head(df3)
-
-df3$sample =paste0(df3$date,"_",df3$pig)
-df3$date <- NULL
-df3$pig <- NULL
-
-df4 <- df3 %>%
-  pivot_wider(names_from = order, values_from = indiv_sum, values_fill = list(indiv_sum = 0)) 
-
-sample <- data.frame(sample = df4[,1])
-df4 <- df4[,-1]
-my_minimum <- (min(df4[df4 > 0])*0.1)*0.1
-df4 <- df4+my_minimum
-rownames(df4) <- sample$sample
-
-rowSums(df4)
-df4_eclr <- cenLR(df4)
-clr_norm_df <- df4_eclr$x.clr
-
-# run PCA
-df4.pca <- prcomp(clr_norm_df, center = TRUE,scale. = FALSE)
-
-PCA_order <- ggbiplot(df4.pca,
-                      var.axes = TRUE, labels = NULL,
-                      groups=substr(rownames(clr_norm_df),1,3),
-                      ellipse=TRUE,
-                      choices = (1:2)) +
-  theme_minimal() +
-  ggtitle("Principal component analysis (cenLR) based on order (gtdbtk)")
-
-
-
-######################################################################################################
-
-# FAMILY
-
-df3 <- df2 %>%
-  dplyr::group_by(pig,date,family) %>%
-  dplyr::summarise(indiv_sum = sum(norm_value))
-head(df3)
-
-df3$sample =paste0(df3$date,"_",df3$pig)
-df3$date <- NULL
-df3$pig <- NULL
-
-df4 <- df3 %>%
-  pivot_wider(names_from = family, values_from = indiv_sum, values_fill = list(indiv_sum = 0)) 
-
-sample <- data.frame(sample = df4[,1])
-df4 <- df4[,-1]
-my_minimum <- (min(df4[df4 > 0])*0.1)*0.1
-df4 <- df4+my_minimum
-rownames(df4) <- sample$sample
-
-rowSums(df4)
-df4_eclr <- cenLR(df4)
-clr_norm_df <- df4_eclr$x.clr
-
-# run PCA
-df4.pca <- prcomp(clr_norm_df, center = TRUE,scale. = FALSE)
-
-PCA_family <- ggbiplot(df4.pca,
-                       var.axes = FALSE, labels = NULL,
-                       groups=substr(rownames(clr_norm_df),1,3),
-                       ellipse=TRUE,
-                       choices = (1:2)) +
-  theme_minimal() +
-  ggtitle("Principal component analysis (cenLR) based on family (gtdbtk)")
-
-
-######################################################################################################
-
-# GENUS
-
-df3 <- df2 %>%
-  dplyr::group_by(pig,date,genus) %>%
-  dplyr::summarise(indiv_sum = sum(norm_value))
-head(df3)
-
-df3$sample =paste0(df3$date,"_",df3$pig)
-df3$date <- NULL
-df3$pig <- NULL
-
-df4 <- df3 %>%
-  pivot_wider(names_from = genus, values_from = indiv_sum, values_fill = list(indiv_sum = 0)) 
-
-sample <- data.frame(sample = df4[,1])
-df4 <- df4[,-1]
-my_minimum <- (min(df4[df4 > 0])*0.1)*0.1
-df4 <- df4+my_minimum
-rownames(df4) <- sample$sample
-
-rowSums(df4)
-df4_eclr <- cenLR(df4)
-clr_norm_df <- df4_eclr$x.clr
-
-# run PCA
-df4.pca <- prcomp(clr_norm_df, center = TRUE,scale. = FALSE)
-
-PCA_genus <- ggbiplot(df4.pca,
-                      var.axes = FALSE, labels = NULL,
-                      groups=substr(rownames(clr_norm_df),1,3),
-                      ellipse=TRUE,
-                      choices = (1:2)) +
-  theme_minimal() +
-  ggtitle("Principal component analysis (cenLR) based on genus (gtdbtk)")
-
-
-
-######################################################################################################
-
-# species
-
 df3 <- df2 %>%
   dplyr::group_by(pig,date,species) %>%
   dplyr::summarise(indiv_sum = sum(norm_value))
@@ -457,38 +261,92 @@ df3$sample =paste0(df3$date,"_",df3$pig)
 df3$date <- NULL
 df3$pig <- NULL
 
+# long to wide format
 df4 <- df3 %>%
   pivot_wider(names_from = species, values_from = indiv_sum, values_fill = list(indiv_sum = 0)) 
+head(df4)
 
-sample <- data.frame(sample = df4[,1])
-df4 <- df4[,-1]
-my_minimum <- (min(df4[df4 > 0])*0.1)*0.1
-df4 <- df4+my_minimum
-rownames(df4) <- sample$sample
 
-rowSums(df4)
-df4_eclr <- cenLR(df4)
-clr_norm_df <- df4_eclr$x.clr
+#################################
 
-# run PCA
-df4.pca <- prcomp(clr_norm_df, center = TRUE,scale. = FALSE)
 
-PCA_species <- ggbiplot(df4.pca,
-                        var.axes = FALSE, labels = NULL,
-                        groups=substr(rownames(clr_norm_df),1,3),
-                        ellipse=TRUE,
-                        choices = (1:2)) +
-  theme_minimal() +
-  ggtitle("Principal component analysis (cenLR) based on species (gtdbtk)")
 
+# get a quick cohorts to pig table
+cohorts <- df %>% dplyr::select(cohort,pig,date) %>% distinct()
+cohorts$sample <- paste0(cohorts$date,"_",cohorts$pig)
+cohorts <- as.data.frame(cohorts)
+
+
+df5 <- inner_join(cohorts,df4) 
+df5$sample <- paste0(df5$date,"_",df5$cohort)
+
+df5$pig <- NULL
+df5$date <- NULL
+df5$cohort <- NULL
+
+
+
+df6 <- df5 %>%
+  group_by(sample) %>%
+  summarise_if(is.numeric, mean, na.rm = TRUE)
+
+
+df6 <- as.data.frame(df6)
+rowSums(df6[,-1])
+
+
+
+rownames(df6) <- df6$sample
+df6$sample <- NULL
+m <- as.matrix(df6)
+
+df6.pca <- prcomp(m, center = FALSE,scale. = FALSE)
+summary(df6.pca)
+
+# to get samples info showing on PCA plot
+this_mat_samples <- data.frame(sample=rownames(m)) 
+this_mat_samples <- cSplit(indt = this_mat_samples, "sample", sep = "_", drop = NA)
+
+# reorder dates 
+this_mat_samples$sample_1  = factor(this_mat_samples$sample_1, levels=c("t0",
+                                                                        "t1", 
+                                                                        "t2",
+                                                                        "t3",
+                                                                        "t4",
+                                                                        "t5",
+                                                                        "t6",
+                                                                        "t7",
+                                                                        "t8",
+                                                                        "t9",
+                                                                        "t10"))
+
+gt_PC12 <- ggbiplot(df6.pca,
+                    labels=this_mat_samples$sample,
+                    groups=this_mat_samples$sample_1,
+                    ellipse=TRUE,
+                    var.axes = FALSE,
+                    labels.size = 2,
+                    choices = (1:2)) +
+  theme_bw() +
+  xlim(c(-2,1)) +
+  guides(color = guide_legend(nrow = 1))
+gt_PC34 <- ggbiplot(df6.pca,
+                    labels=this_mat_samples$sample,
+                    groups=this_mat_samples$sample_1,
+                    ellipse=TRUE,
+                    var.axes = FALSE,
+                    labels.size = 2,
+                    choices = (3:4)) +
+  theme_bw() +
+  guides(color = guide_legend(nrow = 1))
+
+
+gt_PCA <- ggarrange(gt_PC12,gt_PC34,
+                    ncol=2,
+                    common.legend=TRUE)
 
 pdf("gt_PCA.pdf")
-PCA_phylum
-PCA_class
-PCA_order
-PCA_family
-PCA_genus
-PCA_species
+annotate_figure(gt_PCA,
+                top = text_grob("PCA from piglets' MAGs (GTDB) (n=47569) ",
+                                size = 13))
 dev.off()
-
-

@@ -469,17 +469,10 @@ df3$date <- NULL
 df4 <- df3 %>%
   pivot_wider(names_from = secondary_cluster, values_from = indiv_sum, values_fill = list(indiv_sum = 0)) 
 head(df4)
-colnames(df4)
-# # test:
-# test3 <- test2 %>%
-#   pivot_wider(names_from = secondary_cluster.y, values_from = indiv_sum, values_fill = list(indiv_sum = 0))
-# head(test3)
-# sum(test3[1,])
 
-df4 <- as.data.frame(df4)
-rowSums(df4[,-1])
 
 #################################
+
 
 
 # get a quick cohorts to pig table
@@ -488,27 +481,76 @@ cohorts$sample <- paste0(cohorts$date,"_",cohorts$pig)
 cohorts <- as.data.frame(cohorts)
 
 
-rownames(df4) <- df4$sample
-df4$sample <- NULL
-m <- as.matrix(df4)
+df5 <- inner_join(cohorts,df4) 
+df5$sample <- paste0(df5$date,"_",df5$cohort)
 
-df4.pca <- prcomp(m, center = FALSE,scale. = FALSE)
-summary(df4.pca)
+df5$pig <- NULL
+df5$date <- NULL
+df5$cohort <- NULL
+
+
+
+df6 <- df5 %>%
+  group_by(sample) %>%
+  summarise_if(is.numeric, mean, na.rm = TRUE)
+
+
+df6 <- as.data.frame(df6)
+rowSums(df6[,-1])
+
+
+
+rownames(df6) <- df6$sample
+df6$sample <- NULL
+m <- as.matrix(df6)
+
+df6.pca <- prcomp(m, center = FALSE,scale. = FALSE)
+summary(df6.pca)
 
 # to get samples info showing on PCA plot
-this_mat_samples <- data.frame(sample=rownames(m))
-this_mat_samples <- inner_join(this_mat_samples,cohorts)
-NROW(this_mat_samples)
+this_mat_samples <- data.frame(sample=rownames(m)) 
+this_mat_samples <- cSplit(indt = this_mat_samples, "sample", sep = "_", drop = NA)
 
+# reorder dates 
+this_mat_samples$sample_1  = factor(this_mat_samples$sample_1, levels=c("t0",
+                                                                        "t1", 
+                                                                        "t2",
+                                                                        "t3",
+                                                                        "t4",
+                                                                        "t5",
+                                                                        "t6",
+                                                                        "t7",
+                                                                        "t8",
+                                                                        "t9",
+                                                                        "t10"))
+
+dRep_PC12 <- ggbiplot(df6.pca,
+                    labels=this_mat_samples$sample,
+                    groups=this_mat_samples$sample_1,
+                    ellipse=TRUE,
+                    var.axes = FALSE,
+                    labels.size = 2,
+                    choices = (1:2)) +
+  theme_bw() +
+  xlim(c(-2,1)) +
+  guides(color = guide_legend(nrow = 1))
+dRep_PC34 <- ggbiplot(df6.pca,
+                    labels=this_mat_samples$sample,
+                    groups=this_mat_samples$sample_1,
+                    ellipse=TRUE,
+                    var.axes = FALSE,
+                    labels.size = 2,
+                    choices = (3:4)) +
+  theme_bw() +
+  guides(color = guide_legend(nrow = 1))
+
+
+dRep_PCA <- ggarrange(dRep_PC12,dRep_PC34,ncol=2,
+                      common.legend=TRUE)
 
 pdf("dRep_PCA.pdf")
-ggbiplot(df4.pca,groups = this_mat_samples$date,ellipse=FALSE,var.axes = FALSE,choices = (1:2)) +
-  theme_bw()
+annotate_figure(dRep_PCA,
+                top = text_grob("PCA from piglets' cluster-assigned MAGs (dRep) (n=22403)",
+                                size = 13))
 dev.off()
-
-
-#################################
-
-
-
 

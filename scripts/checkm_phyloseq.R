@@ -203,14 +203,13 @@ sample_df$date  = factor(sample_df$date, levels=c("t0",
 
 # reorder cohorts 
 sample_df$cohort  = factor(sample_df$cohort, levels=c("Control", 
-                                        "Dscour",
+                                        "DScour",
                                         "ColiGuard", 
                                         "Neomycin",
                                         "NeoD",
                                         "NeoC"))
 
 ############################################################################################################
-library(phyloseq)
 
 # create phyloseq object
 
@@ -231,7 +230,16 @@ carbom
 
 # Keep only samples to be analyzed
 #carbom <- subset_samples(carbom, date =="t2")
-carbom <- subset_samples(carbom, (date %in% c("t0","t2","t4","t6","t8","t10")))
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5", "t6","t7","t8","t9")))
+
+carbom <- subset_samples(carbom, (cohort %in% c("Control",
+                                                "DScour",
+                                                "ColiGuard",
+                                                "Neomycin",
+                                                "NeoD",
+                                                "NeoC")))
+
+
 
 #subset to what you want
 unique(taxa_mat_df$phylum)
@@ -257,10 +265,50 @@ sample_variables(carbom)
 # PLOT
 
 # keep only very abundant gOTUs
-carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.20) > 0, TRUE)
+#carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.20) > 0, TRUE)
+carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.03) > 40, TRUE)
+
+######################
+
+# ORDINATION 
+
+carbom_cm <- carbom
+carbom.ord_cm <- ordinate(carbom_cm, "NMDS", "bray")
+
+cm_ordination_plot <- plot_ordination(carbom_cm, carbom.ord_cm, type="samples", color="date") + 
+  geom_point(size=1) +
+  #facet_wrap(~cohort) +
+  theme_bw() +
+  theme(axis.title = element_text(size=9),
+        axis.text = element_text(size=7))+
+  guides(colour = guide_legend(nrow = 1))
+
+pdf("cm_phylo_ordination.pdf")
+cm_ordination_plot+
+  facet_wrap(~cohort)+
+  theme(legend.position="top")
+dev.off()
+
+######################
+
+# NETWORK ANALYSIS 
+
+carbom_abund_cm <- carbom_abund
+
+ig = make_network(carbom_abund_cm, type = "samples", distance = "bray", max.dist = 0.3)
+cm_network_plot <- plot_network(ig, carbom_abund_cm, color = "date", shape = "cohort", line_weight = 0.3, 
+                                label = NULL, point_size = 1)+
+  theme(legend.position = "bottom")+
+  guides(shape = guide_legend(nrow = 1))+
+  guides(size = "legend", colour = "none")
+
+pdf("cm_phylo_network.pdf")
+cm_network_plot
+dev.off()
 
 
 ######################
+
 
 # BAR PLOT
 
@@ -320,38 +368,6 @@ plot_richness(carbom, measures=c("Chao1", "ACE", "Shannon", "Simpson", "InvSimps
 dev.off()
 
 
-######################
-
-# ORDINATION 
-
-carbom.ord <- ordinate(carbom, "NMDS", "bray")
-
-pdf("cm_phylo_ordination.pdf")
-plot_ordination(carbom, carbom.ord, type="samples", color="date", #shape= "cohort", 
-                title="gOTUs") + 
-  geom_point(size=2) +
-  facet_wrap(~cohort)
-dev.off()
-
-######################
-
-# NETWORK ANALYSIS 
-
-plot_net(carbom, distance = "(A+B-2*J)/(A+B)", type = "taxa", 
-         maxdist = 0.7, color="phylum", point_label="class",
-         title = "taxa network - Bray-Curtis distance")
-
-# This is quite confusing. Let us make it more simple by using only major gOTUs
-plot_net(carbom_abund, distance = "(A+B-2*J)/(A+B)", type = "taxa", 
-         maxdist = 0.7, color="phylum", point_label="class",
-         title = "taxa network - Bray-Curtis distance") 
-
-pdf("cm_phylo_network.pdf")
-ig = make_network(carbom_abund, type = "samples", distance = "bray", max.dist = 0.3)
-plot_network(ig, carbom_abund, color = "date", shape = "cohort", line_weight = 0.3, 
-             label = NULL, title = "sample network - Bray-Curtis distance")
-dev.off()
 
 ############################################################################################################
-
 
