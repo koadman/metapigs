@@ -363,11 +363,31 @@ dev.off()
 
 # DIVERSITY 
 
+# here rarefaction is applied
+
+carbom <- phyloseq(gOTU,TAX,samples)
+
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5","t6","t7","t8","t9")))
+
+carbom_rarefied = rarefy_even_depth(carbom, replace=TRUE, rngseed = 42)
+
+# Normalize number of reads in each sample using median sequencing depth.
+total = median(sample_sums(carbom_rarefied))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom_rarefied = transform_sample_counts(carbom_rarefied, standf)
+sample_variables(carbom_rarefied)
+
+cm_diversity <- plot_richness(carbom_rarefied, measures=c("Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"), x="cohort", color="date")
+
+cm_diversity_small <- plot_richness(carbom_rarefied, measures=c("Chao1","Shannon","InvSimpson"), 
+                                    color="date") +
+  guides(colour = guide_legend(nrow = 1))+
+  theme(legend.position="top",
+        axis.text.x = element_blank())
+
 pdf("cm_phylo_diversity.pdf")
-plot_richness(carbom, measures=c("Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"), x="cohort", color="date")
+cm_diversity
 dev.off()
-
-
 
 ############################################################################################################
 

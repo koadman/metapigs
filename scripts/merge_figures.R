@@ -5,12 +5,15 @@ library(ggpubr)
 
 setwd("/Users/12705859/Desktop/metapigs_dry/figures")
 
-
-
 # must have run:
 # - checkm_phyloseq.R
 # - dRep_phyloseq.R
 # - gtdbtk_4_phyloseq.R
+
+
+######################
+
+# ordination & network
 
 all_ordination <- ggarrange(cm_ordination_plot,
           dRep_ordination_plot,
@@ -33,15 +36,12 @@ all_ordination_network <- ggarrange(all_ordination,
                                     nrow=2,
                                     common.legend=FALSE)
 
-  
-
 pdf("all_phylo_clustering.pdf")
 all_ordination_network
 dev.off()
 
 
-
-
+######################
 
 
 

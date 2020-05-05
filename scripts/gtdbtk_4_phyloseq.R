@@ -11,8 +11,8 @@ library(readxl)
 library(data.table)
 library(ape)
 library(scales)
-library(dunn.test)
 library(FSA)
+library(openxlsx)
 
 setwd("~/Desktop/metapigs_dry/gtdbtk")
 basedir = "~/Desktop/metapigs_dry/"
@@ -51,21 +51,6 @@ no_reps_all$bin <- gsub(".fa","", no_reps_all$bin)
 head(no_reps_all)
 NROW(no_reps_all)
 
-# ###### run this part if you want to only retain piglets that 
-# # where present throughput trial (not euthanised) 
-# 
-# to_keep <- no_reps_all %>%
-#   filter(date=="t8") %>%
-#   dplyr::select(pig) %>%
-#   distinct()
-# 
-# to_keep <- as.character(to_keep$pig)
-# 
-# no_reps_all <- subset(no_reps_all, (pig %in% to_keep))
-# NROW(unique(no_reps_all$pig))
-# 
-# ############################################################
-
 ######################################################################
 
 # load gtdbtk assignments of the bins
@@ -77,6 +62,45 @@ gtdbtk_bins <- read_csv("gtdbtk_bins_completeTaxa",
 
 
 head(gtdbtk_bins)
+
+######################################################################
+######################################################################
+
+
+# upload metadata for pen info
+
+mdat <- read_excel(paste0(basedir,"Metagenome.environmental_20190308_2.xlsx"),
+                   col_types = c("text", "numeric", "numeric", "text", "text",
+                                 "text", "date", "text","text", "text", "numeric",
+                                 "numeric", "numeric", "numeric", "numeric", "numeric",
+                                 "numeric", "text", "text","text", "text", "text", "text",
+                                 "text","text", "text", "text", "text", "text","text", "text"),
+                   skip = 12)
+
+mdat$`*collection_date` <- as.character(mdat$`*collection_date`)
+mdat$Cohort <- gsub("Sows","Sows",mdat$Cohort)
+
+mdat2 <- mdat %>%
+  dplyr::filter(!Cohort=="Sows")  %>%
+  dplyr::filter(!`*collection_date`=="2017-01-31"|
+                  `*collection_date`=="2017-02-01"|
+                  `*collection_date`=="2017-02-03") %>%
+  dplyr::select(isolation_source,PigPen)
+
+colnames(mdat2) <- c("pig","pen")
+mdat2 <- as.data.frame(mdat2)
+
+mdat2 <- mdat2 %>%
+  group_by(pig) %>%
+  distinct()
+NROW(mdat2)
+
+mdat2$pen <- gsub("nan",NA,mdat2$pen)
+mdat2 <- na.omit(mdat2)
+
+# we need to keep only record of pigs that were not relocated. 
+mdat2 <- setDT(mdat2)[,if(.N ==1) .SD,by=pig]
+
 
 ######################################################################
 
@@ -102,47 +126,6 @@ breed_bday <- as.data.frame(breed_bday)
 
 ######################################################################
 
-# load metadata (for pen info)
-
-mdat <- read_excel(paste0(basedir,"Metagenome.environmental_20190308_2.xlsx"),
-                   col_types = c("text", "numeric", "numeric", "text", "text",
-                                 "text", "date", "text","text", "text", "numeric",
-                                 "numeric", "numeric", "numeric", "numeric", "numeric",
-                                 "numeric", "text", "text","text", "text", "text", "text",
-                                 "text","text", "text", "text", "text", "text","text", "text"),
-                   skip = 12)
-
-mdat$`*collection_date` <- as.character(mdat$`*collection_date`)
-mdat$Cohort <- gsub("Sows","Sows",mdat$Cohort)
-colnames(mdat)
-
-mdat <- mdat %>%
-  dplyr::filter(!Cohort=="Sows")  %>%
-  dplyr::filter(!`*collection_date`=="2017-01-31"|
-                  `*collection_date`=="2017-02-01"|
-                  `*collection_date`=="2017-02-03") %>%
-  dplyr::select(isolation_source,PigPen)
-
-colnames(mdat) <- c("pig","pen")
-head(mdat)
-mdat <- as.data.frame(mdat)
-class(mdat)
-
-mdat1 <- mdat %>%
-  group_by(pig) %>%
-  distinct()
-NROW(mdat1)
-
-mdat1$pen <- gsub("nan",NA,mdat1$pen)
-mdat1 <- na.omit(mdat1)
-
-# we need to keep only record of pigs that were not relocated. 
-mdat2 <- setDT(mdat1)[,if(.N ==1) .SD,by=pig]
-
-
-######################################################################
-
-
 # upload weight info 
 
 
@@ -153,8 +136,8 @@ colnames(weights) <- c("room","pen","pig","t0","t2","t4","t6","t8")
 
 
 weights_final <- read_csv(paste0(basedir,"weights_final.csv"), 
-                    col_types = cols(Pig = col_character(), 
-                                     Room = col_character()))
+                          col_types = cols(Pig = col_character(), 
+                                           Room = col_character()))
 colnames(weights_final) <- c("room","pen","pig","date","weight")
 weights_final$date <- gsub("6-Mar","t10",weights_final$date)
 weights_final$date <- gsub("7-Mar","t10",weights_final$date)
@@ -203,58 +186,53 @@ head(weights)
 
 ######################################################################
 
-
-# merge pen info : 
-
-NROW(no_reps_all)
-no_reps_all <- dplyr::left_join(no_reps_all,mdat2)
-NROW(no_reps_all)
-head(no_reps_all)
-
-
-######################################################################
-
-# merge weight info : 
-
-no_reps_all <- left_join(no_reps_all, weights)
-NROW(no_reps_all)
-
-######################################################################
-
-
-
-# merge breed and bday info : 
-
-# join breed and bday info 
-NROW(no_reps_all)
-no_reps_all <- left_join(no_reps_all, breed_bday)
-NROW(no_reps_all)
-
-######################################################################
-
 # merge bins info to gtdbtk assignment info :  
 
 NROW(gtdbtk_bins)
 NROW(no_reps_all)
 head(gtdbtk_bins)
 head(no_reps_all)
-df <- merge(no_reps_all, gtdbtk_bins, by=c("pig","bin"))
+df0 <- merge(no_reps_all, gtdbtk_bins, by=c("pig","bin"))
 
 # rename node as gOTU and place "gOTU_" in front of node number: a separate genomic OTU identifier for each different genome
 
-colnames(df)[colnames(df) == 'node'] <- 'gOTU'
-df$gOTU <- paste0("gOTU_",df$gOTU)
+colnames(df0)[colnames(df0) == 'node'] <- 'gOTU'
+df0$gOTU <- paste0("gOTU_",df0$gOTU)
 
-NROW(unique(df$gOTU))
-NROW(df)
-
+NROW(unique(df0$gOTU))
+NROW(df0)
 
 ######################################################################
+
+# merge all other info: 
+# add pen info (mdat2), breed and bday info (breed_bday) and weight info (weights)
+
+# add breed and bday info (breed_bday)
+df0 <- left_join(df0,breed_bday)
+NROW(df0)
+
+# add pen info (mdat2)
+df0 <- left_join(df0,mdat2)
+NROW(df0)
+
+# add weight info (weights)
+df0 <- left_join(df0,weights)
+NROW(df0)
+
+###########################################################################################
+
+# open existing workbook
+
+# Write updated data frame to existing worksheet
+wb = loadWorkbook(paste0(basedir,"stats.xlsx"))
+
+
+###########################################################################################
 
 # TAXA
 
 
-taxa_mat <- df %>%
+taxa_mat <- df0 %>%
   dplyr::select(gOTU,species,genus,family,order,class,phylum,domain) %>%
   group_by(gOTU) %>%
   slice(1)
@@ -276,11 +254,11 @@ head(taxa_mat_df)
 
 ######################################################################
 
-# gOTU  
+# gOTU_mat
 
 # columns to be kept 
 keep <- c("cohort","pig","bin","date","value","gOTU")
-df1 <- df[ , (names(df) %in% keep)]
+df1 <- df0[ , (names(df0) %in% keep)]
 
 # NA to zeros 
 df1$value[is.na(df1$value)] <- 0
@@ -290,6 +268,7 @@ df1$date <- as.character(df1$date)
 df1$date[is.na(df1$date)] <- "no-t"
 
 NROW(df1)
+
 # sum up all the counts from the same sample (pig and date) that belong to the same OTU
 df2 <- df1 %>%
   group_by(pig,date,gOTU) %>%
@@ -309,6 +288,11 @@ df2$date <- NULL
 df3 <- df2 %>%
   pivot_wider(names_from = sample, values_from = all_bins_value, values_fill = list(all_bins_value = 0)) 
 
+# check whether this list is empty(no NAs)
+check_DF <- df3[rowSums(is.na(df3)) > 0,]
+NROW(check_DF)
+
+
 # to matrix 
 gOTU_mat <- as.data.frame(df3)
 rownames(gOTU_mat) <- gOTU_mat[,1]
@@ -326,15 +310,22 @@ NROW(unique(colnames(gOTU_mat)))
 
 # create a sample table for phyloseq 
 
-sample_df <- df
+sample_df <- df0
 
 sample_df$sample <- paste0(sample_df$date,"_",sample_df$pig)
 NROW(unique(sample_df$sample))
 
 sample_df <- sample_df %>%
-  dplyr::select(sample,pig,date,cohort,breed,birth_day,nurse_mother,mother,weight_category,pen) %>%
+  dplyr::select(sample,pig,date,cohort,pen,birth_day,breed,weight_category) %>%
   group_by(sample) %>%
   slice(1)
+
+unique(sample_df$breed)
+
+sample_df$breed <- gsub("Landrace x Cross bred (LW x D)","LxLWD", sample_df$breed)
+sample_df$breed <- gsub("Duroc x Landrace","DxL", sample_df$breed)
+sample_df$breed <- gsub("Duroc x Large white","DxLW", sample_df$breed)
+sample_df$breed <- gsub("Large white x Duroc","LWxD", sample_df$breed)
 
 sample_df$gOTU <- NULL
 sample_df <- as.data.frame(sample_df)
@@ -365,6 +356,7 @@ sample_df$cohort  = factor(sample_df$cohort, levels=c("Control",
                                                       "NeoC"))
 
 rownames(sample_df) <- sample_df[,1]
+
 # ready
 
 
@@ -422,12 +414,11 @@ carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.03) > 40, TRUE)
 
 
 # ORDINATION 
-carbom_gt <- carbom
-carbom.ord_gt <- ordinate(carbom_gt, "NMDS", "bray")
 
-gt_ordination_plot <- plot_ordination(carbom_gt, carbom.ord_gt, type="samples", color="date") + 
+carbom_abund.ord <- ordinate(carbom_abund, "NMDS", "bray")
+
+gt_ordination_plot <- plot_ordination(carbom_abund, carbom_abund.ord, type="samples", color="date") + 
   geom_point(size=1) +
-  #facet_wrap(~cohort) +
   theme_bw()+
   theme(axis.title = element_text(size=9),
         axis.text = element_text(size=7))+
@@ -444,10 +435,9 @@ dev.off()
 
 # NETWORK ANALYSIS 
 
-carbom_abund_gt <- carbom_abund
 
-ig = make_network(carbom_abund_gt, type = "samples", distance = "bray", max.dist = 0.3)
-gt_network_plot <- plot_network(ig, carbom_abund_gt, color = "date", shape = "cohort", line_weight = 0.3, 
+ig = make_network(carbom_abund, type = "samples", distance = "bray", max.dist = 0.3)
+gt_network_plot <- plot_network(ig, carbom_abund, color = "date", shape = "cohort", line_weight = 0.3, 
                                 label = NULL, point_size = 1)+
   theme(legend.position = "bottom")+
   guides(shape = guide_legend(nrow = 1))+
@@ -517,8 +507,6 @@ dev.off()
 
 ##############################################
 
-##############################################
-
 # this is a small break in between the phyloseq analysis: 
 
 # DISPLAYING MOST ABUNDANT SPECIES TIME-TREND
@@ -535,9 +523,9 @@ physeq1
 keep_these_taxa <- as.data.frame(tax_table(physeq1))$species
 keep_these_taxa <- as.character(keep_these_taxa)
 
-#normalization and sum of same species all in one 
-z <- df %>%
-  filter(!cohort=="Mothers") %>%
+# normalization and sum of same species all in one 
+z <- df0 %>%
+  dplyr::filter(!cohort=="Mothers") %>%
   group_by(pig,date) %>%
   mutate(norm_value=value/sum(value)) %>% # lib size normalization
   group_by(cohort,pig,date,species) %>%
@@ -620,12 +608,361 @@ dev.off()
 
 # DIVERSITY 
 
+# here rarefaction is applied
+
+carbom <- phyloseq(OTU,TAX,samples)
+
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5","t6","t7","t8","t9")))
+
+carbom_rarefied = rarefy_even_depth(carbom, replace=TRUE, rngseed = 42)
+
+# Normalize number of reads in each sample using median sequencing depth.
+total = median(sample_sums(carbom_rarefied))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom_rarefied = transform_sample_counts(carbom_rarefied, standf)
+sample_variables(carbom_rarefied)
+
+gt_diversity_cohorts <- plot_richness(carbom_rarefied, measures=c("Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"), 
+                              x="cohort", color="date") +
+  guides(colour = guide_legend(nrow = 1))+
+  theme(legend.position="top")
+
+pdf("gt_phylo_diversity_cohorts.pdf")
+gt_diversity_cohorts
+dev.off()
+
+gt_diversity_samples <- plot_richness(carbom_rarefied, measures=c("Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"), 
+                              color="date", x="date") +
+  guides(colour = guide_legend(nrow = 1))+
+  theme(legend.position="top")
+
 pdf("gt_phylo_diversity.pdf")
-plot_richness(carbom, measures=c("Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"), x="cohort", color="date")
+gt_diversity_samples
 dev.off()
 
 
-########################################################################################
+######################
+
+my_comparisons <- list( c("t0", "t2"), c("t2", "t4"), c("t4", "t6"),
+                        c("t6", "t8"), c("t4", "t8"))
+
+Chao1 <- gt_diversity_samples$data %>%
+  filter(date=="t0"|date=="t2"|date=="t4"|date=="t6"|date=="t8"|date=="t10") %>%
+  filter(variable=="Chao1") %>%
+  ggplot(., aes(x=date, y=value, color=date)) + 
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(size=1)+
+  theme(legend.position="right")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "time point",
+       y = "Chao1") +
+  theme_minimal() +
+  stat_compare_means(comparisons = my_comparisons,
+                     label = "p.signif") # Add pairwise comparisons p-value
+
+Shannon <- gt_diversity_samples$data %>%
+  filter(date=="t0"|date=="t2"|date=="t4"|date=="t6"|date=="t8"|date=="t10") %>%
+  filter(variable=="Shannon") %>%
+  ggplot(., aes(x=date, y=value, color=date)) + 
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(size=1)+
+  theme(legend.position="right")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "time point",
+       y = "Shannon") +
+  theme_minimal() +
+  stat_compare_means(comparisons = my_comparisons,
+                     label = "p.signif") # Add pairwise comparisons p-value
+
+Simpson <- gt_diversity_samples$data %>%
+  filter(date=="t0"|date=="t2"|date=="t4"|date=="t6"|date=="t8"|date=="t10") %>%
+  filter(variable=="Simpson") %>%
+  ggplot(., aes(x=date, y=value, color=date)) + 
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(size=1)+
+  theme(legend.position="right")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "time point",
+       y = "Simpson") +
+  theme_minimal() +
+  stat_compare_means(comparisons = my_comparisons,
+                     label = "p.signif") # Add pairwise comparisons p-value
+
+tosave <- ggarrange(Chao1, 
+                    Shannon,
+                    Simpson,
+                    ncol = 3, 
+                    nrow=1,
+                    labels=c("A","B","C"), 
+                    common.legend = TRUE)
+
+ggsave(filename = "gt_phylo_diversity_boxplot.pdf", plot = tosave)
+
+
+######################################################################
+######################################################################
+
+
+# ordination - CO-HOUSING : 
+
+
+# Control 
+######################
+carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t0")))
+carbom <- subset_samples(carbom, (cohort %in% c("Control")))
+# NORMALIZATION 
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
+ctrlt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                          title="Control") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
+######################
+carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t8")))
+carbom <- subset_samples(carbom, (cohort %in% c("Control")))
+# NORMALIZATION 
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
+ctrlt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                          title="Control") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
+######################
+# DScour 
+######################
+carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t0")))
+carbom <- subset_samples(carbom, (cohort %in% c("DScour")))
+# NORMALIZATION 
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
+dscourt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                            title="D-Scour") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
+######################
+carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t8")))
+carbom <- subset_samples(carbom, (cohort %in% c("DScour")))
+# NORMALIZATION 
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
+dscourt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                            title="D-Scour") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
+######################
+# ColiGuard 
+######################
+carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t0")))
+carbom <- subset_samples(carbom, (cohort %in% c("ColiGuard")))
+# NORMALIZATION 
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
+coligt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                           title="ColiGuard") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
+######################
+carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t8")))
+carbom <- subset_samples(carbom, (cohort %in% c("ColiGuard")))
+# NORMALIZATION 
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
+coligt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                           title="ColiGuard") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
+######################
+# Neomycin
+######################
+carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t0")))
+carbom <- subset_samples(carbom, (cohort %in% c("Neomycin")))
+# NORMALIZATION 
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
+neot0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                         title="Neomycin") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
+######################
+carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t8")))
+carbom <- subset_samples(carbom, (cohort %in% c("Neomycin")))
+# NORMALIZATION 
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
+neot8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                         title="Neomycin") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
+######################
+# NeoD 
+######################
+carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t0")))
+carbom <- subset_samples(carbom, (cohort %in% c("NeoD")))
+# NORMALIZATION 
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
+neoDt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                          title="NeoD") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
+######################
+carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t8")))
+carbom <- subset_samples(carbom, (cohort %in% c("NeoD")))
+# NORMALIZATION 
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
+neoDt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                          title="NeoD") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
+######################
+# NeoC 
+######################
+carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t0")))
+carbom <- subset_samples(carbom, (cohort %in% c("NeoC")))
+# NORMALIZATION 
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
+neoCt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                          title="NeoC") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
+######################
+carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t8")))
+carbom <- subset_samples(carbom, (cohort %in% c("NeoC")))
+# NORMALIZATION 
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
+neoCt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
+                          title="NeoC") + 
+  geom_point(size=2) +
+  facet_wrap(~date, scales = c("free"))
+######################
+
+
+ctrl <- ggarrange(ctrlt0,ctrlt8)
+neo <- ggarrange(neot0,neot8)
+dscour <- ggarrange(dscourt0,dscourt8)
+colig <- ggarrange(coligt0,coligt8)
+neoD <- ggarrange(neoDt0,neoDt8)
+neoC <- ggarrange(neoCt0,neoCt8)
+
+pdf("gt_phylo_ordination_cohousing.pdf")
+ggarrange(
+  ctrl, neo, nrow=2, labels=c("A","B")
+)
+ggarrange(
+  dscour, colig, nrow=2, labels=c("A","B")
+)
+ggarrange(
+  neoD, neoC, nrow=2, labels=c("A","B")
+)
+dev.off()
+
+
+# function to test correlation with Dunn.test
+
+pen_function <- function(myd){
+  
+  x_axis1 <- dunnTest(myd$Axis.1~pen,data=myd,method = "bonferroni")
+  x_axis1 <- as.data.frame(x_axis1$res)
+  x_axis1$axis = "Axis.1"
+  
+  x_axis2 <- dunnTest(myd$Axis.2~pen,data=myd,method = "bonferroni")
+  x_axis2 <- as.data.frame(x_axis2$res)
+  x_axis2$axis = "Axis.2"
+  
+  x <- rbind(x_axis1,x_axis2)
+  
+}
+
+out1 <- pen_function(ctrlt0$data)
+out1$type = "ctrlt0"
+out2 <- pen_function(ctrlt8$data)
+out2$type = "ctrlt8"
+out3 <- pen_function(dscourt0$data)
+out3$type = "dscourt0"
+out4 <- pen_function(dscourt8$data)
+out4$type = "dscourt8"
+out5 <- pen_function(coligt0$data)
+out5$type = "coligt0"
+out6 <- pen_function(coligt8$data)
+out6$type = "coligt8"
+out7 <- pen_function(neot0$data)
+out7$type = "neot0"
+out8 <- pen_function(neot8$data)
+out8$type = "neot8"
+out9 <- pen_function(neoDt0$data)
+out9$type = "neoDt0"
+out10 <- pen_function(neoDt8$data)
+out10$type = "neoDt8"
+out11 <- pen_function(neoCt0$data)
+out11$type = "neoCt0"
+out12 <- pen_function(neoCt8$data)
+out12$type = "neoCt8"
+
+
+pen_stats <- rbind(out1,out2,out3,out4,out5,out6,
+                   out7,out8,out9,out10,out11,out12)
+pen_stats$test = "Dunn.test"
+pen_stats$correction = "Bonferroni"
+
+
+addWorksheet(wb, "cohousing_gtdb")
+writeData(wb, sheet = "cohousing_gtdb", pen_stats, rowNames = FALSE)
+
+
+
+######################################################################
+######################################################################
 
 
 # ORDINATION  - effect of weight 
@@ -718,52 +1055,54 @@ dev.off()
 
 
 
+# function to test correlation with Dunn.test
 
-# # function to test correlation with Dunn.test
-# myf_weight <- function(df) {
-#   df1 <- df
-#   weight_category <- df$weight_category
-#   birth_day <- df$birth_day
-#   x <- dunnTest(Axis.1~as.factor(weight_category),data=df1,method = "bonferroni")
-#   x <- as.data.frame(x$res)
-#   x$axis = "Axis.1"
-#   y <- dunnTest(Axis.2~as.factor(weight_category),data=df1,method = "bonferroni")
-#   y <- as.data.frame(y$res)
-#   y$axis = "Axis.2"
-#   xy <- rbind(x,y)
-#   xy$comparison <- paste0(weight_category[1],"_",birth_day[1])
-#   return(xy)
-# }
+weight_function <- function(myd){
+  
+  x_axis1 <- dunnTest(myd$Axis.1~weight_category,data=myd,method = "bonferroni")
+  x_axis1 <- as.data.frame(x_axis1$res)
+  x_axis1$axis = "Axis.1"
+  
+  x_axis2 <- dunnTest(myd$Axis.2~weight_category,data=myd,method = "bonferroni")
+  x_axis2 <- as.data.frame(x_axis2$res)
+  x_axis2$axis = "Axis.2"
+  
+  x <- rbind(x_axis1,x_axis2)
+  
+}
 
-
-
-weight_stats <- rbind(myf_weight(p_t0$data),
-                      myf_weight(p_t2$data),
-                      myf_weight(p_t4$data),
-                      myf_weight(p_t6$data),
-                      myf_weight(p_t8$data),
-                      myf_weight(p_t10$data))
-
-
-
-sink(file = "gt_phylo_ordination_weight.txt", 
-     append = FALSE, type = c("output"))
-paste0("Effect of weight on PCA - origin of data: phyloseq ordination data ")
-paste0("PCoA  ------ Dunn (1964) Kruskal-Wallis multiple comparison
-       p-values adjusted with the Bonferroni method.")
-weight_stats
-sink()
+out1 <- weight_function(p_t0$data)
+out1$type = "t0"
+out2 <- weight_function(p_t2$data)
+out2$type = "t2"
+out3 <- weight_function(p_t4$data)
+out3$type = "t4"
+out4 <- weight_function(p_t6$data)
+out4$type = "t6"
+out5 <- weight_function(p_t8$data)
+out5$type = "t8"
+out6 <- weight_function(p_t10$data)
+out6$type = "t10"
 
 
-########################################################################################
+weight_stats <- rbind(out1,out2,out3,out4,out5,out6)
 
-# ORDINATION - effect of age 
+weight_stats$test = "Dunn.test"
+weight_stats$correction = "Bonferroni"
 
 
-######################
+addWorksheet(wb, "weight_gtdb")
+writeData(wb, sheet = "weight_gtdb", weight_stats, rowNames = FALSE)
 
-# age effect - all
 
+
+######################################################################
+######################################################################
+
+
+# ordination - AGE (birth_day) : 
+
+# age effect - all piglets 
 
 # t0
 carbom <- phyloseq(OTU,TAX,samples)
@@ -773,11 +1112,15 @@ standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
-p_t0 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day", shape ="breed") + 
+a_t0 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") + 
   geom_point(size=2)  +
   theme_bw() +
   theme(legend.position = "none") +
-  ggtitle(paste0(sample_data(carbom)$date)[1])
+  ggtitle(paste0(sample_data(carbom)$date)[1])+
+  facet_wrap(~breed)
+dummy_all <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") + 
+  geom_point(size=2)  +
+  theme_bw() 
 # t2
 carbom <- phyloseq(OTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t2")))
@@ -786,11 +1129,12 @@ standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
-p_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day", shape ="breed") + 
+a_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") + 
   geom_point(size=2)  +
   theme_bw() +
   theme(legend.position = "none") +
-  ggtitle(paste0(sample_data(carbom)$date)[1])
+  ggtitle(paste0(sample_data(carbom)$date)[1])+
+  facet_wrap(~breed)
 # t4
 carbom <- phyloseq(OTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t4")))
@@ -799,111 +1143,78 @@ standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
-p_t4 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day", shape ="breed") + 
+a_t4 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") + 
   geom_point(size=2)  +
   theme_bw() +
   theme(legend.position = "none") +
-  ggtitle(paste0(sample_data(carbom)$date)[1])
+  ggtitle(paste0(sample_data(carbom)$date)[1])+
+  facet_wrap(~breed)
 
 
 ###########
 
-dummy_all <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day", shape ="breed")
 leg_all <- get_legend(dummy_all)
-all_age_and_breed <- ggarrange(p_t0,p_t2,p_t4,leg_all)
+all_age_and_breed <- ggarrange(a_t0,a_t2,a_t4,leg_all)
 
-
-# plotted below togetehr with subset 
-
-
-sink(file = "gt_phylo_ordination_age.txt",
-     append = FALSE, type = c("output"))
-paste0("Effect of age on PCA - ALL birth_day categories - origin of data: phyloseq ordination data ")
-paste0("PC1 and PC2 respectively ------ Dunn (1964) Kruskal-Wallis multiple comparison
-       p-values adjusted with the Bonferroni method.")
-paste0("t0")
-dunnTest(Axis.1~birth_day,data=as.data.frame(p_t0$data),method = "bonferroni")
-dunnTest(Axis.2~birth_day,data=as.data.frame(p_t0$data),method = "bonferroni")
-paste0("t2")
-dunnTest(Axis.1~birth_day,data=as.data.frame(p_t2$data),method = "bonferroni")
-dunnTest(Axis.2~birth_day,data=as.data.frame(p_t2$data),method = "bonferroni")
-paste0("t4")
-dunnTest(Axis.1~birth_day,data=as.data.frame(p_t4$data),method = "bonferroni")
-dunnTest(Axis.2~birth_day,data=as.data.frame(p_t4$data),method = "bonferroni")
-sink()
 
 ######################
-
 
 # age effect - subset
 
-
 # t0
 carbom <- phyloseq(OTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t0")))
-carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-06","2017-01-08")))
+carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-08","2017-01-11")))
 total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
-p_t0 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day", shape ="breed") + 
+s_t0 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") + 
   geom_point(size=2)  +
   theme_bw() +
   theme(legend.position = "none") +
-  ggtitle(paste0(sample_data(carbom)$date)[1])
+  ggtitle(paste0(sample_data(carbom)$date)[1])+
+  facet_wrap(~breed)
+dummy_subset <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") + 
+  geom_point(size=2)  +
+  theme_bw() 
 # t2
 carbom <- phyloseq(OTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t2")))
-carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-06","2017-01-08")))
+carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-08","2017-01-11")))
 total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
-p_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day", shape ="breed") + 
+s_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") + 
   geom_point(size=2)  +
   theme_bw() +
   theme(legend.position = "none") +
-  ggtitle(paste0(sample_data(carbom)$date)[1])
+  ggtitle(paste0(sample_data(carbom)$date)[1])+
+  facet_wrap(~breed)
 # t4
 carbom <- phyloseq(OTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t4")))
-carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-06","2017-01-08")))
+carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-08","2017-01-11")))
 total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
-p_t4 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day", shape ="breed") + 
+s_t4 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") + 
   geom_point(size=2)  +
   theme_bw() +
   theme(legend.position = "none") +
-  ggtitle(paste0(sample_data(carbom)$date)[1])
+  ggtitle(paste0(sample_data(carbom)$date)[1])+
+  facet_wrap(~breed)
 
 
 ###########
 
-dummy_subset <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day", shape ="breed")
 leg_subset <- get_legend(dummy_subset)
-all_subset <- ggarrange(p_t0,p_t2,p_t4,leg_subset)
-
-
-sink(file = "gt_phylo_ordination_age.txt", 
-     append = TRUE, type = c("output"))
-paste0("Effect of age on PCA - two birth_day categories - origin of data: phyloseq ordination data ")
-paste0("PC1 and PC2 respectively ------ Dunn (1964) Kruskal-Wallis multiple comparison
-       p-values adjusted with the Bonferroni method.")
-paste0("t0")
-dunnTest(Axis.1~birth_day,data=as.data.frame(p_t0$data),method = "bonferroni")
-dunnTest(Axis.2~birth_day,data=as.data.frame(p_t0$data),method = "bonferroni")
-paste0("t2")
-dunnTest(Axis.1~birth_day,data=as.data.frame(p_t2$data),method = "bonferroni")
-dunnTest(Axis.2~birth_day,data=as.data.frame(p_t2$data),method = "bonferroni")
-paste0("t4")
-dunnTest(Axis.1~birth_day,data=as.data.frame(p_t4$data),method = "bonferroni")
-dunnTest(Axis.2~birth_day,data=as.data.frame(p_t4$data),method = "bonferroni")
-sink()
+all_subset <- ggarrange(s_t0,s_t2,s_t4,leg_subset)
 
 ###########
 
@@ -912,14 +1223,61 @@ all_age_and_breed
 all_subset
 dev.off()
 
+###########
+
+# stats
+
+# function to test correlation with Dunn.test
+
+age_function <- function(myd){
+    
+    x_axis1 <- dunnTest(myd$Axis.1~birth_day,data=myd,method = "bonferroni")
+    x_axis1 <- as.data.frame(x_axis1$res)
+    x_axis1$axis = "Axis.1"
+    
+    x_axis2 <- dunnTest(myd$Axis.2~birth_day,data=myd,method = "bonferroni")
+    x_axis2 <- as.data.frame(x_axis2$res)
+    x_axis2$axis = "Axis.2"
+    
+    x <- rbind(x_axis1,x_axis2) 
+    x$group <- as.character(a_t2$data$date[1])
+    
+    x <- as.data.frame(x)
+}
+
+out1 <- age_function(a_t0$data)
+out1$group_analyzed = "all"
+out2 <- age_function(a_t2$data)
+out2$group_analyzed = "all"
+out3 <- age_function(a_t4$data)
+out3$group_analyzed = "all"
+out4 <- age_function(s_t0$data)
+out4$group_analyzed = "subset"
+out5 <- age_function(s_t2$data)
+out5$group_analyzed = "subset"
+out6 <- age_function(s_t4$data)
+out6$group_analyzed = "subset"
 
 
-########################################################################################
+age_stats <- rbind(out1,out2,out3,out4,out5,out6)
+
+age_stats$test = "Dunn.test"
+age_stats$correction = "Bonferroni"
+
+
+addWorksheet(wb, "age_gtdb")
+writeData(wb, sheet = "age_gtdb", age_stats, rowNames = FALSE)
 
 
 
-# BREED effect - all
+######################################################################
+######################################################################
 
+
+# ordination - BREED : 
+
+
+#######
 
 # t0
 carbom <- phyloseq(OTU,TAX,samples)
@@ -929,11 +1287,13 @@ standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
-p_t0 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed", shape ="breed") + 
+p_t0 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") + 
   geom_point(size=2)  +
   theme_bw() +
   theme(legend.position = "none") +
-  ggtitle(paste0(sample_data(carbom)$date)[1])
+  ggtitle(paste0(sample_data(carbom)$date)[1])+
+  facet_wrap(~birth_day)
+dummy_all <- plot_ordination(carbom, carbom.ord, type="samples", color="breed")
 # t2
 carbom <- phyloseq(OTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t2")))
@@ -942,11 +1302,12 @@ standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
-p_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed", shape ="breed") + 
+p_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") + 
   geom_point(size=2)  +
   theme_bw() +
   theme(legend.position = "none") +
-  ggtitle(paste0(sample_data(carbom)$date)[1])
+  ggtitle(paste0(sample_data(carbom)$date)[1])+
+  facet_wrap(~birth_day)
 # t4
 carbom <- phyloseq(OTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t4")))
@@ -955,286 +1316,157 @@ standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
-p_t4 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed", shape ="breed") + 
+p_t4 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") + 
   geom_point(size=2)  +
   theme_bw() +
   theme(legend.position = "none") +
-  ggtitle(paste0(sample_data(carbom)$date)[1])
+  ggtitle(paste0(sample_data(carbom)$date)[1])+
+  facet_wrap(~birth_day)
+
+###########
+
+leg_all <- get_legend(dummy_all)
+all_breed <- ggarrange(p_t0,p_t2,p_t4,leg_all)
+
+######################
+
+# age effect - subset
+
+# t0
+carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t0")))
+carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-10")))
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
+s_t0 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") + 
+  geom_point(size=2)  +
+  theme_bw() +
+  theme(legend.position = "none") +
+  ggtitle(paste0(sample_data(carbom)$date)[1])+
+  facet_wrap(~birth_day)
+dummy_subset <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") + 
+  geom_point(size=2)  +
+  theme_bw() 
+# t2
+carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t2")))
+carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-10")))
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
+s_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") + 
+  geom_point(size=2)  +
+  theme_bw() +
+  theme(legend.position = "none") +
+  ggtitle(paste0(sample_data(carbom)$date)[1])+
+  facet_wrap(~birth_day)
+# t4
+carbom <- phyloseq(OTU,TAX,samples)
+carbom <- subset_samples(carbom, (date %in% c("t4")))
+carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-10")))
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+carbom.ord <- ordinate(carbom, "PCoA", "bray")
+s_t4 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") + 
+  geom_point(size=2)  +
+  theme_bw() +
+  theme(legend.position = "none") +
+  ggtitle(paste0(sample_data(carbom)$date)[1])+
+  facet_wrap(~birth_day)
 
 
 ###########
 
-dummy_all <- plot_ordination(carbom, carbom.ord, type="samples", color="breed", shape ="breed")
-leg_all <- get_legend(dummy_all)
-all_breed <- ggarrange(p_t0,p_t2,p_t4,leg_all)
+leg_subset <- get_legend(dummy_subset)
+breed_subset <- ggarrange(s_t0,s_t2,s_t4,leg_subset)
 
-
-sink(file = "gt_phylo_ordination_breed.txt", 
-     append = FALSE, type = c("output"))
-paste0("Effect of breed on PCA - ALL breed categories - origin of data: phyloseq ordination data ")
-paste0("PC1 and PC2 respectively ------ Dunn (1964) Kruskal-Wallis multiple comparison
-       p-values adjusted with the Bonferroni method.")
-paste0("t0")
-dunnTest(Axis.1~breed,data=as.data.frame(p_t0$data),method = "bonferroni")
-dunnTest(Axis.2~breed,data=as.data.frame(p_t0$data),method = "bonferroni")
-paste0("t2")
-dunnTest(Axis.1~breed,data=as.data.frame(p_t2$data),method = "bonferroni")
-dunnTest(Axis.2~breed,data=as.data.frame(p_t2$data),method = "bonferroni")
-paste0("t4")
-dunnTest(Axis.1~breed,data=as.data.frame(p_t4$data),method = "bonferroni")
-dunnTest(Axis.2~breed,data=as.data.frame(p_t4$data),method = "bonferroni")
-sink()
-
-
+###########
 
 pdf("gt_phylo_ordination_breed.pdf")
 all_breed
+breed_subset
 dev.off()
 
 
 
-########################################################################################
+# function to test correlation with Dunn.test
+
+breed_function <- function(myd){
+  
+  x_axis1 <- dunnTest(myd$Axis.1~breed,data=myd,method = "bonferroni")
+  x_axis1 <- as.data.frame(x_axis1$res)
+  x_axis1$axis = "Axis.1"
+  
+  x_axis2 <- dunnTest(myd$Axis.2~breed,data=myd,method = "bonferroni")
+  x_axis2 <- as.data.frame(x_axis2$res)
+  x_axis2$axis = "Axis.2"
+  
+  x <- rbind(x_axis1,x_axis2)
+  
+}
+
+out1 <- breed_function(p_t0$data)
+out1$group = "t0"
+out1$group_analyzed = "all"
+out2 <- breed_function(p_t2$data)
+out2$group = "t2"
+out2$group_analyzed = "all"
+out3 <- breed_function(p_t4$data)
+out3$group = "t4"
+out3$group_analyzed = "all"
+out4 <- breed_function(s_t0$data)
+out4$group = "t0"
+out4$group_analyzed = "subset"
+out5 <- breed_function(s_t2$data)
+out5$group = "t2"
+out5$group_analyzed = "subset"
+out6 <- breed_function(s_t4$data)
+out6$group = "t4"
+out6$group_analyzed = "subset"
 
 
-# CO-HOUSING community structure test: 
+breed_stats <- rbind(out1,out2,out3,out4,out5,out6)
+
+breed_stats$test = "Dunn.test"
+breed_stats$correction = "Bonferroni"
 
 
-
-# Control 
-######################
-carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (date %in% c("t0")))
-carbom <- subset_samples(carbom, (cohort %in% c("Control")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "PCoA", "bray")
-ctrlt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
-                          title="Control") + 
-  geom_point(size=2) +
-  ggtitle(paste0(sample_data(carbom)$date[1],"_",sample_data(carbom)$cohort[1]))
-######################
-carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (date %in% c("t8")))
-carbom <- subset_samples(carbom, (cohort %in% c("Control")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "PCoA", "bray")
-ctrlt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
-                          title="Control") + 
-  geom_point(size=2) +
-  ggtitle(paste0(sample_data(carbom)$date[1],"_",sample_data(carbom)$cohort[1]))
-######################
-# DScour 
-######################
-carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (date %in% c("t0")))
-carbom <- subset_samples(carbom, (cohort %in% c("DScour")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "PCoA", "bray")
-dscourt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
-                            title="D-Scour") + 
-  geom_point(size=2) +
-  ggtitle(paste0(sample_data(carbom)$date[1],"_",sample_data(carbom)$cohort[1]))
-######################
-carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (date %in% c("t8")))
-carbom <- subset_samples(carbom, (cohort %in% c("DScour")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "PCoA", "bray")
-dscourt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
-                            title="D-Scour") + 
-  geom_point(size=2) +
-  ggtitle(paste0(sample_data(carbom)$date[1],"_",sample_data(carbom)$cohort[1]))
-######################
-# ColiGuard 
-######################
-carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (date %in% c("t0")))
-carbom <- subset_samples(carbom, (cohort %in% c("ColiGuard")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "PCoA", "bray")
-coligt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
-                           title="ColiGuard") + 
-  geom_point(size=2) +
-  ggtitle(paste0(sample_data(carbom)$date[1],"_",sample_data(carbom)$cohort[1]))
-######################
-carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (date %in% c("t8")))
-carbom <- subset_samples(carbom, (cohort %in% c("ColiGuard")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "PCoA", "bray")
-coligt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
-                           title="ColiGuard") + 
-  geom_point(size=2) +
-  ggtitle(paste0(sample_data(carbom)$date[1],"_",sample_data(carbom)$cohort[1]))
-######################
-# Neomycin
-######################
-carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (date %in% c("t0")))
-carbom <- subset_samples(carbom, (cohort %in% c("Neomycin")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "PCoA", "bray")
-neot0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
-                         title="Neomycin") + 
-  geom_point(size=2) +
-  ggtitle(paste0(sample_data(carbom)$date[1],"_",sample_data(carbom)$cohort[1]))
-######################
-carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (date %in% c("t8")))
-carbom <- subset_samples(carbom, (cohort %in% c("Neomycin")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "PCoA", "bray")
-neot8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
-                         title="Neomycin") + 
-  geom_point(size=2) +
-  ggtitle(paste0(sample_data(carbom)$date[1],"_",sample_data(carbom)$cohort[1]))
-######################
-# NeoD 
-######################
-carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (date %in% c("t0")))
-carbom <- subset_samples(carbom, (cohort %in% c("NeoD")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "PCoA", "bray")
-neoDt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
-                          title="NeoD") + 
-  geom_point(size=2) +
-  ggtitle(paste0(sample_data(carbom)$date[1],"_",sample_data(carbom)$cohort[1]))
-######################
-carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (date %in% c("t8")))
-carbom <- subset_samples(carbom, (cohort %in% c("NeoD")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "PCoA", "bray")
-neoDt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
-                          title="NeoD") + 
-  geom_point(size=2) +
-  ggtitle(paste0(sample_data(carbom)$date[1],"_",sample_data(carbom)$cohort[1]))
-######################
-# NeoC 
-######################
-carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (date %in% c("t0")))
-carbom <- subset_samples(carbom, (cohort %in% c("NeoC")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "PCoA", "bray")
-neoCt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
-                          title="NeoC") + 
-  geom_point(size=2) +
-  ggtitle(paste0(sample_data(carbom)$date[1],"_",sample_data(carbom)$cohort[1]))
-######################
-carbom <- phyloseq(OTU,TAX,samples)
-carbom <- subset_samples(carbom, (date %in% c("t8")))
-carbom <- subset_samples(carbom, (cohort %in% c("NeoC")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
-carbom.ord <- ordinate(carbom, "PCoA", "bray")
-neoCt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
-                          title="NeoC") + 
-  geom_point(size=2) +
-  ggtitle(paste0(sample_data(carbom)$date[1],"_",sample_data(carbom)$cohort[1]))
-######################
+addWorksheet(wb, "breed_gtdb")
+writeData(wb, sheet = "breed_gtdb", breed_stats, rowNames = FALSE)
 
 
-ctrl <- ggarrange(ctrlt0,ctrlt8)
-neo <- ggarrange(neot0,neot8)
-dscour <- ggarrange(dscourt0,dscourt8)
-colig <- ggarrange(coligt0,coligt8)
-neoD <- ggarrange(neoDt0,neoDt8)
-neoC <- ggarrange(neoCt0,neoCt8)
+age_stats_sign <- age_stats %>%
+  dplyr::select(P.adj,group_analyzed,group,Comparison) %>%
+  filter(P.adj<0.05) %>%
+  arrange(P.adj)
+  
+breed_stats_sign <- breed_stats %>%
+  dplyr::select(P.adj,group_analyzed,group,Comparison) %>%
+  filter(P.adj<0.05) %>%
+  arrange(P.adj)
 
-pdf("gt_phylo_ordination_cohousing.pdf")
-ggarrange(
-  ctrl, neo, nrow=2, labels=c("A","B")
-)
-ggarrange(
-  dscour, colig, nrow=2, labels=c("A","B")
-)
-ggarrange(
-  neoD, neoC, nrow=2, labels=c("A","B")
-)
-dev.off()
-
-sink(file = "gt_phylo_ordination_cohousing.txt", 
-     append = FALSE, type = c("output"))
-paste0("Effect of cohousing on PCA - origin of data: phyloseq ordination data ")
-paste0("PC1 and PC2 respectively ------ Dunn (1964) Kruskal-Wallis multiple comparison
-       p-values adjusted with the Bonferroni method.")
-paste0("Control")
-dunnTest(Axis.1~pen,data=as.data.frame(ctrlt0$data),method = "bonferroni")
-dunnTest(Axis.2~pen,data=as.data.frame(ctrlt8$data),method = "bonferroni")
-paste0("DScour")
-dunnTest(Axis.1~pen,data=as.data.frame(dscourt0$data),method = "bonferroni")
-dunnTest(Axis.2~pen,data=as.data.frame(dscourt8$data),method = "bonferroni")
-paste0("ColiGuard")
-dunnTest(Axis.1~pen,data=as.data.frame(coligt0$data),method = "bonferroni")
-dunnTest(Axis.2~pen,data=as.data.frame(coligt8$data),method = "bonferroni")
-paste0("Neomycin")
-dunnTest(Axis.1~pen,data=as.data.frame(neot0$data),method = "bonferroni")
-dunnTest(Axis.2~pen,data=as.data.frame(neot8$data),method = "bonferroni")
-paste0("NeoD")
-dunnTest(Axis.1~pen,data=as.data.frame(neoDt0$data),method = "bonferroni")
-dunnTest(Axis.2~pen,data=as.data.frame(neodt8$data),method = "bonferroni")
-paste0("NeoC")
-dunnTest(Axis.1~pen,data=as.data.frame(neoCt0$data),method = "bonferroni")
-dunnTest(Axis.2~pen,data=as.data.frame(neoCt8$data),method = "bonferroni")
+sink("breed_age_significant.txt", type = "output", append = FALSE)
+start_message <- " ########################## AGE - significant ########################## "
+start_message
+age_stats_sign
+start_message <- " ########################## BREED - significant ########################## "
+start_message
+breed_stats_sign
 sink()
 
+############################################################################################################
+############################################################################################################
+############################################################################################################
 
-########################################################################################
-########################################################################################
-########################################################################################
-########################################################################################
+# Presence of PROBIOTIC species in dataset - plotting only those 
 
-############################################################################################################
-############################################################################################################
-############################################################################################################
 
 carbom_ProbioticCheck <- phyloseq(OTU,TAX,samples)
 
@@ -1290,7 +1522,7 @@ dev.off()
 ######################################################################
 
 
-# probiotic strains check without phyloseq (so  lib size nornalization done before plotting)
+# PROBIOTIC species check without phyloseq (so the lib size nornalization is done before plotting)
 
 
 # lib size normalisation
@@ -1299,7 +1531,7 @@ dev.off()
 # STEP 1.
 
 # normalization for library size 
-df1 <- df %>%
+df1 <- df0 %>%
   dplyr::group_by(pig,date) %>% # a pig sample is: pig+date
   dplyr::mutate(norm_value=value/sum(value))    
 head(df1)
@@ -1330,7 +1562,7 @@ df2$cohort  = factor(df2$cohort, levels=c("Control",
                                           "NeoC"))
 
 multiple_DFs <- split( df2 , f = df2$species )
-getwd()
+
 
 
 pdf("gt_ProbioticCheck.pdf")
@@ -1358,6 +1590,11 @@ dev.off()
 
 
 ############################################################################################################
+############################################################################################################
+
+# save stats in workbook
+saveWorkbook(wb, paste0(basedir,"stats.xlsx"), overwrite=TRUE)
+
 ############################################################################################################
 ############################################################################################################
 
