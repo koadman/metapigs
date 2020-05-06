@@ -224,29 +224,26 @@ NROW(df0)
 
 ###########################################################################################
 
-# create workbook to add stats 
-
-wb <- createWorkbook()
-
-###########################################################################################
-
 # TAXA
 
 
 taxa_mat <- df0 %>%
   dplyr::select(secondary_cluster,species,genus,family,order,class,phylum,domain) %>%
   group_by(secondary_cluster) %>%
-  slice(1)
-
-NROW(taxa_mat)
-NROW(unique(taxa_mat$secondary_cluster))
+  slice(1) %>%
+  filter(!secondary_cluster=="no_cluster")
 
 taxa_mat_df <- as.data.frame(taxa_mat)
+
+NROW(taxa_mat_df)
+NROW(unique(taxa_mat_df$secondary_cluster))
+
 # to matrix 
 taxa_mat <- taxa_mat_df
 rownames(taxa_mat) <- taxa_mat[,1]
 taxa_mat[,1] <- NULL
 taxa_mat <- as.matrix(taxa_mat)
+
 # ready 
 
 NROW(unique(rownames(taxa_mat)))
@@ -298,6 +295,7 @@ gOTU_mat <- as.data.frame(df3)
 rownames(gOTU_mat) <- gOTU_mat[,1]
 gOTU_mat[,1] <- NULL
 gOTU_mat <- as.matrix(gOTU_mat)
+
 # ready 
 
 NROW(unique(rownames(gOTU_mat)))
@@ -359,28 +357,10 @@ rownames(sample_df) <- sample_df[,1]
 
 # create phyloseq object
 
-OTU = otu_table(gOTU_mat, taxa_are_rows = TRUE)
+gOTU = otu_table(gOTU_mat, taxa_are_rows = TRUE)
 TAX = tax_table(taxa_mat)
 samples = sample_data(sample_df)
 
-carbom_dRep <- phyloseq(OTU,TAX,samples)
-
-############################################################################################################
-
-# SUBSETTING phyloseq obejct
-
-carbom_dRep <- subset_samples(carbom_dRep, (date %in% c("t0","t1","t2","t3","t4","t5", "t6","t7","t8","t9")))
-
-
-###########################################################################################
-
-# NORMALIZATION 
-
-# Normalize number of reads in each sample using median sequencing depth.
-total = median(sample_sums(carbom_dRep))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_dRep = transform_sample_counts(carbom_dRep, standf)
-sample_variables(carbom_dRep)
 
 ############################################################################################################
 
@@ -389,36 +369,56 @@ sample_variables(carbom_dRep)
 ######################
 
 
-# keep only very abundant OTUs
-# taking gOTUs that represent at least 3% of the sample and present in at least 40 samples 
-carbom_dRep_abund <- filter_taxa(carbom_dRep, function(x) sum(x > total*0.03) > 40, TRUE)
-
-
 # ORDINATION 
 
+# NORMALIZATION BY MEDIAN SEQUENCING DEPTH
+carbom <- phyloseq(gOTU,TAX,samples)
+# SUBSETTING phyloseq obejct
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5","t6","t7","t8","t9")))
+# Normalize number of reads in each sample using median sequencing depth.
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+# keep only very abundant OTUs
+# taking gOTUs that represent at least 3% of the sample and present in at least 40 samples 
+carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.03) > 40, TRUE)
 
-carbom_dRep_abund.ord <- ordinate(carbom_dRep_abund, "NMDS", "bray")
+carbom_abund.ord <- ordinate(carbom_abund, "NMDS", "bray")
 
-dRep_ordination_plot <- plot_ordination(carbom_dRep_abund, carbom_dRep_abund.ord, type="samples", color="date") + 
+dRep_ordination_plot <- plot_ordination(carbom_abund, carbom_abund.ord, type="samples", color="date") + 
   geom_point(size=1) +
-  #facet_wrap(~cohort) +
-  theme_bw() +
+  theme_bw()+
   theme(axis.title = element_text(size=9),
         axis.text = element_text(size=7))+
-  guides(colour = guide_legend(nrow = 1))
+  guides(colour = guide_legend(nrow = 1))+
+  theme(legend.position="top")
 
 pdf("dRep_phylo_ordination.pdf")
-dRep_ordination_plot+
-  facet_wrap(~cohort)+
-  theme(legend.position="top")
+dRep_ordination_plot +
+  facet_wrap(~cohort)
 dev.off()
 
-######################
+
+########################################################################################
 
 # NETWORK ANALYSIS 
-  
-ig = make_network(carbom_dRep_abund, type = "samples", distance = "bray", max.dist = 0.3)
-dRep_network_plot <- plot_network(ig, carbom_dRep_abund, color = "date", shape = "cohort", line_weight = 0.3, 
+
+# NORMALIZATION BY MEDIAN SEQUENCING DEPTH
+carbom <- phyloseq(gOTU,TAX,samples)
+# SUBSETTING phyloseq obejct
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5","t6","t7","t8","t9")))
+# Normalize number of reads in each sample using median sequencing depth.
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+# keep only very abundant OTUs
+# taking gOTUs that represent at least 3% of the sample and present in at least 40 samples 
+carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.03) > 40, TRUE)
+
+ig = make_network(carbom_abund, type = "samples", distance = "bray", max.dist = 0.35)
+dRep_network_plot <- plot_network(ig, carbom_abund, color = "date", shape = "cohort", line_weight = 0.3, 
                                 label = NULL, point_size = 1)+
   theme(legend.position = "bottom")+
   guides(shape = guide_legend(nrow = 1))+
@@ -429,43 +429,193 @@ dRep_network_plot
 dev.off()
 
 
-######################
+########################################################################################
 
-# HEATMAP - with only most abundant OTUs
 
-sampleOrder = sort(sample_names(carbom_dRep_abund))
-# method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
+# HEATMAP
+
+# NORMALIZATION BY RAREFACTION
+carbom <- phyloseq(gOTU,TAX,samples)
+# SUBSETTING phyloseq obejct
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5", "t6","t7","t8","t9")))
+
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+
+# keep only very abundant OTUs: more than 4 counts per sample, in at least 1/4 samples 
+carbom_abund <- filter_taxa(carbom, 
+                            function(x) 
+                              sum(x > 4) > (NROW(sample_data(carbom))/4), 
+                            TRUE)
+
+random_tree = rtree(ntaxa(carbom_abund), rooted=TRUE, tip.label=taxa_names(carbom_abund))
+physeq1 = merge_phyloseq(carbom_abund,random_tree)
+
 
 # HEATMAP time - genus, family, order, etc ...
 pdf("dRep_phylo_heatmap.pdf")
-plot_heatmap(carbom_dRep_abund, method = "MDS", distance="unifrac",weighted=TRUE, 
-             taxa.label = "gOTU_2", taxa.order = "species", sample.order = sampleOrder,
-             trans=NULL, low="blue", high="red", na.value="blue") +
-  ggtitle(label = "Microbe Diversity by secondary cluster") 
-plot_heatmap(carbom_dRep_abund, method = "MDS", distance="unifrac",weighted=TRUE, 
-             taxa.label = "species", taxa.order = "species", sample.order = sampleOrder,
-             trans=NULL, low="blue", high="red", na.value="blue") +
-  ggtitle(label = "Microbe Diversity by secondary cluster (Species)")
-plot_heatmap(carbom_dRep_abund, method = "MDS", distance="unifrac",weighted=TRUE, 
-             taxa.label = "genus", taxa.order = "species", sample.order = sampleOrder,
-             trans=NULL, low="blue", high="red", na.value="blue") +
-  ggtitle(label = "Microbe Diversity by secondary cluster (Genus)")
-plot_heatmap(carbom_dRep_abund, method = "MDS", distance="unifrac",weighted=TRUE, 
-             taxa.label = "family", taxa.order = "species", sample.order = sampleOrder,
-             trans=NULL, low="blue", high="red", na.value="blue") +
-  ggtitle(label = "Microbe Diversity by secondary cluster (Family)")
-plot_heatmap(carbom_dRep_abund, method = "MDS", distance="unifrac",weighted=TRUE, 
-             taxa.label = "order", taxa.order = "species", sample.order = sampleOrder,
-             trans=NULL, low="blue", high="red", na.value="blue") +
-  ggtitle(label = "Microbe Diversity by secondary cluster (Order)")
-plot_heatmap(carbom_dRep_abund, method = "MDS", distance="unifrac",weighted=TRUE,
-             taxa.label = "class", taxa.order = "species", sample.order = sampleOrder,
-             trans=NULL, low="blue", high="red", na.value="blue") +
-  ggtitle(label = "Microbe Diversity by secondary cluster (Class)")
-plot_heatmap(carbom_dRep_abund, method = "MDS", distance="unifrac",weighted=TRUE,
-             taxa.label = "phylum", taxa.order = "species", sample.order = sampleOrder,
-             trans=NULL, low="blue", high="red", na.value="blue") +
-  ggtitle(label = "Microbe Diversity by secondary cluster (Phylum)")
+plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
+             taxa.label = "species", taxa.order="species",
+             sample.order = "date", trans=identity_trans(),
+             low="blue", high="red", na.value="white") +
+  ggtitle(label = "Microbe Species Diversity") 
+plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
+             taxa.label = "genus", taxa.order="species",
+             sample.order = "date", trans=identity_trans(),
+             low="blue", high="red", na.value="white") +
+  ggtitle(label = "Microbe Genus Diversity") 
+plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
+             taxa.label = "family", taxa.order="species",
+             sample.order = "date", trans=identity_trans(),
+             low="blue", high="red", na.value="white") +
+  ggtitle(label = "Microbe Family Diversity") 
+plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
+             taxa.label = "order", taxa.order="species",
+             sample.order = "date", trans=identity_trans(),
+             low="blue", high="red", na.value="white") +
+  ggtitle(label = "Microbe Order Diversity") 
+plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
+             taxa.label = "class", taxa.order="species",
+             sample.order = "date", trans=identity_trans(),
+             low="blue", high="red", na.value="white") +
+  ggtitle(label = "Microbe Class Diversity") 
+plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
+             taxa.label = "phylum", taxa.order="species",
+             sample.order = "date", trans=identity_trans(),
+             low="blue", high="red", na.value="white") +
+  ggtitle(label = "Microbe Phylum Diversity") 
+dev.off()
+
+
+# HEATMAP time - cohorts
+pdf("dRep_phylo_heatmap_cohorts.pdf")
+plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
+             taxa.label = "species", taxa.order="species",
+             sample.order = "date", trans=identity_trans(),
+             low="blue", high="red", na.value="white") +
+  facet_grid(~ cohort, switch = "x", scales = "free_x", space = "free_x")+
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(label = "Microbe Species Diversity")
+dev.off()
+
+
+##############################################
+
+# this is a small break in between the phyloseq analysis: 
+
+# DISPLAYING MOST ABUNDANT SPECIES TIME-TREND
+
+# this is a zoom in on the species shown in phylo_heatmap because most abundant 
+# (taking gOTUs that represent at least 3% of the sample and present in at least 40 samples)
+
+# 1. raw data is normalized by lib size and 
+# 2. the mean is taken from bins assigned the same species
+
+# 3. at this point those species are now selected and plotted using the log10
+
+physeq1
+keep_these_taxa <- as.data.frame(tax_table(physeq1))$species
+keep_these_taxa <- as.character(keep_these_taxa)
+
+# normalization and sum of same species all in one 
+z <- df0 %>%
+  dplyr::filter(!cohort=="Mothers") %>%
+  group_by(pig,date) %>%
+  mutate(norm_value=value/sum(value)) %>% # lib size normalization
+  group_by(cohort,pig,date,species) %>%
+  dplyr::summarize(z = mean(norm_value)) # mean of bins falling within same species
+
+z <- subset(z, (species %in% keep_these_taxa))
+NROW(unique(z$species))
+
+z <- as.data.frame(z)
+
+# reorder dates 
+z$date  = factor(z$date, levels=c("t0",
+                                  "t1", 
+                                  "t2",
+                                  "t3",
+                                  "t4",
+                                  "t5",
+                                  "t6",
+                                  "t7",
+                                  "t8",
+                                  "t9",
+                                  "t10",
+                                  "no-t"))
+# reorder cohorts 
+z$cohort  = factor(z$cohort, levels=c("Control",
+                                      "DScour", 
+                                      "ColiGuard",
+                                      "Neomycin",
+                                      "NeoD",
+                                      "NeoC"))
+
+
+# split df by species
+multiple_DFs <- split( z , f = z$species )
+
+pdf("dRep_zoomIN_on_phylo_heatmap.pdf")
+for (single_DF in multiple_DFs) {
+  
+  DF <- as.data.frame(single_DF)
+  this_species <- DF$species
+  
+  p <- ggplot(DF, aes(x=date, y=log10(z), fill=cohort)) + 
+    geom_boxplot(outlier.shape = NA) +
+    #geom_jitter(size=0.2)+       # keep this if you want to see how many samples behind measurement
+    #geom_line() + geom_point(size=0.8)+
+    theme_bw()+
+    theme(legend.position="right")+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(x = "collection date",
+         y = "relative abundance (log10)",
+         color = "Phylum")  +
+    theme(legend.title = element_text()) +
+    ggtitle(this_species)
+  
+  print(p)
+  
+}
+dev.off()
+
+
+##############################################
+
+
+# BAR PLOT
+
+
+# whether you run it with 
+# median sequencing depth normalization or rarefaction
+# output doesn t change much except the Actinobacteriota not showing when you rarefy 
+# trend is the same with either normalization method 
+
+# NORMALIZATION BY MEDIAN SEQUENCING DEPTH
+carbom <- phyloseq(gOTU,TAX,samples)
+# SUBSETTING phyloseq obejct
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5","t6","t7","t8","t9")))
+# Normalize number of reads in each sample using median sequencing depth.
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+# keep only very abundant OTUs
+# taking gOTUs that represent at least 3% of the sample and present in at least 40 samples 
+carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.03) > 40, TRUE)
+
+# BAR GRAPH - by time point
+pdf("dRep_phylo_barplot_time.pdf")
+plot_bar(carbom_abund, fill = "phylum") +
+  geom_bar(aes(color=phylum, fill=phylum), stat="identity", position="stack") +
+  facet_grid(~date,scales="free_x") +
+  theme(axis.text.x = element_blank())
+plot_bar(carbom_abund, fill = "class") +
+  geom_bar(aes(color=class, fill=class), stat="identity", position="stack") +
+  facet_grid(~date,scales="free_x") +
+  theme(axis.text.x = element_blank())
 dev.off()
 
 
@@ -473,300 +623,88 @@ dev.off()
 
 # DIVERSITY 
 
-# here rarefaction is applied
+# NORMALIZATION BY RAREFACTION
+carbom <- phyloseq(gOTU,TAX,samples)
+# SUBSETTING phyloseq obejct
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5", "t6","t7","t8","t9")))
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+# keep only very abundant OTUs: 
+# more than 2 counts in at least a fourth of the toal number of samples 
+carbom_abund <- filter_taxa(carbom, 
+                            function(x) 
+                              sum(x > 2) > (NROW(sample_data(carbom))/4), 
+                            TRUE)
 
-carbom <- phyloseq(OTU,TAX,samples)
-
-carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5","t6","t7","t8","t9")))
-
-carbom_rarefied = rarefy_even_depth(carbom, replace=TRUE, rngseed = 42)
-
-# Normalize number of reads in each sample using median sequencing depth.
-total = median(sample_sums(carbom_rarefied))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_rarefied = transform_sample_counts(carbom_rarefied, standf)
-sample_variables(carbom_rarefied)
-
-
-dRep_diversity <- plot_richness(carbom_rarefied, measures=c("Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"), 
-                              x="cohort", color="date") +
+dRep_diversity_samples <- plot_richness(carbom, measures=c("Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"), 
+                                      color="date", x="date") +
   guides(colour = guide_legend(nrow = 1))+
   theme(legend.position="top")
 
-dRep_diversity_small <- plot_richness(carbom_rarefied, measures=c("Chao1","Shannon","InvSimpson"), 
-                                    color="date") +
-  guides(colour = guide_legend(nrow = 1))+
-  theme(legend.position="top",
-        axis.text.x = element_blank())
 
-pdf("dRep_phylo_diversity.pdf")
-dRep_diversity
-dev.off()
+######### plotting above results in a different way: 
+# focus on three measures;
+# whisker plots instead 
 
-######################################################################
-######################################################################
+my_comparisons <- list( c("t0", "t2"), c("t2", "t4"), c("t4", "t6"),
+                        c("t6", "t8"), c("t4", "t8"))
 
+Chao1 <- dRep_diversity_samples$data %>%
+  filter(date=="t0"|date=="t2"|date=="t4"|date=="t6"|date=="t8"|date=="t10") %>%
+  filter(variable=="Chao1") %>%
+  ggplot(., aes(x=date, y=value, color=date)) + 
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(size=1)+
+  theme(legend.position="right")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "time point",
+       y = "Chao1") +
+  theme_minimal() +
+  stat_compare_means(comparisons = my_comparisons,
+                     label = "p.signif") # Add pairwise comparisons p-value
 
-# ordination - CO-HOUSING : 
+Shannon <- dRep_diversity_samples$data %>%
+  filter(date=="t0"|date=="t2"|date=="t4"|date=="t6"|date=="t8"|date=="t10") %>%
+  filter(variable=="Shannon") %>%
+  ggplot(., aes(x=date, y=value, color=date)) + 
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(size=1)+
+  theme(legend.position="right")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "time point",
+       y = "Shannon") +
+  theme_minimal() +
+  stat_compare_means(comparisons = my_comparisons,
+                     label = "p.signif") # Add pairwise comparisons p-value
 
+Simpson <- dRep_diversity_samples$data %>%
+  filter(date=="t0"|date=="t2"|date=="t4"|date=="t6"|date=="t8"|date=="t10") %>%
+  filter(variable=="Simpson") %>%
+  ggplot(., aes(x=date, y=value, color=date)) + 
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(size=1)+
+  theme(legend.position="right")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "time point",
+       y = "Simpson") +
+  theme_minimal() +
+  stat_compare_means(comparisons = my_comparisons,
+                     label = "p.signif") # Add pairwise comparisons p-value
 
-# Control 
-######################
-carbom_dRep <- phyloseq(OTU,TAX,samples)
-carbom_dRep <- subset_samples(carbom_dRep, (date %in% c("t0")))
-carbom_dRep <- subset_samples(carbom_dRep, (cohort %in% c("Control")))
-# NORMALIZATION 
-total = median(sample_sums(carbom_dRep))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_dRep = transform_sample_counts(carbom_dRep, standf)
-sample_variables(carbom_dRep)
-carbom_dRep.ord <- ordinate(carbom_dRep, "PCoA", "bray")
-ctrlt0 <- plot_ordination(carbom_dRep, carbom_dRep.ord, type="samples", color="pen", shape="pen",
-                          title="Control") + 
-  geom_point(size=2) +
-  facet_wrap(~date, scales = c("free"))
-######################
-carbom_dRep <- phyloseq(OTU,TAX,samples)
-carbom_dRep <- subset_samples(carbom_dRep, (date %in% c("t8")))
-carbom_dRep <- subset_samples(carbom_dRep, (cohort %in% c("Control")))
-# NORMALIZATION 
-total = median(sample_sums(carbom_dRep))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_dRep = transform_sample_counts(carbom_dRep, standf)
-sample_variables(carbom_dRep)
-carbom_dRep.ord <- ordinate(carbom_dRep, "PCoA", "bray")
-ctrlt8 <- plot_ordination(carbom_dRep, carbom_dRep.ord, type="samples", color="pen", shape="pen",
-                          title="Control") + 
-  geom_point(size=2) +
-  facet_wrap(~date, scales = c("free"))
-######################
-# DScour 
-######################
-carbom_dRep <- phyloseq(OTU,TAX,samples)
-carbom_dRep <- subset_samples(carbom_dRep, (date %in% c("t0")))
-carbom_dRep <- subset_samples(carbom_dRep, (cohort %in% c("DScour")))
-# NORMALIZATION 
-total = median(sample_sums(carbom_dRep))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_dRep = transform_sample_counts(carbom_dRep, standf)
-sample_variables(carbom_dRep)
-carbom_dRep.ord <- ordinate(carbom_dRep, "PCoA", "bray")
-dscourt0 <- plot_ordination(carbom_dRep, carbom_dRep.ord, type="samples", color="pen", shape="pen",
-                            title="D-Scour") + 
-  geom_point(size=2) +
-  facet_wrap(~date, scales = c("free"))
-######################
-carbom_dRep <- phyloseq(OTU,TAX,samples)
-carbom_dRep <- subset_samples(carbom_dRep, (date %in% c("t8")))
-carbom_dRep <- subset_samples(carbom_dRep, (cohort %in% c("DScour")))
-# NORMALIZATION 
-total = median(sample_sums(carbom_dRep))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_dRep = transform_sample_counts(carbom_dRep, standf)
-sample_variables(carbom_dRep)
-carbom_dRep.ord <- ordinate(carbom_dRep, "PCoA", "bray")
-dscourt8 <- plot_ordination(carbom_dRep, carbom_dRep.ord, type="samples", color="pen", shape="pen",
-                            title="D-Scour") + 
-  geom_point(size=2) +
-  facet_wrap(~date, scales = c("free"))
-######################
-# ColiGuard 
-######################
-carbom_dRep <- phyloseq(OTU,TAX,samples)
-carbom_dRep <- subset_samples(carbom_dRep, (date %in% c("t0")))
-carbom_dRep <- subset_samples(carbom_dRep, (cohort %in% c("ColiGuard")))
-# NORMALIZATION 
-total = median(sample_sums(carbom_dRep))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_dRep = transform_sample_counts(carbom_dRep, standf)
-sample_variables(carbom_dRep)
-carbom_dRep.ord <- ordinate(carbom_dRep, "PCoA", "bray")
-coligt0 <- plot_ordination(carbom_dRep, carbom_dRep.ord, type="samples", color="pen", shape="pen",
-                           title="ColiGuard") + 
-  geom_point(size=2) +
-  facet_wrap(~date, scales = c("free"))
-######################
-carbom_dRep <- phyloseq(OTU,TAX,samples)
-carbom_dRep <- subset_samples(carbom_dRep, (date %in% c("t8")))
-carbom_dRep <- subset_samples(carbom_dRep, (cohort %in% c("ColiGuard")))
-# NORMALIZATION 
-total = median(sample_sums(carbom_dRep))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_dRep = transform_sample_counts(carbom_dRep, standf)
-sample_variables(carbom_dRep)
-carbom_dRep.ord <- ordinate(carbom_dRep, "PCoA", "bray")
-coligt8 <- plot_ordination(carbom_dRep, carbom_dRep.ord, type="samples", color="pen", shape="pen",
-                           title="ColiGuard") + 
-  geom_point(size=2) +
-  facet_wrap(~date, scales = c("free"))
-######################
-# Neomycin
-######################
-carbom_dRep <- phyloseq(OTU,TAX,samples)
-carbom_dRep <- subset_samples(carbom_dRep, (date %in% c("t0")))
-carbom_dRep <- subset_samples(carbom_dRep, (cohort %in% c("Neomycin")))
-# NORMALIZATION 
-total = median(sample_sums(carbom_dRep))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_dRep = transform_sample_counts(carbom_dRep, standf)
-sample_variables(carbom_dRep)
-carbom_dRep.ord <- ordinate(carbom_dRep, "PCoA", "bray")
-neot0 <- plot_ordination(carbom_dRep, carbom_dRep.ord, type="samples", color="pen", shape="pen",
-                         title="Neomycin") + 
-  geom_point(size=2) +
-  facet_wrap(~date, scales = c("free"))
-######################
-carbom_dRep <- phyloseq(OTU,TAX,samples)
-carbom_dRep <- subset_samples(carbom_dRep, (date %in% c("t8")))
-carbom_dRep <- subset_samples(carbom_dRep, (cohort %in% c("Neomycin")))
-# NORMALIZATION 
-total = median(sample_sums(carbom_dRep))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_dRep = transform_sample_counts(carbom_dRep, standf)
-sample_variables(carbom_dRep)
-carbom_dRep.ord <- ordinate(carbom_dRep, "PCoA", "bray")
-neot8 <- plot_ordination(carbom_dRep, carbom_dRep.ord, type="samples", color="pen", shape="pen",
-                         title="Neomycin") + 
-  geom_point(size=2) +
-  facet_wrap(~date, scales = c("free"))
-######################
-# NeoD 
-######################
-carbom_dRep <- phyloseq(OTU,TAX,samples)
-carbom_dRep <- subset_samples(carbom_dRep, (date %in% c("t0")))
-carbom_dRep <- subset_samples(carbom_dRep, (cohort %in% c("NeoD")))
-# NORMALIZATION 
-total = median(sample_sums(carbom_dRep))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_dRep = transform_sample_counts(carbom_dRep, standf)
-sample_variables(carbom_dRep)
-carbom_dRep.ord <- ordinate(carbom_dRep, "PCoA", "bray")
-neoDt0 <- plot_ordination(carbom_dRep, carbom_dRep.ord, type="samples", color="pen", shape="pen",
-                          title="NeoD") + 
-  geom_point(size=2) +
-  facet_wrap(~date, scales = c("free"))
-######################
-carbom_dRep <- phyloseq(OTU,TAX,samples)
-carbom_dRep <- subset_samples(carbom_dRep, (date %in% c("t8")))
-carbom_dRep <- subset_samples(carbom_dRep, (cohort %in% c("NeoD")))
-# NORMALIZATION 
-total = median(sample_sums(carbom_dRep))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_dRep = transform_sample_counts(carbom_dRep, standf)
-sample_variables(carbom_dRep)
-carbom_dRep.ord <- ordinate(carbom_dRep, "PCoA", "bray")
-neoDt8 <- plot_ordination(carbom_dRep, carbom_dRep.ord, type="samples", color="pen", shape="pen",
-                          title="NeoD") + 
-  geom_point(size=2) +
-  facet_wrap(~date, scales = c("free"))
-######################
-# NeoC 
-######################
-carbom_dRep <- phyloseq(OTU,TAX,samples)
-carbom_dRep <- subset_samples(carbom_dRep, (date %in% c("t0")))
-carbom_dRep <- subset_samples(carbom_dRep, (cohort %in% c("NeoC")))
-# NORMALIZATION 
-total = median(sample_sums(carbom_dRep))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_dRep = transform_sample_counts(carbom_dRep, standf)
-sample_variables(carbom_dRep)
-carbom_dRep.ord <- ordinate(carbom_dRep, "PCoA", "bray")
-neoCt0 <- plot_ordination(carbom_dRep, carbom_dRep.ord, type="samples", color="pen", shape="pen",
-                          title="NeoC") + 
-  geom_point(size=2) +
-  facet_wrap(~date, scales = c("free"))
-######################
-carbom_dRep <- phyloseq(OTU,TAX,samples)
-carbom_dRep <- subset_samples(carbom_dRep, (date %in% c("t8")))
-carbom_dRep <- subset_samples(carbom_dRep, (cohort %in% c("NeoC")))
-# NORMALIZATION 
-total = median(sample_sums(carbom_dRep))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_dRep = transform_sample_counts(carbom_dRep, standf)
-sample_variables(carbom_dRep)
-carbom_dRep.ord <- ordinate(carbom_dRep, "PCoA", "bray")
-neoCt8 <- plot_ordination(carbom_dRep, carbom_dRep.ord, type="samples", color="pen", shape="pen",
-                          title="NeoC") + 
-  geom_point(size=2) +
-  facet_wrap(~date, scales = c("free"))
-######################
+tosave <- ggarrange(Chao1, 
+                    Shannon,
+                    Simpson,
+                    ncol = 3, 
+                    nrow=1,
+                    labels=c("A","B","C"), 
+                    common.legend = TRUE)
+
+ggsave(filename = "dRep_phylo_diversity_boxplot.pdf", plot = tosave)
 
 
-ctrl <- ggarrange(ctrlt0,ctrlt8)
-neo <- ggarrange(neot0,neot8)
-dscour <- ggarrange(dscourt0,dscourt8)
-colig <- ggarrange(coligt0,coligt8)
-neoD <- ggarrange(neoDt0,neoDt8)
-neoC <- ggarrange(neoCt0,neoCt8)
 
-pdf("dRep_phylo_ordination_cohousing.pdf")
-ggarrange(
-  ctrl, neo, nrow=2, labels=c("A","B")
-)
-ggarrange(
-  dscour, colig, nrow=2, labels=c("A","B")
-)
-ggarrange(
-  neoD, neoC, nrow=2, labels=c("A","B")
-)
-dev.off()
-
-
-# function to test correlation with Dunn.test
-
-pen_function <- function(myd){
-  
-  x_axis1 <- dunnTest(myd$Axis.1~pen,data=myd,method = "bonferroni")
-  x_axis1 <- as.data.frame(x_axis1$res)
-  x_axis1$axis = "Axis.1"
-  
-  x_axis2 <- dunnTest(myd$Axis.2~pen,data=myd,method = "bonferroni")
-  x_axis2 <- as.data.frame(x_axis2$res)
-  x_axis2$axis = "Axis.2"
-  
-  x <- rbind(x_axis1,x_axis2)
-  
-}
-
-out1 <- pen_function(ctrlt0$data)
-out1$type = "ctrlt0"
-out2 <- pen_function(ctrlt8$data)
-out2$type = "ctrlt8"
-out3 <- pen_function(dscourt0$data)
-out3$type = "dscourt0"
-out4 <- pen_function(dscourt8$data)
-out4$type = "dscourt8"
-out5 <- pen_function(coligt0$data)
-out5$type = "coligt0"
-out6 <- pen_function(coligt8$data)
-out6$type = "coligt8"
-out7 <- pen_function(neot0$data)
-out7$type = "neot0"
-out8 <- pen_function(neot8$data)
-out8$type = "neot8"
-out9 <- pen_function(neoDt0$data)
-out9$type = "neoDt0"
-out10 <- pen_function(neoDt8$data)
-out10$type = "neoDt8"
-out11 <- pen_function(neoCt0$data)
-out11$type = "neoCt0"
-out12 <- pen_function(neoCt8$data)
-out12$type = "neoCt8"
-
-
-pen_stats <- rbind(out1,out2,out3,out4,out5,out6,
-      out7,out8,out9,out10,out11,out12)
-pen_stats$test = "Dunn.test"
-pen_stats$correction = "Bonferroni"
-
-
-addWorksheet(wb, "cohousing_dRep")
-writeData(wb, sheet = "cohousing_dRep", pen_stats, rowNames = FALSE)
-
-########################################################################################
-
-
-# save stats in workbook
-saveWorkbook(wb, paste0(basedir,"stats.xlsx"), overwrite=TRUE)
-
+############################################################################################################
+############################################################################################################
 

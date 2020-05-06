@@ -157,6 +157,8 @@ gOTU_mat <- as.data.frame(df3)
 rownames(gOTU_mat) <- gOTU_mat[,1]
 gOTU_mat[,1] <- NULL
 gOTU_mat <- as.matrix(gOTU_mat)
+mode(gOTU_mat) <- "integer"
+
 # ready to transform to gOTU table
 
 NROW(unique(rownames(gOTU_mat)))
@@ -217,87 +219,60 @@ gOTU = otu_table(gOTU_mat, taxa_are_rows = TRUE)
 TAX = tax_table(taxa_mat)
 samples = sample_data(sample_df)
 
+
+######################
+
+
+# ORDINATION 
+
+# NORMALIZATION BY MEDIAN SEQUENCING DEPTH
 carbom <- phyloseq(gOTU,TAX,samples)
-carbom
-
-
-############################################################################################################
-
-# necessary to rarefy? if yes, I ll need to convert counts to integers first 
-#rarecurve(t(gOTU_table(carbom)), step=50, cex=0.5)
-
 # SUBSETTING phyloseq obejct
-
-# Keep only samples to be analyzed
-#carbom <- subset_samples(carbom, date =="t2")
-carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5", "t6","t7","t8","t9")))
-
-carbom <- subset_samples(carbom, (cohort %in% c("Control",
-                                                "DScour",
-                                                "ColiGuard",
-                                                "Neomycin",
-                                                "NeoD",
-                                                "NeoC")))
-
-
-
-#subset to what you want
-unique(taxa_mat_df$phylum)
-carbom <- subset_taxa(carbom, (phylum %in% c("p__Firmicutes","p__Tenericutes","p__Actinobacteria",
-                                             "p__Proteobacteria","p__Bacteroidetes","p__Spirochaetes",
-                                             "p__Euryarchaeota","p__Chlamydiae","p__Synergistetes",
-                                             "p__Verrucomicrobia")))
-
-
-############################################################################################################
-
-# NORMALIZATION 
-
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5","t6","t7","t8","t9")))
 # Normalize number of reads in each sample using median sequencing depth.
 total = median(sample_sums(carbom))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom = transform_sample_counts(carbom, standf)
 sample_variables(carbom)
-
-
-############################################################################################################
-
-# PLOT
-
-# keep only very abundant gOTUs
-#carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.20) > 0, TRUE)
+# keep only very abundant OTUs
+# taking gOTUs that represent at least 3% of the sample and present in at least 40 samples 
 carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.03) > 40, TRUE)
 
-######################
+carbom_abund.ord <- ordinate(carbom_abund, "NMDS", "bray")
 
-# ORDINATION 
-
-carbom_cm <- carbom
-carbom.ord_cm <- ordinate(carbom_cm, "NMDS", "bray")
-
-cm_ordination_plot <- plot_ordination(carbom_cm, carbom.ord_cm, type="samples", color="date") + 
+cm_ordination_plot <- plot_ordination(carbom_abund, carbom_abund.ord, type="samples", color="date") + 
   geom_point(size=1) +
-  #facet_wrap(~cohort) +
-  theme_bw() +
+  theme_bw()+
   theme(axis.title = element_text(size=9),
         axis.text = element_text(size=7))+
-  guides(colour = guide_legend(nrow = 1))
+  guides(colour = guide_legend(nrow = 1))+
+  theme(legend.position="top") 
 
 pdf("cm_phylo_ordination.pdf")
-cm_ordination_plot+
-  facet_wrap(~cohort)+
-  theme(legend.position="top")
+cm_ordination_plot +
+  facet_wrap(~cohort)
 dev.off()
 
 ######################
 
 # NETWORK ANALYSIS 
 
-carbom_abund_cm <- carbom_abund
+# NORMALIZATION BY MEDIAN SEQUENCING DEPTH
+carbom <- phyloseq(gOTU,TAX,samples)
+# SUBSETTING phyloseq obejct
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5","t6","t7","t8","t9")))
+# Normalize number of reads in each sample using median sequencing depth.
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+# keep only very abundant OTUs
+# taking gOTUs that represent at least 3% of the sample and present in at least 40 samples 
+carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.03) > 40, TRUE)
 
-ig = make_network(carbom_abund_cm, type = "samples", distance = "bray", max.dist = 0.3)
-cm_network_plot <- plot_network(ig, carbom_abund_cm, color = "date", shape = "cohort", line_weight = 0.3, 
-                                label = NULL, point_size = 1)+
+ig = make_network(carbom_abund, type = "samples", distance = "bray", max.dist = 0.25)
+cm_network_plot <- plot_network(ig, carbom_abund, color = "date", shape = "cohort", line_weight = 0.3, 
+                                  label = NULL, point_size = 1)+
   theme(legend.position = "bottom")+
   guides(shape = guide_legend(nrow = 1))+
   guides(size = "legend", colour = "none")
@@ -306,13 +281,29 @@ pdf("cm_phylo_network.pdf")
 cm_network_plot
 dev.off()
 
-
 ######################
 
 
 # BAR PLOT
 
-######################
+
+# whether you run it with 
+# median sequencing depth normalization or rarefaction
+# output doesn t change much except the Actinobacteriota not showing when you rarefy 
+# trend is the same with either normalization method 
+
+# NORMALIZATION BY MEDIAN SEQUENCING DEPTH
+carbom <- phyloseq(gOTU,TAX,samples)
+# SUBSETTING phyloseq obejct
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5","t6","t7","t8","t9")))
+# Normalize number of reads in each sample using median sequencing depth.
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+# keep only very abundant OTUs
+# taking gOTUs that represent at least 3% of the sample and present in at least 40 samples 
+carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.03) > 40, TRUE)
 
 # BAR GRAPH - by time point
 pdf("cm_phylo_barplot_time.pdf")
@@ -335,59 +326,57 @@ dev.off()
 
 # HEATMAP
 
-# plot_heatmap(carbom, method = "NMDS", distance = "bray")
+# NORMALIZATION BY RAREFACTION
+carbom <- phyloseq(gOTU,TAX,samples)
+# SUBSETTING phyloseq obejct
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5", "t6","t7","t8","t9")))
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
 
-# HEATMAP with only most abundant gOTUs
-# plot_heatmap(carbom_abund, method = "NMDS", distance = "bray")
+# keep only very abundant OTUs: more than 5 counts per sample, in at least 1/4 samples 
+carbom_abund <- filter_taxa(carbom, 
+                            function(x) 
+                              sum(x > 5) > (NROW(sample_data(carbom))/4), 
+                            TRUE)
 
-# HEATMAP with only most abundant gOTUs - with names 
+random_tree = rtree(ntaxa(carbom_abund), rooted=TRUE, tip.label=taxa_names(carbom_abund))
+physeq1 = merge_phyloseq(carbom_abund,random_tree)
+
+
+# HEATMAP time - genus, family, order, etc ...
 pdf("cm_phylo_heatmap.pdf")
-plot_heatmap(carbom_abund, method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
-             taxa.label = "genus", taxa.order = "genus", 
-             trans=NULL, low="beige", high="red", na.value="beige")
-plot_heatmap(carbom_abund, method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
-             taxa.label = "family", taxa.order = "genus", 
-             trans=NULL, low="beige", high="red", na.value="beige")
-plot_heatmap(carbom_abund, method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
-             taxa.label = "order", taxa.order = "genus", 
-             trans=NULL, low="beige", high="red", na.value="beige")
-plot_heatmap(carbom_abund, method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
-             taxa.label = "class", taxa.order = "genus", 
-             trans=NULL, low="beige", high="red", na.value="beige")
-plot_heatmap(carbom_abund, method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
-             taxa.label = "phylum", taxa.order = "genus", 
-             trans=NULL, low="beige", high="red", na.value="beige")
+plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
+             taxa.label = "species", taxa.order="species",
+             sample.order = "date", trans=identity_trans(),
+             low="blue", high="red", na.value="white") +
+  ggtitle(label = "Microbe Species Diversity") 
+plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
+             taxa.label = "genus", taxa.order="species",
+             sample.order = "date", trans=identity_trans(),
+             low="blue", high="red", na.value="white") +
+  ggtitle(label = "Microbe Genus Diversity") 
+plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
+             taxa.label = "family", taxa.order="species",
+             sample.order = "date", trans=identity_trans(),
+             low="blue", high="red", na.value="white") +
+  ggtitle(label = "Microbe Family Diversity") 
+plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
+             taxa.label = "order", taxa.order="species",
+             sample.order = "date", trans=identity_trans(),
+             low="blue", high="red", na.value="white") +
+  ggtitle(label = "Microbe Order Diversity") 
+plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
+             taxa.label = "class", taxa.order="species",
+             sample.order = "date", trans=identity_trans(),
+             low="blue", high="red", na.value="white") +
+  ggtitle(label = "Microbe Class Diversity") 
+plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
+             taxa.label = "phylum", taxa.order="species",
+             sample.order = "date", trans=identity_trans(),
+             low="blue", high="red", na.value="white") +
+  ggtitle(label = "Microbe Phylum Diversity") 
 dev.off()
 
 ######################
-
-# DIVERSITY 
-
-# here rarefaction is applied
-
-carbom <- phyloseq(gOTU,TAX,samples)
-
-carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5","t6","t7","t8","t9")))
-
-carbom_rarefied = rarefy_even_depth(carbom, replace=TRUE, rngseed = 42)
-
-# Normalize number of reads in each sample using median sequencing depth.
-total = median(sample_sums(carbom_rarefied))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_rarefied = transform_sample_counts(carbom_rarefied, standf)
-sample_variables(carbom_rarefied)
-
-cm_diversity <- plot_richness(carbom_rarefied, measures=c("Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"), x="cohort", color="date")
-
-cm_diversity_small <- plot_richness(carbom_rarefied, measures=c("Chao1","Shannon","InvSimpson"), 
-                                    color="date") +
-  guides(colour = guide_legend(nrow = 1))+
-  theme(legend.position="top",
-        axis.text.x = element_blank())
-
-pdf("cm_phylo_diversity.pdf")
-cm_diversity
-dev.off()
-
-############################################################################################################
-

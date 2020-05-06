@@ -221,13 +221,12 @@ NROW(df0)
 
 ###########################################################################################
 
-# open existing workbook
+# create workbook to add stats 
 
-# Write updated data frame to existing worksheet
-wb = loadWorkbook(paste0(basedir,"stats.xlsx"))
-
+wb <- createWorkbook()
 
 ###########################################################################################
+
 
 # TAXA
 
@@ -298,6 +297,7 @@ gOTU_mat <- as.data.frame(df3)
 rownames(gOTU_mat) <- gOTU_mat[,1]
 gOTU_mat[,1] <- NULL
 gOTU_mat <- as.matrix(gOTU_mat)
+mode(gOTU_mat) <- "integer"
 # ready 
 
 NROW(unique(rownames(gOTU_mat)))
@@ -322,7 +322,7 @@ sample_df <- sample_df %>%
 
 unique(sample_df$breed)
 
-sample_df$breed <- gsub("Landrace x Cross bred (LW x D)","LxLWD", sample_df$breed)
+sample_df$breed <- gsub("Landrace x Cross bred [(]LW x D[])]","LxLWD", sample_df$breed)
 sample_df$breed <- gsub("Duroc x Landrace","DxL", sample_df$breed)
 sample_df$breed <- gsub("Duroc x Large white","DxLW", sample_df$breed)
 sample_df$breed <- gsub("Large white x Duroc","LWxD", sample_df$breed)
@@ -365,41 +365,10 @@ rownames(sample_df) <- sample_df[,1]
 
 # create phyloseq object
 
-OTU = otu_table(gOTU_mat, taxa_are_rows = TRUE)
+gOTU = otu_table(gOTU_mat, taxa_are_rows = TRUE)
 TAX = tax_table(taxa_mat)
 samples = sample_data(sample_df)
 
-carbom <- phyloseq(OTU,TAX,samples)
-
-############################################################################################################
-
-# necessary to rarefy? if yes, I ll need to convert counts to integers first 
-#rarecurve(t(otu_table(carbom)), step=50, cex=0.5)
-
-# SUBSETTING phyloseq obejct
-
-# Keep only samples to be analyzed
-# carbom <- subset_samples(carbom, cohort =="ColiGuard")
-
-carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5", "t6","t7","t8","t9")))
-
-
-#subset to what you want & remove phyla == NA
-unique_phyla <- unique(taxa_mat_df$phylum)
-unique_phyla <- unique_phyla[!is.na(unique_phyla)]
-
-carbom <- subset_taxa(carbom, (phylum %in% unique_phyla))
-
-
-############################################################################################################
-
-# NORMALIZATION 
-
-# Normalize number of reads in each sample using median sequencing depth.
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
 
 ############################################################################################################
 
@@ -407,13 +376,21 @@ sample_variables(carbom)
 
 ######################
 
-# keep only very abundant OTUs
-# taking gOTUs that represent at least 3% of the sample and present in at least 100 samples 
-carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.03) > 40, TRUE)
-
-
 
 # ORDINATION 
+
+# NORMALIZATION BY MEDIAN SEQUENCING DEPTH
+carbom <- phyloseq(gOTU,TAX,samples)
+# SUBSETTING phyloseq obejct
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5","t6","t7","t8","t9")))
+# Normalize number of reads in each sample using median sequencing depth.
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+# keep only very abundant OTUs
+# taking gOTUs that represent at least 3% of the sample and present in at least 40 samples 
+carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.03) > 40, TRUE)
 
 carbom_abund.ord <- ordinate(carbom_abund, "NMDS", "bray")
 
@@ -422,12 +399,12 @@ gt_ordination_plot <- plot_ordination(carbom_abund, carbom_abund.ord, type="samp
   theme_bw()+
   theme(axis.title = element_text(size=9),
         axis.text = element_text(size=7))+
-  guides(colour = guide_legend(nrow = 1))
+  guides(colour = guide_legend(nrow = 1))+
+  theme(legend.position="top")
 
 pdf("gt_phylo_ordination.pdf")
-gt_ordination_plot+
-  facet_wrap(~cohort)+
-  theme(legend.position="top")
+gt_ordination_plot +
+  facet_wrap(~cohort)
 dev.off()
 
 
@@ -435,8 +412,20 @@ dev.off()
 
 # NETWORK ANALYSIS 
 
+# NORMALIZATION BY MEDIAN SEQUENCING DEPTH
+carbom <- phyloseq(gOTU,TAX,samples)
+# SUBSETTING phyloseq obejct
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5","t6","t7","t8","t9")))
+# Normalize number of reads in each sample using median sequencing depth.
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+# keep only very abundant OTUs
+# taking gOTUs that represent at least 3% of the sample and present in at least 40 samples 
+carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.03) > 40, TRUE)
 
-ig = make_network(carbom_abund, type = "samples", distance = "bray", max.dist = 0.3)
+ig = make_network(carbom_abund, type = "samples", distance = "bray", max.dist = 0.35)
 gt_network_plot <- plot_network(ig, carbom_abund, color = "date", shape = "cohort", line_weight = 0.3, 
                                 label = NULL, point_size = 1)+
   theme(legend.position = "bottom")+
@@ -453,6 +442,19 @@ dev.off()
 
 # HEATMAP
 
+# NORMALIZATION BY RAREFACTION
+carbom <- phyloseq(gOTU,TAX,samples)
+# SUBSETTING phyloseq obejct
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5", "t6","t7","t8","t9")))
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+# keep only very abundant OTUs: more than 5 counts per sample, in at least 1/4 samples 
+carbom_abund <- filter_taxa(carbom, 
+                            function(x) 
+                              sum(x > 5) > (NROW(sample_data(carbom))/4), 
+                            TRUE)
 
 random_tree = rtree(ntaxa(carbom_abund), rooted=TRUE, tip.label=taxa_names(carbom_abund))
 physeq1 = merge_phyloseq(carbom_abund,random_tree)
@@ -591,6 +593,25 @@ dev.off()
 
 # BAR PLOT
 
+
+# whether you run it with 
+# median sequencing depth normalization or rarefaction
+# output doesn t change much except the Actinobacteriota not showing when you rarefy 
+# trend is the same with either normalization method 
+
+# NORMALIZATION BY MEDIAN SEQUENCING DEPTH
+carbom <- phyloseq(gOTU,TAX,samples)
+# SUBSETTING phyloseq obejct
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5","t6","t7","t8","t9")))
+# Normalize number of reads in each sample using median sequencing depth.
+total = median(sample_sums(carbom))
+standf = function(x, t=total) round(t * (x / sum(x)))
+carbom = transform_sample_counts(carbom, standf)
+sample_variables(carbom)
+# keep only very abundant OTUs
+# taking gOTUs that represent at least 3% of the sample and present in at least 40 samples 
+carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.03) > 40, TRUE)
+
 # BAR GRAPH - by time point
 pdf("gt_phylo_barplot_time.pdf")
 plot_bar(carbom_abund, fill = "phylum") +
@@ -608,40 +629,35 @@ dev.off()
 
 # DIVERSITY 
 
-# here rarefaction is applied
+# NORMALIZATION BY RAREFACTION
+carbom <- phyloseq(gOTU,TAX,samples)
+# SUBSETTING phyloseq obejct
+carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5", "t6","t7","t8","t9")))
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+# keep only very abundant OTUs: 
+# more than 2 counts in at least a fourth of the toal number of samples 
+carbom_abund <- filter_taxa(carbom, 
+                            function(x) 
+                              sum(x > 2) > (NROW(sample_data(carbom))/4), 
+                            TRUE)
 
-carbom <- phyloseq(OTU,TAX,samples)
-
-carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5","t6","t7","t8","t9")))
-
-carbom_rarefied = rarefy_even_depth(carbom, replace=TRUE, rngseed = 42)
-
-# Normalize number of reads in each sample using median sequencing depth.
-total = median(sample_sums(carbom_rarefied))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom_rarefied = transform_sample_counts(carbom_rarefied, standf)
-sample_variables(carbom_rarefied)
-
-gt_diversity_cohorts <- plot_richness(carbom_rarefied, measures=c("Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"), 
-                              x="cohort", color="date") +
+gt_diversity_samples <- plot_richness(carbom, measures=c("Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"), 
+                                      color="date", x="date") +
   guides(colour = guide_legend(nrow = 1))+
   theme(legend.position="top")
 
-pdf("gt_phylo_diversity_cohorts.pdf")
-gt_diversity_cohorts
-dev.off()
-
-gt_diversity_samples <- plot_richness(carbom_rarefied, measures=c("Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"), 
-                              color="date", x="date") +
-  guides(colour = guide_legend(nrow = 1))+
-  theme(legend.position="top")
 
 pdf("gt_phylo_diversity.pdf")
 gt_diversity_samples
 dev.off()
 
 
-######################
+######### plotting above results in a different way: 
+# focus on three measures;
+# whisker plots instead 
 
 my_comparisons <- list( c("t0", "t2"), c("t2", "t4"), c("t4", "t6"),
                         c("t6", "t8"), c("t4", "t8"))
@@ -708,28 +724,34 @@ ggsave(filename = "gt_phylo_diversity_boxplot.pdf", plot = tosave)
 
 # Control 
 ######################
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t0")))
 carbom <- subset_samples(carbom, (cohort %in% c("Control")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 ctrlt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                           title="Control") + 
   geom_point(size=2) +
   facet_wrap(~date, scales = c("free"))
 ######################
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t8")))
 carbom <- subset_samples(carbom, (cohort %in% c("Control")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 ctrlt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                           title="Control") + 
@@ -738,28 +760,34 @@ ctrlt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape
 ######################
 # DScour 
 ######################
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t0")))
 carbom <- subset_samples(carbom, (cohort %in% c("DScour")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 dscourt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                             title="D-Scour") + 
   geom_point(size=2) +
   facet_wrap(~date, scales = c("free"))
 ######################
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t8")))
 carbom <- subset_samples(carbom, (cohort %in% c("DScour")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 dscourt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                             title="D-Scour") + 
@@ -768,28 +796,34 @@ dscourt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", sha
 ######################
 # ColiGuard 
 ######################
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t0")))
 carbom <- subset_samples(carbom, (cohort %in% c("ColiGuard")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 coligt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                            title="ColiGuard") + 
   geom_point(size=2) +
   facet_wrap(~date, scales = c("free"))
 ######################
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t8")))
 carbom <- subset_samples(carbom, (cohort %in% c("ColiGuard")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 coligt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                            title="ColiGuard") + 
@@ -798,28 +832,34 @@ coligt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shap
 ######################
 # Neomycin
 ######################
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t0")))
 carbom <- subset_samples(carbom, (cohort %in% c("Neomycin")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 neot0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                          title="Neomycin") + 
   geom_point(size=2) +
   facet_wrap(~date, scales = c("free"))
 ######################
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t8")))
 carbom <- subset_samples(carbom, (cohort %in% c("Neomycin")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 neot8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                          title="Neomycin") + 
@@ -828,28 +868,34 @@ neot8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape=
 ######################
 # NeoD 
 ######################
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t0")))
 carbom <- subset_samples(carbom, (cohort %in% c("NeoD")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 neoDt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                           title="NeoD") + 
   geom_point(size=2) +
   facet_wrap(~date, scales = c("free"))
 ######################
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t8")))
 carbom <- subset_samples(carbom, (cohort %in% c("NeoD")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 neoDt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                           title="NeoD") + 
@@ -858,29 +904,36 @@ neoDt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape
 ######################
 # NeoC 
 ######################
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t0")))
 carbom <- subset_samples(carbom, (cohort %in% c("NeoC")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 neoCt0 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                           title="NeoC") + 
   geom_point(size=2) +
   facet_wrap(~date, scales = c("free"))
 ######################
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t8")))
 carbom <- subset_samples(carbom, (cohort %in% c("NeoC")))
-# NORMALIZATION 
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
+
 neoCt8 <- plot_ordination(carbom, carbom.ord, type="samples", color="pen", shape="pen",
                           title="NeoC") + 
   geom_point(size=2) +
@@ -969,78 +1022,102 @@ writeData(wb, sheet = "cohousing_gtdb", pen_stats, rowNames = FALSE)
 
 
 # t0
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t0")))
 carbom <- subset_samples(carbom, (weight_category %in% c("under","over")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                            function(x) 
+                              sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                            TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 p_t0 <- plot_ordination(carbom, carbom.ord, type="samples", color="weight_category") +
   geom_point(size=2) +
   theme_bw() +
   ggtitle(paste0(sample_data(carbom)$date)[1])
 # t2
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t2")))
 carbom <- subset_samples(carbom, (weight_category %in% c("under","over")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 p_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="weight_category") +
   geom_point(size=2) +
   theme_bw() +
   ggtitle(paste0(sample_data(carbom)$date)[1])
 # t4
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t4")))
 carbom <- subset_samples(carbom, (weight_category %in% c("under","over")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 p_t4 <- plot_ordination(carbom, carbom.ord, type="samples", color="weight_category") +
   geom_point(size=2) +
   theme_bw() +
   ggtitle(paste0(sample_data(carbom)$date)[1])
 # t6
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t6")))
 carbom <- subset_samples(carbom, (weight_category %in% c("under","over")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 p_t6 <- plot_ordination(carbom, carbom.ord, type="samples", color="weight_category") +
   geom_point(size=2) +
   theme_bw() +
   ggtitle(paste0(sample_data(carbom)$date)[1])
 # t8
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t8")))
 carbom <- subset_samples(carbom, (weight_category %in% c("under","over")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 p_t8 <- plot_ordination(carbom, carbom.ord, type="samples", color="weight_category") +
   geom_point(size=2) +
   theme_bw() +
   ggtitle(paste0(sample_data(carbom)$date)[1])
 # t10
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t10")))
 carbom <- subset_samples(carbom, (weight_category %in% c("under","over")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 p_t10 <- plot_ordination(carbom, carbom.ord, type="samples", color="weight_category") +
   geom_point(size=2) +
@@ -1105,12 +1182,16 @@ writeData(wb, sheet = "weight_gtdb", weight_stats, rowNames = FALSE)
 # age effect - all piglets 
 
 # t0
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t0")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 a_t0 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") + 
   geom_point(size=2)  +
@@ -1122,12 +1203,16 @@ dummy_all <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_da
   geom_point(size=2)  +
   theme_bw() 
 # t2
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t2")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 a_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") + 
   geom_point(size=2)  +
@@ -1136,12 +1221,16 @@ a_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") +
   ggtitle(paste0(sample_data(carbom)$date)[1])+
   facet_wrap(~breed)
 # t4
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t4")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 a_t4 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") + 
   geom_point(size=2)  +
@@ -1162,13 +1251,18 @@ all_age_and_breed <- ggarrange(a_t0,a_t2,a_t4,leg_all)
 # age effect - subset
 
 # t0
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t0")))
 carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-08","2017-01-11")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+carbom <- subset_samples(carbom, (breed %in% c("DxL")))
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 s_t0 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") + 
   geom_point(size=2)  +
@@ -1180,13 +1274,18 @@ dummy_subset <- plot_ordination(carbom, carbom.ord, type="samples", color="birth
   geom_point(size=2)  +
   theme_bw() 
 # t2
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t2")))
 carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-08","2017-01-11")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+carbom <- subset_samples(carbom, (breed %in% c("DxL")))
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 s_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") + 
   geom_point(size=2)  +
@@ -1195,13 +1294,18 @@ s_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") +
   ggtitle(paste0(sample_data(carbom)$date)[1])+
   facet_wrap(~breed)
 # t4
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t4")))
 carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-08","2017-01-11")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+carbom <- subset_samples(carbom, (breed %in% c("DxL")))
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 s_t4 <- plot_ordination(carbom, carbom.ord, type="samples", color="birth_day") + 
   geom_point(size=2)  +
@@ -1280,12 +1384,16 @@ writeData(wb, sheet = "age_gtdb", age_stats, rowNames = FALSE)
 #######
 
 # t0
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t0")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 p_t0 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") + 
   geom_point(size=2)  +
@@ -1295,12 +1403,16 @@ p_t0 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") +
   facet_wrap(~birth_day)
 dummy_all <- plot_ordination(carbom, carbom.ord, type="samples", color="breed")
 # t2
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t2")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 p_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") + 
   geom_point(size=2)  +
@@ -1309,12 +1421,16 @@ p_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") +
   ggtitle(paste0(sample_data(carbom)$date)[1])+
   facet_wrap(~birth_day)
 # t4
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t4")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 p_t4 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") + 
   geom_point(size=2)  +
@@ -1333,13 +1449,18 @@ all_breed <- ggarrange(p_t0,p_t2,p_t4,leg_all)
 # age effect - subset
 
 # t0
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t0")))
-carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-10")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+carbom <- subset_samples(carbom, (breed %in% c("DxL","DxLW")))
+carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-08")))
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 s_t0 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") + 
   geom_point(size=2)  +
@@ -1351,13 +1472,18 @@ dummy_subset <- plot_ordination(carbom, carbom.ord, type="samples", color="breed
   geom_point(size=2)  +
   theme_bw() 
 # t2
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t2")))
-carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-10")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+carbom <- subset_samples(carbom, (breed %in% c("DxL","DxLW")))
+carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-08")))
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 s_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") + 
   geom_point(size=2)  +
@@ -1366,13 +1492,18 @@ s_t2 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") +
   ggtitle(paste0(sample_data(carbom)$date)[1])+
   facet_wrap(~birth_day)
 # t4
-carbom <- phyloseq(OTU,TAX,samples)
+carbom <- phyloseq(gOTU,TAX,samples)
 carbom <- subset_samples(carbom, (date %in% c("t4")))
-carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-10")))
-total = median(sample_sums(carbom))
-standf = function(x, t=total) round(t * (x / sum(x)))
-carbom = transform_sample_counts(carbom, standf)
-sample_variables(carbom)
+carbom <- subset_samples(carbom, (breed %in% c("DxL","DxLW")))
+carbom <- subset_samples(carbom, (birth_day %in% c("2017-01-08")))
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+carbom <- filter_taxa(carbom, 
+                      function(x) 
+                        sum(x > 10) > (NROW(sample_data(carbom))/2), 
+                      TRUE)
 carbom.ord <- ordinate(carbom, "PCoA", "bray")
 s_t4 <- plot_ordination(carbom, carbom.ord, type="samples", color="breed") + 
   geom_point(size=2)  +
@@ -1468,12 +1599,8 @@ sink()
 # Presence of PROBIOTIC species in dataset - plotting only those 
 
 
-carbom_ProbioticCheck <- phyloseq(OTU,TAX,samples)
-
-############################################################################################################
-
+carbom_ProbioticCheck <- phyloseq(gOTU,TAX,samples)
 carbom_ProbioticCheck <- subset_samples(carbom_ProbioticCheck, (date %in% c("t0","t1","t2","t3","t4","t5", "t6","t7","t8","t9")))
-
 carbom_ProbioticCheck <- subset_taxa(carbom_ProbioticCheck, (species %in% c("Lactobacillus_B salivarius",
                                                                             "Lactobacillus_F plantarum",
                                                                             "Enterococcus_B faecium_B",
@@ -1483,29 +1610,15 @@ carbom_ProbioticCheck <- subset_taxa(carbom_ProbioticCheck, (species %in% c("Lac
                                                                             "Lactobacillus helveticus",
                                                                             "Lactobacillus delbreuckii",
                                                                             "Lactobacillus_C rhamnosus")))
-
-
-############################################################################################################
-
-# NORMALIZATION 
-
 # Normalize number of reads in each sample using median sequencing depth.
 total = median(sample_sums(carbom_ProbioticCheck))
 standf = function(x, t=total) round(t * (x / sum(x)))
 carbom_ProbioticCheck = transform_sample_counts(carbom_ProbioticCheck, standf)
 sample_variables(carbom_ProbioticCheck)
 
-############################################################################################################
-
-# PLOT
-
-######################
-
 # HEATMAP
 
 sampleOrder = sort(sample_names(carbom_ProbioticCheck))
-
-# HEATMAP time - genus, family, order, etc ...
 pdf("gt_phylo_heatmap_ProbioticCheck.pdf")
 # HEATMAP time - cohorts
 plot_heatmap(carbom_ProbioticCheck, method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
@@ -1522,7 +1635,7 @@ dev.off()
 ######################################################################
 
 
-# PROBIOTIC species check without phyloseq (so the lib size nornalization is done before plotting)
+# PROBIOTIC species check without phyloseq (so the lib size normalization is done before plotting)
 
 
 # lib size normalisation
@@ -1597,4 +1710,5 @@ saveWorkbook(wb, paste0(basedir,"stats.xlsx"), overwrite=TRUE)
 
 ############################################################################################################
 ############################################################################################################
+
 
