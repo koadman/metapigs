@@ -445,7 +445,7 @@ dev.off()
 # NORMALIZATION BY RAREFACTION
 carbom <- phyloseq(gOTU,TAX,samples)
 # SUBSETTING phyloseq obejct
-carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5", "t6","t7","t8","t9")))
+carbom <- subset_samples(carbom, (date %in% c("t0","t2","t4","t6","t8","t10")))
 # RAREFY
 carbom = rarefy_even_depth(carbom,
                            replace=TRUE, 
@@ -462,38 +462,83 @@ physeq1 = merge_phyloseq(carbom_abund,random_tree)
 
 # HEATMAP time - genus, family, order, etc ...
 pdf("gt_phylo_heatmap.pdf")
+plot_heatmap(physeq1, 
+             taxa.label = "species", 
+             sample.order = "date") +
+  facet_grid(~ date, switch = "x", scales = "free_x", space = "free_x")+
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(label = "Microbe Species Diversity - log transformed data")
 plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
              taxa.label = "species", taxa.order="species",
              sample.order = "date", trans=identity_trans(),
              low="blue", high="red", na.value="white") +
-  ggtitle(label = "Microbe Species Diversity") 
+  facet_grid(~ date, switch = "x", scales = "free_x", space = "free_x")+
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(label = "Microbe Species Diversity")
+plot_heatmap(physeq1, 
+             taxa.label = "species", 
+             sample.order = "date") +
+  facet_grid(~ date, switch = "x", scales = "free_x", space = "free_x")+
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(label = "Microbe Species Diversity - log transformed data")
 plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
              taxa.label = "genus", taxa.order="species",
              sample.order = "date", trans=identity_trans(),
              low="blue", high="red", na.value="white") +
+  facet_grid(~ date, switch = "x", scales = "free_x", space = "free_x")+
+  theme(plot.title = element_text(hjust = 0.5)) +
   ggtitle(label = "Microbe Genus Diversity") 
 plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
              taxa.label = "family", taxa.order="species",
              sample.order = "date", trans=identity_trans(),
              low="blue", high="red", na.value="white") +
+  facet_grid(~ date, switch = "x", scales = "free_x", space = "free_x")+
+  theme(plot.title = element_text(hjust = 0.5)) +
   ggtitle(label = "Microbe Family Diversity") 
 plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
              taxa.label = "order", taxa.order="species",
              sample.order = "date", trans=identity_trans(),
              low="blue", high="red", na.value="white") +
+  facet_grid(~ date, switch = "x", scales = "free_x", space = "free_x")+
+  theme(plot.title = element_text(hjust = 0.5)) +
   ggtitle(label = "Microbe Order Diversity") 
 plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
              taxa.label = "class", taxa.order="species",
              sample.order = "date", trans=identity_trans(),
              low="blue", high="red", na.value="white") +
+  facet_grid(~ date, switch = "x", scales = "free_x", space = "free_x")+
+  theme(plot.title = element_text(hjust = 0.5)) +
   ggtitle(label = "Microbe Class Diversity") 
 plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
              taxa.label = "phylum", taxa.order="species",
              sample.order = "date", trans=identity_trans(),
              low="blue", high="red", na.value="white") +
+  facet_grid(~ date, switch = "x", scales = "free_x", space = "free_x")+
+  theme(plot.title = element_text(hjust = 0.5)) +
   ggtitle(label = "Microbe Phylum Diversity") 
 dev.off()
 
+
+
+# same here but without t10 (facets mode keeps not recognizing t10 as 10!)
+# so re-done the same as above, but without t10 
+
+# NORMALIZATION BY RAREFACTION
+carbom <- phyloseq(gOTU,TAX,samples)
+# SUBSETTING phyloseq obejct
+carbom <- subset_samples(carbom, (date %in% c("t0","t2","t4","t6","t8")))
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+# keep only very abundant OTUs: more than 5 counts per sample, in at least 1/4 samples 
+carbom_abund <- filter_taxa(carbom, 
+                            function(x) 
+                              sum(x > 5) > (NROW(sample_data(carbom))/4), 
+                            TRUE)
+
+random_tree = rtree(ntaxa(carbom_abund), rooted=TRUE, tip.label=taxa_names(carbom_abund))
+physeq1 = merge_phyloseq(carbom_abund,random_tree)
 
 # HEATMAP time - cohorts
 pdf("gt_phylo_heatmap_cohorts.pdf")
@@ -501,7 +546,13 @@ plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE,
              taxa.label = "species", taxa.order="species",
              sample.order = "date", trans=identity_trans(),
              low="blue", high="red", na.value="white") +
-  facet_grid(~ cohort, switch = "x", scales = "free_x", space = "free_x")+
+  facet_wrap(~ cohort, switch = "x", scales = "free_x")+
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(label = "Microbe Species Diversity")
+plot_heatmap(physeq1, 
+             taxa.label = "species", 
+             sample.order = "date") +
+  facet_wrap(~ cohort, switch = "x", scales = "free_x")+
   theme(plot.title = element_text(hjust = 0.5)) +
   ggtitle(label = "Microbe Species Diversity")
 dev.off()

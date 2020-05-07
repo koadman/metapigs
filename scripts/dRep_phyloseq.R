@@ -437,8 +437,7 @@ dev.off()
 # NORMALIZATION BY RAREFACTION
 carbom <- phyloseq(gOTU,TAX,samples)
 # SUBSETTING phyloseq obejct
-carbom <- subset_samples(carbom, (date %in% c("t0","t1","t2","t3","t4","t5", "t6","t7","t8","t9")))
-
+carbom <- subset_samples(carbom, (date %in% c("t0","t2","t4","t6","t8")))
 # RAREFY
 carbom = rarefy_even_depth(carbom,
                            replace=TRUE, 
@@ -458,9 +457,9 @@ physeq1 = merge_phyloseq(carbom_abund,random_tree)
 pdf("dRep_phylo_heatmap.pdf")
 plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
              taxa.label = "species", taxa.order="species",
-             sample.order = "date", trans=identity_trans(),
+             sample.order = "date", trans=identity_trans(),sample.label = "date",
              low="blue", high="red", na.value="white") +
-  ggtitle(label = "Microbe Species Diversity") 
+  ggtitle(label = "Microbe Species Diversity") +
 plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE, 
              taxa.label = "genus", taxa.order="species",
              sample.order = "date", trans=identity_trans(),
