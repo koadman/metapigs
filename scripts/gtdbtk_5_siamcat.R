@@ -56,22 +56,6 @@ no_reps_all$bin <- gsub(".fa","", no_reps_all$bin)
 head(no_reps_all)
 NROW(no_reps_all)
 
-###### run this part if you want to only retain piglets that
-# where present throughput trial (not euthanised)
-
-# to_keep <- no_reps_all %>%
-#   filter(date=="t8") %>%
-#   dplyr::select(pig) %>%
-#   distinct()
-# 
-# to_keep <- as.character(to_keep$pig)
-# 
-# no_reps_all <- subset(no_reps_all, (pig %in% to_keep))
-# NROW(unique(no_reps_all$pig))
-
-############################################################
-
-
 ######################################################################
 
 # load gtdbtk assignments of the bins
@@ -85,55 +69,172 @@ gtdbtk_bins <- read_csv("gtdbtk_bins_completeTaxa",
 head(gtdbtk_bins)
 
 ######################################################################
+######################################################################
 
-# load gtdbtk dictionary
 
-dict <- read_csv("bac120_arc122_dictionary",
-                 col_types = cols(node = col_character()))
+# upload metadata for pen info
 
-colnames(dict)[colnames(dict)=="node"] <- "gOTU"
-dict$species <- gsub(" ","_", dict$species)
+mdat <- read_excel(paste0(basedir,"Metagenome.environmental_20190308_2.xlsx"),
+                   col_types = c("text", "numeric", "numeric", "text", "text",
+                                 "text", "date", "text","text", "text", "numeric",
+                                 "numeric", "numeric", "numeric", "numeric", "numeric",
+                                 "numeric", "text", "text","text", "text", "text", "text",
+                                 "text","text", "text", "text", "text", "text","text", "text"),
+                   skip = 12)
+
+mdat$`*collection_date` <- as.character(mdat$`*collection_date`)
+mdat$Cohort <- gsub("Sows","Sows",mdat$Cohort)
+
+mdat2 <- mdat %>%
+  dplyr::filter(!Cohort=="Sows")  %>%
+  dplyr::filter(!`*collection_date`=="2017-01-31"|
+                  `*collection_date`=="2017-02-01"|
+                  `*collection_date`=="2017-02-03") %>%
+  dplyr::select(isolation_source,PigPen)
+
+colnames(mdat2) <- c("pig","pen")
+mdat2 <- as.data.frame(mdat2)
+
+mdat2 <- mdat2 %>%
+  group_by(pig) %>%
+  distinct()
+NROW(mdat2)
+
+mdat2$pen <- gsub("nan",NA,mdat2$pen)
+mdat2 <- na.omit(mdat2)
+
+# we need to keep only record of pigs that were not relocated. 
+mdat2 <- setDT(mdat2)[,if(.N ==1) .SD,by=pig]
+
 
 ######################################################################
 
 
-# merge info 
+# upload breed and bday info 
+
+suppl_piglets_details_mothers_weight <- read_excel("~/Desktop/metapigs_dry/suppl_piglets_details_mothers&weight.xlsx")
+
+# select cols of interest
+breed_bday <- suppl_piglets_details_mothers_weight %>%
+  dplyr::select(TATTOO,BIRTH_DAY,...8,`Nursing Dam`,STIGDAM)
+
+# rename columns
+colnames(breed_bday) <- c("pig","birth_day","breed","nurse_mother","mother")
+
+breed_bday$birth_day <- as.character(breed_bday$birth_day)
+
+# clean names
+breed_bday$pig <- gsub("G","", breed_bday$pig)
+breed_bday$pig <- gsub("T","", breed_bday$pig)
+
+breed_bday <- as.data.frame(breed_bday)
+
+######################################################################
+
+# upload weight info 
+
+
+weights <- read_csv(paste0(basedir,"weights.csv"), 
+                    col_types = cols(Pig = col_character(), 
+                                     Room = col_character()))
+colnames(weights) <- c("room","pen","pig","t0","t2","t4","t6","t8")
+
+
+weights_final <- read_csv(paste0(basedir,"weights_final.csv"), 
+                          col_types = cols(Pig = col_character(), 
+                                           Room = col_character()))
+colnames(weights_final) <- c("room","pen","pig","date","weight")
+weights_final$date <- gsub("6-Mar","t10",weights_final$date)
+weights_final$date <- gsub("7-Mar","t10",weights_final$date)
+weights_final$date <- gsub("8-Mar","t10",weights_final$date)
+weights_final$date <- gsub("9-Mar","t10",weights_final$date)
+weights_final <- weights_final %>%
+  dplyr::select(pig,date,weight) %>%
+  filter(!date=="10-Mar") # as it's NA
+
+weights <- weights %>%
+  dplyr::select(pig,t0,t2,t4,t6,t8) %>%
+  pivot_longer(., cols = c(t0,t2,t4,t6,t8), names_to = "date", values_to = "weight")
+weights <- as.data.frame(weights)
+
+weights <- rbind(weights,weights_final)
+NROW(weights)
+
+# merge bday info : 
+bday <- breed_bday %>%
+  dplyr::select(pig,birth_day)
+weights <- left_join(weights, bday)
+NROW(weights)
+unique(weights$birth_day)
+
+weights_rest <- weights %>% 
+  filter(!birth_day=="2017-01-06") %>%
+  group_by(birth_day,date) %>%
+  mutate(weight_category=cut(weight, breaks=c(summary(weight)[1], summary(weight)[2], summary(weight)[5], summary(weight)[6]), 
+                             labels=c("under","normal","over"))) 
+
+weights_rest<- as.data.frame(weights_rest)
+
+# quickly visualize weight category distribution
+ggplot(weights_rest,aes(x=date,fill=weight_category)) +
+  geom_bar() +
+  facet_wrap(~birth_day)
+
+weights6 <- weights %>% 
+  filter(birth_day=="2017-01-06")
+weights6$weight_category <- NA
+
+weights <- rbind(weights_rest,weights6) %>%
+  dplyr::select(pig,date,weight_category)
+head(weights)
+
+
+######################################################################
+
+# merge bins info to gtdbtk assignment info :  
 
 NROW(gtdbtk_bins)
 NROW(no_reps_all)
 head(gtdbtk_bins)
 head(no_reps_all)
-df <- merge(no_reps_all, gtdbtk_bins, by=c("pig","bin"))
+df0 <- merge(no_reps_all, gtdbtk_bins, by=c("pig","bin"))
 
 # rename node as gOTU and place "gOTU_" in front of node number: a separate genomic OTU identifier for each different genome
 
-colnames(df)[colnames(df) == 'node'] <- 'gOTU'
-df$gOTU <- paste0("gOTU_",df$gOTU)
+colnames(df0)[colnames(df0) == 'node'] <- 'gOTU'
+df0$gOTU <- paste0("gOTU_",df0$gOTU)
 
-NROW(unique(df$gOTU))
-NROW(df)
+NROW(unique(df0$gOTU))
+NROW(df0)
 
-head(df)
-
-df$gOTU <- gsub("gOTU_","", df$gOTU)
-
-NROW(df)
-head(df)
+df0$gOTU <- paste0(df0$species,"__",df0$gOTU)
 
 
-df$gOTU <- paste0(df$phylum,"__",df$species,"__",df$gOTU)
+######################################################################
 
-df <- df %>% 
-  dplyr::select(pig,bin,date,cohort,secondary_cluster,value,gOTU)
+# merge all other info: 
+# add pen info (mdat2), breed and bday info (breed_bday) and weight info (weights)
 
-unique(df$gOTU)
+# add breed and bday info (breed_bday)
+df0 <- left_join(df0,breed_bday)
+NROW(df0)
+
+# add pen info (mdat2)
+df0 <- left_join(df0,mdat2)
+NROW(df0)
+
+# add weight info (weights)
+df0 <- left_join(df0,weights)
+NROW(df0)
+
+
 
 
 ######################################################################
 
 # CREATE COUNTS TABLE (like feat.crc.zeller)
 
-df1 <- df
+df1 <- df0
 
 # lib size normalization
 df2 <- df1 %>% 
@@ -195,11 +296,16 @@ theseAREtheSamples <- as.data.frame(colnames(feat))
 colnames(theseAREtheSamples) <- "sample"
 
 df1$sample <- paste0(df1$date,"_",df1$pig)
+
 df1 <- df1 %>%
-  dplyr::select(sample,cohort,pig,date) %>%
+  dplyr::select(sample,cohort,pig,date,breed,birth_day) %>%
   distinct()
+
 # add anther grouping: date+cohort:
 df1$group <- paste0(df1$date,"_",df1$cohort)
+
+# add another grouping: date+breed+birth_day:
+df1$group2 <- paste0(df1$date,"_",df1$breed,"_",df1$birth_day)
 
 head(theseAREtheSamples)
 
@@ -207,8 +313,10 @@ meta <- left_join(theseAREtheSamples,df1)
 
 rownames(meta) <- meta[,1]
 meta[,1] <- NULL
+
 # ready! 
 
+######################################################################
 ######################################################################
 
 # SIAMCAT starts! 
@@ -308,6 +416,57 @@ comparetimepoints_full("t0","t8")
 
 ############################################################################################################################################
 ############################################################################################################################################
+
+# comparing piglets from the same breed, two birthday groups
+
+
+# t0
+
+label.normalized <- create.label(meta=meta,
+                                 label='group2', 
+                                 case= "t0_Duroc x Landrace_2017-01-11",
+                                 control= "t0_Duroc x Landrace_2017-01-08")
+
+siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
+siamcat <- filter.features(siamcat, filter.method = 'abundance',cutoff = 0.001)
+
+# check for significant associations
+siamcat <- check.associations(
+  siamcat,
+  sort.by = 'fc',
+  fn.plot = paste0("gt_siamcatA_age_","t0_Duroc x Landrace.pdf"),
+  alpha = 0.06,
+  mult.corr = "fdr",
+  detect.lim = 10 ^-30,
+  prompt = FALSE,
+  panels = c("fc", "prevalence", "auroc"))
+
+
+# t2
+
+label.normalized <- create.label(meta=meta,
+                                 label='group2', 
+                                 case= "t2_Duroc x Landrace_2017-01-11",
+                                 control= "t2_Duroc x Landrace_2017-01-08")
+
+siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
+siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.001)
+
+# check for significant associations
+siamcat <- check.associations(
+  siamcat,
+  sort.by = 'fc',
+  fn.plot = paste0("gt_siamcatA_age_","t2_Duroc x Landrace.pdf"),
+  alpha = 0.13,
+  mult.corr = "fdr",
+  detect.lim = 10 ^-30,
+  prompt = FALSE,
+  panels = c("fc", "prevalence", "auroc"))
+
+
+
+######################################################################
+######################################################################
 
 
 # comparing cohorts 
