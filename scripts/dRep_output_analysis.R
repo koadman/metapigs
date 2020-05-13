@@ -94,97 +94,111 @@ sink()
 df <- merge(no_reps_all, gtdbtk_bins, by=c("pig","bin"))
 
 
+
 # Primary clusters: 
 
 
 b <- df %>%
-  dplyr::group_by(primary_cluster) %>%
-  #dplyr::filter(n()>300) %>%               # this is optional; comment out to look at all
-  dplyr::filter(!primary_cluster=="no_cluster") %>%
-  dplyr::group_by(primary_cluster) %>%
+  dplyr::filter(!primary_cluster=="no") %>%
   dplyr::select(node,domain,phylum,class,order,family,genus,species,primary_cluster) 
+
 
 b_species <- b %>%
   dplyr::group_by(primary_cluster,species) %>%
-  dplyr::summarise(num= n())  %>%
-  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::summarise(freq= n())  %>%
+  dplyr::mutate(num2= freq/sum(freq))  %>%
   dplyr::group_by(primary_cluster) %>%
   dplyr::top_n(1, num2) %>% 
-  dplyr::select(primary_cluster,num2,species) %>%
-  dplyr::rename(., species_agree = num2) 
-b_species <- as.data.frame.array(summary(b_species))
-b_species <- as.data.frame(b_species[,2])
+  dplyr::select(primary_cluster,freq,num2) %>%
+  dplyr::rename(., agree = num2) 
 
 b_genus <- b %>%
   dplyr::group_by(primary_cluster,genus) %>%
-  dplyr::summarise(num= n())  %>%
-  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::summarise(freq= n())  %>%
+  dplyr::mutate(num2= freq/sum(freq))  %>%
   dplyr::group_by(primary_cluster) %>%
   dplyr::top_n(1, num2) %>% 
-  dplyr::select(primary_cluster,num2) %>%
-  dplyr::rename(., genus_agree = num2) 
-b_genus <- as.data.frame.array(summary(b_genus))
-b_genus <- as.data.frame(b_genus[,2])
+  dplyr::select(primary_cluster,freq,num2) %>%
+  dplyr::rename(., agree = num2) 
 
 b_family <- b %>%
   dplyr::group_by(primary_cluster,family) %>%
-  dplyr::summarise(num= n())  %>%
-  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::summarise(freq= n())  %>%
+  dplyr::mutate(num2= freq/sum(freq))  %>%
   dplyr::group_by(primary_cluster) %>%
   dplyr::top_n(1, num2) %>% 
-  dplyr::select(primary_cluster,num2,family) %>%
-  dplyr::rename(., family_agree = num2) 
-b_family <- as.data.frame.array(summary(b_family))
-b_family <- as.data.frame(b_family[,2])
+  dplyr::select(primary_cluster,freq,num2) %>%
+  dplyr::rename(., agree = num2) 
 
 b_order <- b %>%
   dplyr::group_by(primary_cluster,order) %>%
-  dplyr::summarise(num= n())  %>%
-  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::summarise(freq= n())  %>%
+  dplyr::mutate(num2= freq/sum(freq))  %>%
   dplyr::group_by(primary_cluster) %>%
   dplyr::top_n(1, num2) %>% 
-  dplyr::select(primary_cluster,num2) %>%
-  dplyr::rename(., order_agree = num2) 
-b_order <- as.data.frame.array(summary(b_order))
-b_order <- as.data.frame(b_order[,2])
+  dplyr::select(primary_cluster,freq,num2) %>%
+  dplyr::rename(., agree = num2) 
 
 b_class <- b %>%
   dplyr::group_by(primary_cluster,class) %>%
-  dplyr::summarise(num= n())  %>%
-  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::summarise(freq= n())  %>%
+  dplyr::mutate(num2= freq/sum(freq))  %>%
   dplyr::group_by(primary_cluster) %>%
   dplyr::top_n(1, num2) %>% 
-  dplyr::select(primary_cluster,num2) %>%
-  dplyr::rename(., class_agree = num2) 
-b_class <- as.data.frame.array(summary(b_class))
-b_class <- as.data.frame(b_class[,2])
+  dplyr::select(primary_cluster,freq,num2) %>%
+  dplyr::rename(., agree = num2) 
 
 b_phylum <- b %>%
   dplyr::group_by(primary_cluster,phylum) %>%
-  dplyr::summarise(num= n())  %>%
-  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::summarise(freq= n())  %>%
+  dplyr::mutate(num2= freq/sum(freq))  %>%
   dplyr::group_by(primary_cluster) %>%
   dplyr::top_n(1, num2) %>% 
-  dplyr::select(primary_cluster,num2) %>%
-  dplyr::rename(., phylum_agree = num2) 
-b_phylum <- as.data.frame.array(summary(b_phylum))
-b_phylum <- as.data.frame(b_phylum[,2])
+  dplyr::select(primary_cluster,freq,num2) %>%
+  dplyr::rename(., agree = num2) 
 
-prim_clu_agree <- cbind(b_phylum,
-      b_class,
-      b_order,
-      b_family,
-      b_genus,
-      b_species)
-colnames(prim_clu_agree) <- c("phylum","class",
-                             "order","family",
-                             "genus","species")
+
+
+b_phylum$GTDB_taxa_level="phylum"
+b_class$GTDB_taxa_level="class"
+b_order$GTDB_taxa_level="order"
+b_family$GTDB_taxa_level="family"
+b_genus$GTDB_taxa_level="genus"
+b_species$GTDB_taxa_level="species"
+
+
+prim_clu_agree <- rbind(b_phylum,
+                        b_class,
+                        b_order,
+                        b_family,
+                        b_genus,
+                        b_species)
+
+# reorder taxa levels 
+prim_clu_agree$GTDB_taxa_level  = factor(prim_clu_agree$GTDB_taxa_level, levels=c("phylum",
+                                                                                  "class",
+                                                                                  "order",
+                                                                                  "family",
+                                                                                  "genus",
+                                                                                  "species"))
+
+means <- aggregate(agree ~  GTDB_taxa_level, prim_clu_agree, mean)
+
+primary_clusters_agreement_plot <- ggplot(prim_clu_agree, aes(agree,GTDB_taxa_level))+
+  geom_boxplot()+
+  geom_point(aes(size = freq^3,color=freq)) +
+  guides(size=FALSE)+
+  xlim(0,1.2)+
+  geom_text(data = means, aes(label = paste0(round(agree*100,2),"%"), x = 1.1))+
+  theme_bw() +
+  ggtitle("GTDB- MAGs assignments agreement with primary clusters (95% ANI)")
+
 
 sink(file = "dRep_numbers.txt", 
      append = TRUE, type = c("output"))
 paste0("Extent of agreement between dRep classification and gtdbtk assignment of bins")
 paste0("Primary clusters: ")
-prim_clu_agree
+tapply(prim_clu_agree$agree, prim_clu_agree$GTDB_taxa_level, summary)
 sink()
 
 
@@ -195,97 +209,117 @@ sink()
 
 
 b <- df %>%
-  dplyr::group_by(secondary_cluster) %>%
-  #dplyr::filter(n()>300) %>%               # this is optional; comment out to look at all
   dplyr::filter(!secondary_cluster=="no_cluster") %>%
-  dplyr::group_by(secondary_cluster) %>%
   dplyr::select(node,domain,phylum,class,order,family,genus,species,secondary_cluster) 
 
 
 b_species <- b %>%
   dplyr::group_by(secondary_cluster,species) %>%
-  dplyr::summarise(num= n())  %>%
-  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::summarise(freq= n())  %>%
+  dplyr::mutate(num2= freq/sum(freq))  %>%
   dplyr::group_by(secondary_cluster) %>%
   dplyr::top_n(1, num2) %>% 
-  dplyr::select(secondary_cluster,num2,species) %>%
-  dplyr::rename(., species_agree = num2) 
-b_species <- as.data.frame.array(summary(b_species))
-b_species <- as.data.frame(b_species[,2])
+  dplyr::select(secondary_cluster,freq,num2) %>%
+  dplyr::rename(., agree = num2) 
 
 b_genus <- b %>%
   dplyr::group_by(secondary_cluster,genus) %>%
-  dplyr::summarise(num= n())  %>%
-  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::summarise(freq= n())  %>%
+  dplyr::mutate(num2= freq/sum(freq))  %>%
   dplyr::group_by(secondary_cluster) %>%
   dplyr::top_n(1, num2) %>% 
-  dplyr::select(secondary_cluster,num2) %>%
-  dplyr::rename(., genus_agree = num2) 
-b_genus <- as.data.frame.array(summary(b_genus))
-b_genus <- as.data.frame(b_genus[,2])
+  dplyr::select(secondary_cluster,freq,num2) %>%
+  dplyr::rename(., agree = num2) 
 
 b_family <- b %>%
   dplyr::group_by(secondary_cluster,family) %>%
-  dplyr::summarise(num= n())  %>%
-  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::summarise(freq= n())  %>%
+  dplyr::mutate(num2= freq/sum(freq))  %>%
   dplyr::group_by(secondary_cluster) %>%
   dplyr::top_n(1, num2) %>% 
-  dplyr::select(secondary_cluster,num2,family) %>%
-  dplyr::rename(., family_agree = num2) 
-b_family <- as.data.frame.array(summary(b_family))
-b_family <- as.data.frame(b_family[,2])
+  dplyr::select(secondary_cluster,freq,num2) %>%
+  dplyr::rename(., agree = num2) 
 
 b_order <- b %>%
   dplyr::group_by(secondary_cluster,order) %>%
-  dplyr::summarise(num= n())  %>%
-  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::summarise(freq= n())  %>%
+  dplyr::mutate(num2= freq/sum(freq))  %>%
   dplyr::group_by(secondary_cluster) %>%
   dplyr::top_n(1, num2) %>% 
-  dplyr::select(secondary_cluster,num2) %>%
-  dplyr::rename(., order_agree = num2) 
-b_order <- as.data.frame.array(summary(b_order))
-b_order <- as.data.frame(b_order[,2])
+  dplyr::select(secondary_cluster,freq,num2) %>%
+  dplyr::rename(., agree = num2) 
 
 b_class <- b %>%
   dplyr::group_by(secondary_cluster,class) %>%
-  dplyr::summarise(num= n())  %>%
-  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::summarise(freq= n())  %>%
+  dplyr::mutate(num2= freq/sum(freq))  %>%
   dplyr::group_by(secondary_cluster) %>%
   dplyr::top_n(1, num2) %>% 
-  dplyr::select(secondary_cluster,num2) %>%
-  dplyr::rename(., class_agree = num2) 
-b_class <- as.data.frame.array(summary(b_class))
-b_class <- as.data.frame(b_class[,2])
+  dplyr::select(secondary_cluster,freq,num2) %>%
+  dplyr::rename(., agree = num2) 
 
 b_phylum <- b %>%
   dplyr::group_by(secondary_cluster,phylum) %>%
-  dplyr::summarise(num= n())  %>%
-  dplyr::mutate(num2= num/sum(num))  %>%
+  dplyr::summarise(freq= n())  %>%
+  dplyr::mutate(num2= freq/sum(freq))  %>%
   dplyr::group_by(secondary_cluster) %>%
   dplyr::top_n(1, num2) %>% 
-  dplyr::select(secondary_cluster,num2) %>%
-  dplyr::rename(., phylum_agree = num2) 
-b_phylum <- as.data.frame.array(summary(b_phylum))
-b_phylum <- as.data.frame(b_phylum[,2])
-class(sec_clu_agree)
-sec_clu_agree <- cbind(b_phylum,
-                        b_class,
-                        b_order,
-                        b_family,
-                        b_genus,
-                        b_species)
-colnames(sec_clu_agree) <- c("phylum","class",
-                             "order","family",
-                             "genus","species")
+  dplyr::select(secondary_cluster,freq,num2) %>%
+  dplyr::rename(., agree = num2) 
+
+
+
+b_phylum$GTDB_taxa_level="phylum"
+b_class$GTDB_taxa_level="class"
+b_order$GTDB_taxa_level="order"
+b_family$GTDB_taxa_level="family"
+b_genus$GTDB_taxa_level="genus"
+b_species$GTDB_taxa_level="species"
+
+
+sec_clu_agree <- rbind(b_phylum,
+                       b_class,
+                       b_order,
+                       b_family,
+                       b_genus,
+                       b_species)
+
+# reorder taxa levels 
+sec_clu_agree$GTDB_taxa_level  = factor(sec_clu_agree$GTDB_taxa_level, levels=c("phylum",
+                                                                                "class",
+                                                                                "order",
+                                                                                "family",
+                                                                                "genus",
+                                                                                "species"))
+
+means <- aggregate(agree ~  GTDB_taxa_level, sec_clu_agree, mean)
+
+secondary_clusters_agreement_plot <- ggplot(sec_clu_agree, aes(agree,GTDB_taxa_level))+
+  geom_boxplot()+
+  geom_point(aes(size = freq^3,color=freq)) +
+  guides(size=FALSE)+
+  xlim(0,1.2)+
+  geom_text(data = means, aes(label = paste0(round(agree*100,2),"%"), x = 1.1))+
+  theme_bw() +
+  ggtitle("GTDB- MAGs assignments agreement with secondary clusters (99% ANI)")
+
 
 sink(file = "dRep_numbers.txt", 
      append = TRUE, type = c("output"))
 paste0("Extent of agreement between dRep classification and gtdbtk assignment of bins")
 paste0("Secondary clusters: ")
-sec_clu_agree
+tapply(sec_clu_agree$agree, sec_clu_agree$GTDB_taxa_level, summary)
 sink()
 
 
+agreement_plots <- ggarrange(primary_clusters_agreement_plot,
+          secondary_clusters_agreement_plot,
+          nrow=2,
+          common.legend = TRUE)
+
+pdf("dRep_GTDB_extent_of_agreement.pdf")
+agreement_plots
+dev.off()
 
 
 ######################################################################

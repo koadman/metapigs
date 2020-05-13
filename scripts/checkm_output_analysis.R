@@ -15,6 +15,7 @@ library(pheatmap)
 library(robCompositions)
 library(ggbiplot)
 library(EnvStats)
+library(treemapify)
 
 basedir = "/Users/12705859/Desktop/metapigs_dry/"
 setwd("/Users/12705859/Desktop/metapigs_dry/checkm/")
@@ -203,15 +204,19 @@ tot <- final_cohort %>%
   dplyr::select(cohort,tot_bins)
 labs <- round(tot$tot_bins)
 
-
-pdf("#bins_cohort.pdf")
-final_pig %>%
-  ggplot(data=., mapping=aes(x=cohort, y=`number of metagenomes obtained`)) + 
+bins_per_cohort_plot <- final_pig %>%
+  ggplot(data=., mapping=aes(x=cohort, y=`number of metagenomes obtained`, color=sampling_frequency)) + 
   geom_boxplot(outlier.shape = NA) + 
   geom_jitter(width = 0.1, size=0.5,aes(colour = sampling_frequency)) +
   stat_n_text(size = 3) +
   theme_bw() +
-  scale_color_gradient(low = "blue", high = "green") +
+  theme(legend.position="top",
+        axis.text.x=element_text(angle=90))+
+  scale_color_gradient(low = "blue", 
+                       high = "green",
+                       name = "sampling frequency")+
+  guides(color=guide_colorbar(direction = "horizontal",
+                             title.position = "top"))+
   annotate("text", label = labs[1], x = 1, y = 835, size = 3, colour = "black") +
   annotate("text", label = labs[2], x = 2, y = 835, size = 3, colour = "black") +
   annotate("text", label = labs[3], x = 3, y = 835, size = 3, colour = "black") +
@@ -219,6 +224,12 @@ final_pig %>%
   annotate("text", label = labs[5], x = 5, y = 835, size = 3, colour = "black") +
   annotate("text", label = labs[6], x = 6, y = 835, size = 3, colour = "black") +
   annotate("text", label = labs[7], x = 7, y = 835, size = 3, colour = "black")
+
+
+
+
+pdf("#bins_cohort.pdf")
+bins_per_cohort_plot 
 dev.off()
 
 
@@ -282,15 +293,18 @@ az <- az %>%
                              date == "t4" | date == "t6" | 
                              date == "t8" | date == "t10" , "all subjects", "subset"))
 
-pdf("#samples_per_timepoint.pdf")
-ggplot(data=az, mapping=aes(x=date, y=`number of samples`, color=sampling)) + 
-  geom_point() +
+
+sample_per_timepoint_plot <- ggplot(data=az, mapping=aes(x=date, y=`number of samples`, fill=sampling)) + 
+  geom_point(aes(group=sampling, shape=sampling),size=3) +
   geom_line(aes(group = sampling), linetype = 2) +
   theme_bw() + 
-  labs(title="Number of collected samples per timepoint", 
-       x = "timepoint",
+  theme(legend.position="top")+
+  labs(x = "timepoint",
        y = "number of samples",
        subtitle=NULL)
+
+pdf("#samples_per_timepoint.pdf")
+sample_per_timepoint_plot
 dev.off()
 
 
@@ -395,14 +409,25 @@ test$cohort  = factor(test$cohort, levels=c("Control",
                                         "NeoD",
                                         "NeoC"))
 
+treemap_ggplot <- ggplot(test, aes(area = perc, fill = cohort, label = pig,
+                    subgroup = cohort, subgroup2=pig)) +
+  geom_treemap() +
+  geom_treemap_subgroup_border() +
+  geom_treemap_subgroup2_border(colour="black",size=1) +
+  geom_treemap_subgroup_text(place = "centre", grow = T, alpha = .9, colour =
+                               "White", fontface = "italic", min.size = 0) +
+  #geom_treemap_text(colour = "black", place = "topleft", reflow = T)+
+  theme(legend.position="none")+
+  ggtitle("       ")
+
 pdf("bins_distribution_over_cohorts_piglets.pdf")
-treemap(test, 
-        index=c("cohort","pig"), 
-        vSize="perc", 
-        type="index",                            # How you color the treemap. type help(treemap) for more info
-        palette = "Pastel1",                        # Select your color palette from the RColorBrewer presets or make your own.
-        fontsize.title=12,                       # Size of the title
-        title=paste0("Bins distribution over cohorts and piglets (",NROW(unique(paste0(no_reps_all$pig,no_reps_all$bin))),")")
+treemap_bins <- treemap(test, 
+                        index=c("cohort","pig"), 
+                        vSize="perc", 
+                        type="index",                            # How you color the treemap. type help(treemap) for more info
+                        palette = "Pastel1",                        # Select your color palette from the RColorBrewer presets or make your own.
+                        fontsize.title=14,                       # Size of the title
+                        title=paste0("Bins distribution over cohorts and piglets (",NROW(unique(paste0(no_reps_all$pig,no_reps_all$bin))),")")
 )
 dev.off()
 
@@ -412,6 +437,16 @@ dev.off()
 
 ######################################################################
 
+bins_to_sampling_3_figures <- ggarrange(sample_per_timepoint_plot,
+          bins_per_cohort_plot,
+          treemap_ggplot,
+          nrow=1,
+          ncol=3,
+          labels=c("A","B","C"))
+
+pdf("sample_effort_to_MAGs_plots.pdf",width = 9,height = 5)
+bins_to_sampling_3_figures
+dev.off()
 
 # preparing data for Completeness vs Contamination dot plot
 
