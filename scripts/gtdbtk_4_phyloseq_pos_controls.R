@@ -170,9 +170,6 @@ rownames(sample_df) <- sample_df[,1]
 ######################################################################
 
 
-
-
-
 # create phyloseq object
 
 OTU = otu_table(gOTU_mat, taxa_are_rows = TRUE)
@@ -180,22 +177,6 @@ TAX = tax_table(taxa_mat)
 samples = sample_data(sample_df)
 
 carbom <- phyloseq(OTU,TAX,samples)
-
-############################################################################################################
-
-# necessary to rarefy? if yes, I ll need to convert counts to integers first 
-#rarecurve(t(otu_table(carbom)), step=50, cex=0.5)
-
-# SUBSETTING phyloseq obejct
-
-# Keep only samples to be analyzed
-# carbom <- subset_samples(carbom, cohort =="ColiGuard")
-
-#subset to what you want & remove phyla == NA
-unique_phyla <- unique(taxa_mat_df$phylum)
-unique_phyla <- unique_phyla[!is.na(unique_phyla)]
-
-carbom <- subset_taxa(carbom, (phylum %in% unique_phyla))
 
 
 ############################################################################################################
@@ -215,15 +196,8 @@ sample_variables(carbom)
 ######################
 
 # HEATMAP
-
-# keep only very abundant OTUs
-#carbom_abund <- filter_taxa(carbom, function(x) sum(x > total*0.2) > 0.1, TRUE)
-
-# HEATMAP with only most abundant OTUs
-# plot_heatmap(carbom_abund, method = "NMDS", distance = "bray")
-
 sampleOrder = sort(sample_names(carbom))
-# method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
+
 
 # HEATMAP time - genus, family, order, etc ...
 pdf("gt_phylo_PosControls_heatmap.pdf")
@@ -232,7 +206,6 @@ plot_heatmap(carbom, method = "MDS", distance="unifrac",weighted=TRUE,
              trans=NULL, low="blue", high="red", na.value="blue") +
   ggtitle(label = "Positive Controls Composition (gtdbtk)") 
 dev.off()
-
 
 ######################
 
