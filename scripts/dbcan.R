@@ -25,6 +25,21 @@ gtdbtk_bins <- read_csv(paste0(basedir,"gtdbtk/gtdbtk_bins_completeTaxa"),
 
 ########################
 
+# counts data 
+
+no_reps_all <- read.csv(paste0(basedir,"no_reps_all.csv"), 
+                        na.strings=c("","NA"),
+                        check.names = FALSE,
+                        header = TRUE)
+
+
+# remove .fa extension to match bins in checkm df 
+no_reps_all$bin <- gsub(".fa","", no_reps_all$bin)
+head(no_reps_all)
+NROW(no_reps_all)
+
+########################
+
 # load checkM assignments of the bins
 checkm_all_nearly <- read_delim(paste0(basedir,"checkm/checkm_all_nearly"), 
                                 "\t", escape_double = FALSE, col_types = cols(pigid = col_character()), 
@@ -259,25 +274,14 @@ dev.off()
 
 ########################################################################
 
-gt_diamond <- as.data.frame(gt_diamond)
-
-
-df <- gt_diamond %>%
-  dplyr::select(species,bin,pig,date,phylum,enzymeNAME,enzymeID)
-
-
-
-
-
-
-
-
+# gt_diamond <- as.data.frame(gt_diamond)
+# 
+# 
 
 # normalize by lib size: 
 no_reps_all_norm <- no_reps_all %>%
   group_by(cohort,pig,date) %>%
   mutate(norm_value=value/sum(value))
-
 
 diamond_count <- diamond %>%
   group_by(pig,bin,enzymeID,enzymeNAME)%>%
@@ -318,7 +322,7 @@ df2 <- as.data.frame(df2)
 df_piggies <- df2 %>%
   filter(!cohort=="Mothers")
 
-# split df by species
+# split df by enzymeID
 multiple_DFs <- split( df_piggies , f = df_piggies$enzymeID ,drop = TRUE)
 
 # total number of unique CAZ IDs
@@ -364,86 +368,119 @@ for (single_DF in multiple_DFs) {
 NROW(all_pvalues)
 
 significant <- all_pvalues %>%
-  filter(p_value<0.04)
-
+  filter(p_value<0.05) %>%
+  arrange(p_value)
+tail(significant)
 mylist <- unique(significant$enzID)
+head(mylist)
+head(significant)
+
+
+
 
 
 # now I will use these IDs to immediately plot interesting stuff
+df_part <- subset(df2, (enzymeID %in% mylist))
 
+df_part <- df_part %>% group_by(cohort,pig,date,enzymeNAME,enzymeID) %>%
+  dplyr::summarize(tot=sum(norm_count)) 
 
-df_part1 <- subset(df2, (enzymeID %in% mylist)) %>% filter(!enzymeNAME=="GH")
-multi_DFs_part1 <- split( df_part1 , f = df_part1$enzymeNAME ,drop = TRUE)
+# getting a tally of number of piglets carrying each specific enzyme
+piglets_with_enzyme <- df_part %>%
+  ungroup() %>%
+  select(enzymeID,pig) %>%
+  distinct() %>%
+  group_by(enzymeID) %>%
+  tally() 
 
-df_part2 <- subset(df2, (enzymeID %in% mylist)) %>% filter(enzymeNAME=="GH") %>% arrange(enzymeID)
+df_part <- as.data.frame(inner_join(df_part,piglets_with_enzyme))
 
-
-pdf("xxxx.pdf")
-for (single_DF in multi_DFs_part1) {
-  
-  DF <- as.data.frame(single_DF)
-
-  print(DF %>%
-    group_by(cohort,pig,date,enzymeID) %>%
-    dplyr::summarize(tot=sum(norm_count)) %>%
-    ggplot(., aes(date,log(tot)))+
-    geom_boxplot() +
-    facet_wrap(~enzymeID))
+# set defined colors (releveling )
+scale_fill_gaio <- function(...){
+  ggplot2:::manual_scale(
+    'fill', 
+    values = setNames(c('#C72A3F', '#EC7746', '#FADA78', '#E0F686','#8ACE81','#2872AF'), 
+                      c("AA","CE","GH","GT","CBM","PL")), 
+    ...
+  )
 }
-# need to find a smarter method to split this one in three
-print(df_part2[1:25000,] %>%
-        group_by(cohort,pig,date,enzymeID) %>%
-        dplyr::summarize(tot=sum(norm_count)) %>%
-        ggplot(., aes(date,log(tot)))+
-        geom_boxplot() +
-        facet_wrap(~enzymeID))
-print(df_part2[25000:50000,] %>%
-        group_by(cohort,pig,date,enzymeID) %>%
-        dplyr::summarize(tot=sum(norm_count)) %>%
-        ggplot(., aes(date,log(tot)))+
-        geom_boxplot() +
-        facet_wrap(~enzymeID))
-print(df_part2[50000:76798,] %>%
-        group_by(cohort,pig,date,enzymeID) %>%
-        dplyr::summarize(tot=sum(norm_count)) %>%
-        ggplot(., aes(date,log(tot)))+
-        geom_boxplot() +
-        facet_wrap(~enzymeID))
+
+# put df rows in order of list (list is ordered by p-value (descending))
+require(gdata)
+df_part$enzymeID <- reorder.factor(df_part$enzymeID, new.order=mylist)
+df_part <- df_part %>%
+  arrange(enzymeID)
+# now they are plotted in order of significance! 
+# that means that the first pages will be most interesting
+
+
+pdf("dbcan_CAZ_time.pdf")
+for (i in seq(1, length(mylist), 12)) {    # can also use: length(unique(df_part$enzymeID))
+  
+  print(ggplot(df_part[df_part$enzymeID %in% mylist[i:(i+11)], ], 
+               aes(date, log(tot),fill=enzymeNAME)) + 
+          geom_boxplot(outlier.size = 1) +
+          facet_wrap(~ enzymeID, scales = "free_y") +
+          theme_bw()+
+          scale_fill_gaio()+
+          theme(legend.position="none",
+                axis.text.y=element_text(size = 4),
+                axis.ticks.length.y = unit(.05, "cm"),
+                axis.text.x=element_text(size=6))+
+          geom_text(aes(x="t9", y=max(log(tot)), label=paste0("n=(",n,")")),
+                    size=2,colour="black", inherit.aes=TRUE, parse=FALSE,check_overlap = TRUE))
+}
 dev.off()
 
 
+pdf("dbcan_CAZ_time.pdf")
+for (i in seq(1, 10, 12)) {    # can also use: length(unique(df_part$enzymeID))
+  
+  print(ggplot(df_part[df_part$enzymeID %in% mylist[i:(i+11)], ], 
+               aes(date, log(tot),fill=enzymeNAME)) + 
+          geom_boxplot(outlier.size = 1) +
+          facet_wrap(~ enzymeID, scales = "free_y") +
+          theme_bw()+
+          scale_fill_gaio()+
+          theme(legend.position="none",
+                axis.text.y=element_text(size = 4),
+                axis.ticks.length.y = unit(.05, "cm"),
+                axis.text.x=element_text(size=6))+
+          geom_text(aes(x="t9", y=max(log(tot)), label=paste0("n=(",n,")")),
+                    size=2,colour="black", inherit.aes=TRUE, parse=FALSE,check_overlap = TRUE))
+}
+dev.off()
+
+# splitting into multiple dataframes (by cohort)
+
+small <- subset(gt_diamond, (enzymeID %in% mylist[1:10])) %>%
+  drop.levels()
+
+multi_df <- split( small , f = small$enzymeID )
+NROW(multi_df)
 
 
-AA <- df_part1 %>%
-  filter(enzymeNAME=="AA") %>%
-  group_by(cohort,pig,date,enzymeID) %>%
-  dplyr::summarize(tot=sum(norm_count)) 
-
-AA %>%
-  ggplot(., aes(date,log(tot)))+
-  geom_boxplot() +
-  facet_wrap(~enzymeID)
-
-
-whos <- left_join(AA,gtdbtk_bins) %>%
-  filter(enzymeID=="AA1")
-unique(whos$genus)
-unique(whos$species)
-
-unique(diamond$pig)
-
-diamond %>%
-  filter(pig=="Protexin") %>%
-  group_by(enzymeNAME) %>%
-  tally() %>%
-  mutate(prop=n/sum(n)*100)
-
-diamond %>%
-  filter(!pig=="Protexin"|
-           pig=="MockCommunity"|
-           pig=="ColiGuard") %>%
-  group_by(enzymeNAME) %>%
-  tally() %>%
-  mutate(prop=n/sum(n)*100)
-
-
+pdf("test.pdf")
+for (single_df in multi_df) {
+  
+  ID <- single_df$enzymeID[1]
+  
+  print(single_df %>%
+  dplyr::select(species,family) %>%
+  distinct() %>%
+  group_by(family,species) %>%
+  tally()  %>%
+  mutate(perc=round(n/sum(n)*100,2)) %>%
+  ggplot(., aes(area = perc, fill = family, label = species,
+                                   subgroup = family, subgroup2=species)) +
+  geom_treemap() +
+  geom_treemap_subgroup_border() +
+  geom_treemap_subgroup2_border(colour="black",size=1) +
+  geom_treemap_subgroup_text(place = "top", grow = T, alpha = .9, colour =
+                               "White", fontface = "italic", min.size = 0) +
+  geom_treemap_subgroup2_text(place = "centre", grow = T, alpha = .9, colour =
+                               "White", fontface = "italic", min.size = 0)+
+  theme(legend.position="none")+
+    ggtitle(ID))
+}
+dev.off()
