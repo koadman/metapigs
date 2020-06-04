@@ -111,7 +111,7 @@ diamond$enzymeNAME  = factor(
                                "CBM",
                                "PL"))
 
-gt_diamond$enzymeNAME <- as.character(gt_diamond$enzymeNAME)
+diamond$enzymeNAME <- as.character(diamond$enzymeNAME)
 
 # PLOT 
 diamond_perc_identity_plot <- diamond %>%
@@ -132,13 +132,14 @@ enzymes_proportion <- diamond %>%
   tally() %>%
   mutate(perc = paste0(round(n/sum(n)*100,2),"%"))
 
-RColorBrewer::display.brewer.all(n=6)
+#RColorBrewer::display.brewer.all(n=6)
 
-
-pdf("dbcan_perc_identity.pdf")
-diamond_perc_identity_plot + 
+diamond_perc_identity_plot <- diamond_perc_identity_plot + 
   geom_text(data = enzymes_proportion,
             aes(enzymeNAME, 0, label = perc), vjust="inward",size=3)
+
+pdf("dbcan_perc_identity.pdf")
+diamond_perc_identity_plot
 dev.off()
 
 ########################################################################
@@ -193,7 +194,7 @@ a <- ggplot(cm_diamond_prop, aes(y=proportion, x=phylum)) +
   geom_bar(position="dodge", stat="identity",colour="black",fill="snow3")+ #lightskyblue happier
   theme(axis.text.x=element_text(angle=90))+
   theme_pubr()+
-  ylab("Proportion od CAZymes (%)")+
+  ylab("Proportion of CAZymes (%)")+
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank())
 b <- ggplot(cm_diamond_taxa, aes(fill=enzymeNAME, y=Proportion, x=phylum)) + 
@@ -253,7 +254,7 @@ a_gt <- ggplot(gt_diamond_prop, aes(y=proportion, x=phylum)) +
   geom_bar(position="dodge", stat="identity",colour="black",fill="snow3")+ #lightskyblue happier
   theme(axis.text.x=element_text(angle=90))+
   theme_pubr()+
-  ylab("Proportion od CAZymes (%)")+
+  ylab("Proportion of CAZymes (%)")+
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank())
 b_gt <- ggplot(gt_diamond_taxa, aes(fill=enzymeNAME, y=Proportion, x=phylum)) + 
@@ -261,7 +262,7 @@ b_gt <- ggplot(gt_diamond_taxa, aes(fill=enzymeNAME, y=Proportion, x=phylum)) +
   theme(axis.text.x=element_text(angle=90))+
   scale_fill_brewer(palette="Spectral")+
   theme_pubr()+
-  theme(axis.text.x=element_text(angle=45,hjust=1),
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5),
         axis.title.x = element_blank(),
         legend.position="right",
         legend.title = element_blank())
