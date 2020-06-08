@@ -414,13 +414,26 @@ colnames(df_part)[6] <- "tot"
 
 # getting a tally of number of piglets carrying each specific enzyme
 piglets_with_enzyme <- df_part %>%
+  filter(!date=="tM") %>%
   ungroup() %>%
   select(enzymeID,pig) %>%
   distinct() %>%
   group_by(enzymeID) %>%
   tally() 
 
+# getting a tally of number of moms carrying each specific enzyme
+moms_with_enzyme <- df_part %>%
+  filter(date=="tM") %>%
+  ungroup() %>%
+  select(enzymeID,pig) %>%
+  distinct() %>%
+  group_by(enzymeID) %>%
+  tally() %>%
+  mutate(n_moms=n) %>%
+  dplyr::select(enzymeID,n_moms)
+
 df_part <- as.data.frame(inner_join(df_part,piglets_with_enzyme))
+df_part <- as.data.frame(inner_join(df_part,moms_with_enzyme))
 
 # set defined colors (releveling )
 scale_fill_gaio <- function(...){
@@ -454,11 +467,12 @@ for (i in seq(1, length(mylist), 12)) {    # can also use: length(unique(df_part
                 axis.text.y=element_text(size = 4),
                 axis.ticks.length.y = unit(.05, "cm"),
                 axis.text.x=element_text(size=6))+
-          geom_text(aes(x="t9", y=max(log(tot)), label=paste0("n=(",n,")")),
+          geom_text(aes(x="t1", y=max(log(tot)), label=paste0("n=(",n,")")),
+                    size=2,colour="black", inherit.aes=TRUE, parse=FALSE,check_overlap = TRUE)+
+          geom_text(aes(x="t10", y=max(log(tot)), label=paste0("n=(",n_moms,")")),
                     size=2,colour="black", inherit.aes=TRUE, parse=FALSE,check_overlap = TRUE))
 }
 dev.off()
-
 
 
 # use list of enzymes that turned out to be significant
@@ -690,7 +704,7 @@ make_enzyme_boxplots <- function(x) {
   
   p <- x %>% 
     filter(date=="t0"|date=="t2"|date=="t4"|date=="t6"|date=="t8"|date=="t10"|date=="tM") %>%
-    group_by(pig, enzymeID, enzymeNAME,date,n) %>% 
+    group_by(pig, enzymeID, enzymeNAME,date,n,n_moms) %>% 
     summarise(tot = mean(tot, na.rm = TRUE)) %>% 
     mutate(tot=log(tot)) %>%
     arrange(desc(enzymeID)) %>%
@@ -706,15 +720,20 @@ make_enzyme_boxplots <- function(x) {
           axis.text.y=element_text(size = 4),
           axis.ticks.length.y = unit(.05, "cm"),
           axis.text.x=element_text(size=6,angle=90))+
-    geom_text(aes(x="MAGs",y=Inf, label=paste0("n=",n)),
-              size=2.5,colour="black", hjust = 1.5, angle=90, inherit.aes=TRUE, parse=FALSE,check_overlap = TRUE)
+    geom_text(aes(x="ss_piglets",y=Inf, label=paste0("n=",n)),
+              size=2.3,colour="black", hjust = 1.5, angle=90, inherit.aes=TRUE, parse=FALSE,check_overlap = TRUE)+
+    geom_text(aes(x="ss_sows",y=Inf, label=paste0("n=",n_moms)),
+              size=2.3,colour="black", hjust = 1.5, angle=90, inherit.aes=TRUE, parse=FALSE,check_overlap = TRUE)
   
   return(p)
   
 }
 
-
 # all the plots
+
+pdf("test.pdf")
+a_AA_CE
+dev.off()
 
 a_AA_CE <- make_enzyme_boxplots(df_part_AA_CE)
 a_PL <- make_enzyme_boxplots(df_part_PL)
