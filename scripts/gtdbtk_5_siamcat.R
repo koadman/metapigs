@@ -11,7 +11,7 @@ library(SIAMCAT)
 library(matrixStats)
 library(data.table)
 library(pheatmap)
-
+library(readxl)
 
 setwd("~/Desktop/metapigs_dry/gtdbtk")
 basedir = "~/Desktop/metapigs_dry/"
@@ -84,6 +84,7 @@ mdat <- read_excel(paste0(basedir,"Metagenome.environmental_20190308_2.xlsx"),
 
 mdat$`*collection_date` <- as.character(mdat$`*collection_date`)
 mdat$Cohort <- gsub("Sows","Sows",mdat$Cohort)
+mdat$Cohort <- gsub("D-scour","D-Scour",mdat$Cohort)
 
 mdat2 <- mdat %>%
   dplyr::filter(!Cohort=="Sows")  %>%
@@ -176,9 +177,9 @@ weights_rest <- weights %>%
 weights_rest<- as.data.frame(weights_rest)
 
 # quickly visualize weight category distribution
-ggplot(weights_rest,aes(x=date,fill=weight_category)) +
-  geom_bar() +
-  facet_wrap(~birth_day)
+# ggplot(weights_rest,aes(x=date,fill=weight_category)) +
+#   geom_bar() +
+#   facet_wrap(~birth_day)
 
 weights6 <- weights %>% 
   filter(birth_day=="2017-01-06")
@@ -202,7 +203,10 @@ df0 <- merge(no_reps_all, gtdbtk_bins, by=c("pig","bin"))
 # rename node as gOTU and place "gOTU_" in front of node number: a separate genomic OTU identifier for each different genome
 
 colnames(df0)[colnames(df0) == 'node'] <- 'gOTU'
-df0$gOTU <- paste0("gOTU_",df0$gOTU)
+# df0$gOTU <- paste0("gOTU_",df0$gOTU)
+
+df0$gOTU <- as.character(df0$gOTU)
+
 
 NROW(unique(df0$gOTU))
 NROW(df0)
@@ -283,7 +287,7 @@ dim(feat)
 
 
 # is the sum of each columns 1? 
-sum(feat[,4])
+sum(feat[,4])==1
 # yes 
 
 # ready! 
@@ -831,24 +835,51 @@ dev.off()
 
 
 
-# matrix subsetting when heatmap too crowded : 
+######################################################################
+######################################################################
 
+
+# comparing time point (top 10 hits; for figures in main manuscript)
+
+comparetimepoints_mini <- function(t1,t2) { 
   
-  # mat <- m
-  # 
-  # # relevant metrics per row
-  # row_med <- matrixStats::rowMedians(mat)
-  # row_vars <- matrixStats::rowVars(mat)
-  # row_maxs <- matrixStats::rowMaxs(mat)
-  # row_qntl90 <- matrixStats::rowQuantiles(mat, probs = 0.9)
-  # 
-  # # top 50% utility function
-  # top5 <- function(x) {
-  #   x >= quantile(x, 0.50)
-  # }
-  # 
-  # # combine all conditions
-  # row_idx <- top5(row_vars) & top5(row_maxs - row_med) & top5(row_qntl90 - row_med)
-  # # subscript
-  # n <- mat[row_idx, , drop = FALSE]
+  label.normalized <- create.label(meta=meta,
+                                   label='date', 
+                                   case= paste0(t2),
+                                   control= paste0(t1))
+  
+  siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
+  siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.0001)
+  
+  # check for significant associations
+  siamcat <- check.associations(
+    siamcat,
+    fn.plot = paste0("mini_gt_siamcatA_",t1,t2,".pdf"),
+    sort.by = 'fc', 
+    alpha = 0.05, max.show = 10,
+    mult.corr = "fdr",
+    detect.lim = 10 ^-6,
+    plot.type = "quantile.box",
+    panels = c("fc", "prevalence", "auroc"))
+  
+  
+}
+
+
+# run the timepoint comparisons you want: (outputs are two plots each, automatically saved)
+# 1 week interval: 
+comparetimepoints_mini("t0","t2")
+comparetimepoints_mini("t2","t4")
+comparetimepoints_mini("t4","t6")
+comparetimepoints_mini("t8","t10")
+# 2 weeks interval:
+comparetimepoints_mini("t0","t4")
+comparetimepoints_mini("t4","t8")
+# 4 weeks interval:
+comparetimepoints_mini("t0","t8")
+
+
+
+
+
 

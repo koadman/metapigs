@@ -352,13 +352,16 @@ az3$pig <- NULL
 pdf("#bins_vs_#timepoints.pdf")
 ggplot(data=az3, mapping=aes(x=`number of timepoints per subject`, y=`number of metagenomes per subject`)) + 
   geom_point(color='blue', size=0.6) +
-  #geom_smooth(method = "lm", se = FALSE)+
-  labs(title="Bins obtained versus number of timepoints available from each subject", 
-       x = "number of timepoints available per subject",
+  labs(x = "number of timepoints available per subject",
        y = "number of bins obtained per subject",
        subtitle=NULL) +
-  theme_bw()
-dev.off()
+  theme_bw()+
+  theme(axis.title.x=element_text(size=11),
+        axis.title.y=element_text(size=11),
+        axis.text.x=element_text(size=10),
+        axis.text.y=element_text(size=10))+
+  geom_smooth(se = FALSE)
+  dev.off()
 
 
 az4 <- az3 %>%
@@ -444,9 +447,9 @@ bins_to_sampling_3_figures <- ggarrange(sample_per_timepoint_plot,
           ncol=3,
           labels=c("A","B","C"))
 
-pdf("sample_effort_to_MAGs_plots.pdf",width = 9,height = 5)
-bins_to_sampling_3_figures
-dev.off()
+#pdf("sample_effort_to_MAGs_plots.pdf",width = 9,height = 5)
+#bins_to_sampling_3_figures
+#dev.off()
 
 # preparing data for Completeness vs Contamination dot plot
 
@@ -485,10 +488,11 @@ cm_Compl_vs_Contam <- ggplot(best, aes(x=Completeness, y=Contamination)) +
   xlab("Completeness (%)")+
   xlim(75,100)+
   theme_minimal()+
-  theme(axis.title.x = element_text(size=10),
-        axis.title.y = element_text(size=10),
+  theme(axis.title.x=element_text(size=11),
+        axis.title.y=element_text(size=11),
+        axis.text.x=element_text(size=6),
+        axis.text.y=element_text(size=8),
         legend.title = element_blank(),
-        legend.text = element_text(size=10),
         legend.position = "none")
 
 # similar to https://www.nature.com/articles/s41564-017-0012-7#Sec2
@@ -587,9 +591,16 @@ plot_scaffolds <- ggplot(data= toplot, aes(x=`# scaffolds`, fill=type)) +
                              "#F8766D", #red
                              "#45B4B8" #blue
   )) + 
+  xlab("scaffolds") +
+  ylab("Frequency")+
   theme_minimal()+
+  theme(axis.title.x=element_text(size=11),
+        axis.title.y=element_text(size=11),
+        axis.text.x=element_text(size=6),
+        axis.text.y=element_text(size=8))+
   labs(fill="") +
   lims(x=c(0,750))
+
 
 plot_pred_genes <- ggplot(data= toplot, aes(x=`# predicted genes`, fill=type)) +
   geom_histogram(alpha=0.6, position = 'stack', binwidth=15) +
@@ -597,7 +608,14 @@ plot_pred_genes <- ggplot(data= toplot, aes(x=`# predicted genes`, fill=type)) +
                              "#F8766D", #red
                              "#45B4B8" #blue
                              )) + 
+  xlab("predicted genes") +
+  ylab("Frequency")+
   theme_minimal()+
+  theme(axis.title.x=element_text(size=11),
+        axis.title.y=element_text(size=11),
+        axis.text.x=element_text(size=6),
+        axis.text.y=element_text(size=8))+
+  #scale_x_continuous(breaks=pretty(`# predicted genes`, length(`# predicted genes`)/2))+
   labs(fill="") +
   lims(x=c(0,5000))
 

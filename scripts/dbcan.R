@@ -11,6 +11,8 @@ library(cowplot)
 library(gridExtra)
 library(ggpubr)
 library(treemapify)
+library(ggrepel)
+library(factoextra)
 
 
 setwd("~/Desktop/metapigs_dry/dbcan")
@@ -572,20 +574,31 @@ df_part2_CBM <- subset(df_part_CBM, (enzymeID %in% list_CBM_2))
 
 
 
-
 ######
 # get species count for each enzymeID and make subsets of the data 
 
 t <- gt_diamond %>%
-  dplyr::select(pig,contig,enzymeID,enzymeNAME,species,family) %>%
+  dplyr::select(pig,enzymeID,enzymeNAME,species,family) %>%   # dplyr::select(pig,contig,enzymeID,enzymeNAME,species,family) %>%
   distinct() %>%
   group_by(pig,enzymeID,species) %>%
   add_tally() %>%
   group_by(enzymeNAME,enzymeID,species) %>%
-  summarise(n_sum_species=sum(n)) %>%
+  dplyr::summarise(n_sum_species=sum(n)) %>%
   mutate(perc_species=round(n_sum_species/sum(n_sum_species)*100,2)) %>% 
   drop_na()
 s <- as.data.frame(t)
+
+# ###
+# # it makes sense: little test: 
+# test4 <- gt_diamond %>% 
+#   filter(enzymeID=="AA1") %>%
+#   group_by(pig,enzymeID,species) %>% 
+#   tally() %>%
+#   group_by(enzymeID,species) %>%
+#   dplyr::summarise(allpiggies=sum(n)) %>%
+#   mutate(allpiggiesperc=allpiggies/sum(allpiggies))
+# head(test4)
+# ###
 
 # subsets
 s_part1_GH <- subset(s, (enzymeID %in% list_GH_1))
@@ -612,7 +625,7 @@ make_enzyme_heatmap <- function(x) {
   p <- x %>% 
     filter(date=="t0"|date=="t2"|date=="t4"|date=="t6"|date=="t8"|date=="t10"|date=="tM") %>%
     group_by(pig, enzymeID, date) %>% 
-    summarise(tot = mean(tot, na.rm = TRUE)) %>% 
+    dplyr::summarise(tot = mean(tot, na.rm = TRUE)) %>% 
     group_by(enzymeID) %>%
     mutate(tot = tot/max(tot)) %>%
     ungroup() %>% 
@@ -636,7 +649,7 @@ make_species_heatmap <- function(species_df,CAZ_heatmap) {
   
   g <- species_df %>% 
     group_by(enzymeID,species) %>% 
-    summarise(n_sum_species = mean(n_sum_species, na.rm = TRUE)) %>% 
+    dplyr::summarise(n_sum_species = mean(n_sum_species, na.rm = TRUE)) %>% 
     group_by(enzymeID) %>%
     mutate(n_sum_species = n_sum_species/sum(n_sum_species)) %>%
     top_n(n = 4, wt = n_sum_species) %>%
@@ -671,7 +684,6 @@ make_species_CAZ_plots <- function(x) {
     top_n(n = 3, wt = perc_species) %>%
     slice(1:3) %>%
     drop.levels() %>% 
-    arrange(desc(enzymeID,perc_species)) %>%
     ggplot(aes(x = reorder(enzymeID, perc_species, FUN = mean), y = reorder(species, perc_species, FUN = mean), fill = perc_species)) +
     geom_tile() +
     scale_fill_distiller(type = "div", palette = "Spectral") +
@@ -705,7 +717,7 @@ make_enzyme_boxplots <- function(x) {
   p <- x %>% 
     filter(date=="t0"|date=="t2"|date=="t4"|date=="t6"|date=="t8"|date=="t10"|date=="tM") %>%
     group_by(pig, enzymeID, enzymeNAME,date,n,n_moms) %>% 
-    summarise(tot = mean(tot, na.rm = TRUE)) %>% 
+    dplyr::summarise(tot = mean(tot, na.rm = TRUE)) %>% 
     mutate(tot=log(tot)) %>%
     arrange(desc(enzymeID)) %>%
     drop.levels() %>%
@@ -728,12 +740,6 @@ make_enzyme_boxplots <- function(x) {
   return(p)
   
 }
-
-# all the plots
-
-pdf("test.pdf")
-a_AA_CE
-dev.off()
 
 a_AA_CE <- make_enzyme_boxplots(df_part_AA_CE)
 a_PL <- make_enzyme_boxplots(df_part_PL)
@@ -866,6 +872,332 @@ dev.off()
 
 
 
+# PLOT showing all enzymes that significantly changed over time, 
+# with popularity (y) and "singularity" (x) meaning how uniquely an enzyme is expressed by one (right) or multiple (left) taxa
+
+
+df <- gt_diamond %>%
+  dplyr::select(pig,enzymeID,enzymeNAME,species,family) %>%
+  distinct() %>%
+  group_by(pig,enzymeID,species) %>%
+  add_tally() %>%
+  group_by(enzymeNAME,enzymeID,species) %>%
+  dplyr::summarise(n_sum_species=sum(n)) %>%
+  mutate(perc_species=round(n_sum_species/sum(n_sum_species)*100,2)) %>% 
+  drop_na()
+
+df2 <- as.data.frame(df)
+df2 <- df2 %>%
+  group_by(enzymeID) %>%
+  top_n(n = 1, wt = perc_species) 
+
+# subsetting to contain only sigbificantly changing enzymes over time
+df2 <- subset(df2, (enzymeID %in% df_part$enzymeID))
+
+# to get the species showing in the labels 
+df2$species <- gsub(" ","\n", df2$species)
+
+df2$enzymeNAME  = factor(
+  df2$enzymeNAME, levels=c("AA",
+                            "CE",
+                            "GH",
+                            "GT",
+                            "CBM",
+                            "PL"))
+
+pdf("dbcan_all_CAZ_plot.pdf")
+ggplot(df2) +
+  geom_point(aes(perc_species, n_sum_species, fill = factor(enzymeNAME))) +
+  #ylim(0,10000)+
+  #xlim(-25,100)+
+  geom_point(aes(perc_species, n_sum_species, fill=enzymeNAME), 
+             colour="black",pch=21, size=4)+
+  labs(x="percentage of top species per enzymeID",
+       y="number of subjects carrying the enzyme",
+       fill="enzyme class")+
+  scale_fill_manual(values = setNames(c('#C72A3F', '#EC7746', '#FADA78', '#E0F686','#8ACE81','#2872AF'), 
+                                      c("AA","CE","GH","GT","CBM","PL")))+
+  theme_bw(base_size = 10)+
+  ggrepel::geom_label_repel(data = subset(df2, perc_species >= 50),
+                            aes(
+                              x = perc_species,
+                              y = n_sum_species,
+                              fill = factor(enzymeNAME),
+                              label = paste0(enzymeID,"\n",species)
+                            ),
+                            #nudge_y       = 100 - subset(test, perc_species >= 55)$perc_species, #rep(c(4000,45000),7),
+                            box.padding   = 0.3,label.padding = 0.1,
+                            point.padding = 0.5,
+                            #force         = 70,
+                            segment.size  = 0.2,
+                            segment.color = "grey50",
+                            #direction     = "x",
+                            size=2.5,
+                            color="black"
+  ) 
+dev.off()
+
+
+
+# CE
+
+sink(file = "enzymes_popularity and species-uniqueness",append = FALSE)
+
+paste0(" ##############################  CE  ############################## ")
+paste0("number of all enzymeIDs within this class")
+NROW(subset(df2, enzymeNAME == "CE")) 
+paste0("number of all enzymeIDs within this class, that are present in multiple species")
+NROW(subset(df2, enzymeNAME == "CE" & perc_species<25)) 
+CE_df2 <- df2 %>%
+  filter(enzymeNAME=="CE") %>%
+  filter(perc_species<25) 
+summary(CE_df2)
+
+paste0(" ##############################  PL  ############################## ")
+paste0("number of all enzymeIDs within this class")
+NROW(subset(df2, enzymeNAME == "PL")) 
+paste0("number of all enzymeIDs within this class, that are present in multiple species")
+NROW(subset(df2, enzymeNAME == "PL" & perc_species<25)) 
+PL_df2 <- df2 %>%
+  filter(enzymeNAME=="PL") %>%
+  filter(perc_species<25) 
+summary(PL_df2)
+
+paste0(" ##############################  GT  ############################## ")
+paste0("number of all enzymeIDs within this class")
+NROW(subset(df2, enzymeNAME == "GT")) 
+paste0("number of all enzymeIDs within this class, that are present in multiple species")
+NROW(subset(df2, enzymeNAME == "GT" & perc_species<25)) 
+GT_df2 <- df2 %>%
+  filter(enzymeNAME=="GT") %>%
+  filter(perc_species<25) 
+summary(GT_df2)
+
+paste0(" ##############################  GH  ############################## ")
+paste0("number of all enzymeIDs within this class")
+NROW(subset(df2, enzymeNAME == "GH")) 
+paste0("number of all enzymeIDs within this class, that are present in multiple species")
+NROW(subset(df2, enzymeNAME == "GH" & perc_species<25)) 
+GH_df2 <- df2 %>%
+  filter(enzymeNAME=="GH") %>%
+  filter(perc_species<25) 
+summary(GH_df2)
+
+paste0(" ##############################  CBM  ############################## ")
+paste0("number of all enzymeIDs within this class")
+NROW(subset(df2, enzymeNAME == "CBM")) 
+CBM_df2 <- df2 %>%
+  filter(enzymeNAME=="CBM") 
+summary(CBM_df2)
+
+paste0(" ##############################  AA  ############################## ")
+paste0("number of all enzymeIDs within this class")
+NROW(subset(df2, enzymeNAME == "AA")) 
+AA_df2 <- df2 %>%
+  filter(enzymeNAME=="AA") 
+summary(AA_df2)
+
+
+paste0(" ##############################  enzymes present majorly in one species ############################## ")
+rightmost <- df2 %>%
+  filter(perc_species>70) %>%
+  arrange(n_sum_species)
+NROW(rightmost)
+rightmost
+
+
+
+
+
+
+
+# Prevotella vs Bacteroidetes enzyme specificity
+
+test <- subset(df_part, (enzymeID %in% mylist))
+
+
+# 1 
+# plot all prevotella and all bacteroidetes genus, all enzymes, no labels 
+
+
+# 2 
+# plot only Bacteroidetes A and Prevotella, top 50 most abundant enzymes; no labels 
+
+# 3 
+# plot only Bacteroidetes A and Prevotella, top 100 most abundant enzymes; labels 
+
+# 4 
+# plot only Bacteroidetes A and Prevotella, all, no labels 
+
+
+# 1 
+test2 <- gt_diamond_sub %>% 
+  filter(genus=="Prevotella"|genus=="Bacteroides_A"|genus=="Bacteroides"|genus=="Bacteroides_B") %>%
+  dplyr::select(genus,enzymeID) %>%
+  distinct()
+test4 <- inner_join(test,test2, by="enzymeID")
+NROW(test4)
+test4$sample=paste0(".",test4$genus,"__",test4$sample)
+df3 <- test4 %>% dplyr::select(sample,enzymeID,tot) %>% 
+  pivot_wider(id_cols = sample, names_from = enzymeID, 
+              values_from=tot, values_fill = list(tot = 0))
+x <- as.data.frame(df3)
+rownames(x) <- x$sample
+x$sample <- NULL
+# order left to right in descending order 
+x <- x[,names(sort(colSums(x), decreasing = TRUE))]
+#############
+# PCA
+mtcars.pca2 <- prcomp(x, center = TRUE,scale. = TRUE)   # [,1:100]
+genus <- as.character(qdapRegex::ex_between(rownames(x),".", "__"))
+dates <- as.character(qdapRegex::ex_between(rownames(x), "__", "_"))
+p1 <- fviz_pca_ind(mtcars.pca2, 
+                   geom.ind="point",
+                   #fill.ind = dates, 
+                   #col.ind = rainbow(n = 11),
+                   pointsize = 2, 
+                   habillage = genus, 
+                   pointshape=21,
+                   #geom.ind = "point", # show points only (nbut not "text") 
+                   col.ind = genus, # color by groups
+                   #palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+                   addEllipses = FALSE, # Concentration ellipses
+                   title="")+
+  scale_color_manual(name="genus", 
+                     values=rainbow(n = 4))+
+  theme(legend.position="top")+
+  guides(color = guide_legend(nrow = 1))
+
+
+
+# 2 
+# plot only Bacteroidetes A and Prevotella, top 50 most abundant enzymes
+test2 <- gt_diamond_sub %>% 
+  filter(genus=="Prevotella"|genus=="Bacteroides_A") %>%
+  dplyr::select(genus,enzymeID) %>%
+  distinct()
+test4 <- inner_join(test,test2, by="enzymeID")
+NROW(test4)
+test4$sample=paste0(".",test4$genus,"__",test4$sample)
+df3 <- test4 %>% dplyr::select(sample,enzymeID,tot) %>% 
+  pivot_wider(id_cols = sample, names_from = enzymeID, 
+              values_from=tot, values_fill = list(tot = 0))
+x <- as.data.frame(df3)
+rownames(x) <- x$sample
+x$sample <- NULL
+# order left to right in descending order 
+x <- x[,names(sort(colSums(x), decreasing = TRUE))]
+#############
+# PCA
+mtcars.pca2 <- prcomp(x[,1:50], center = TRUE,scale. = TRUE)   # [,1:100]
+genus <- as.character(qdapRegex::ex_between(rownames(x[,1:50]),".", "__"))
+dates <- as.character(qdapRegex::ex_between(rownames(x[,1:50]), "__", "_"))
+p2 <- fviz_pca_ind(mtcars.pca2, 
+                   geom.ind="point",
+                   #fill.ind = dates, 
+                   #col.ind = rainbow(n = 11),
+                   pointsize = 2, 
+                   habillage = genus, 
+                   pointshape=21,
+                   #geom.ind = "point", # show points only (nbut not "text") 
+                   col.ind = genus, # color by groups
+                   #palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+                   addEllipses = FALSE, # Concentration ellipses
+                   title="")+
+  scale_color_manual(name="genus", 
+                     values=rainbow(n = 4))+
+  theme(legend.position="top")+
+  guides(color = guide_legend(nrow = 1))
+
+
+
+
+# 3 
+# plot only Bacteroidetes A and Prevotella, top 50 most abundant enzymes
+test2 <- gt_diamond_sub %>% 
+  filter(genus=="Prevotella"|genus=="Bacteroides_A") %>%
+  dplyr::select(genus,enzymeID) %>%
+  distinct()
+test4 <- inner_join(test,test2, by="enzymeID")
+NROW(test4)
+test4$sample=paste0(".",test4$genus,"__",test4$sample)
+df3 <- test4 %>% dplyr::select(sample,enzymeID,tot) %>% 
+  pivot_wider(id_cols = sample, names_from = enzymeID, 
+              values_from=tot, values_fill = list(tot = 0))
+x <- as.data.frame(df3)
+rownames(x) <- x$sample
+x$sample <- NULL
+# order left to right in descending order 
+x <- x[,names(sort(colSums(x), decreasing = TRUE))]
+#############
+# PCA
+mtcars.pca2 <- prcomp(x[,1:100], center = TRUE,scale. = TRUE)   
+genus <- as.character(qdapRegex::ex_between(rownames(x[,1:100]),".", "__"))
+dates <- as.character(qdapRegex::ex_between(rownames(x[,1:100]), "__", "_"))
+p3 <- fviz_pca_biplot(mtcars.pca2,
+                      geom.ind="point",
+                      pointsize = 2, 
+                      habillage = genus, 
+                      pointshape=21,
+                      #geom.ind = "point", # show points only (nbut not "text") 
+                      col.ind = genus, # color by groups
+                      alpha.var ="contrib",
+                      repel = TRUE,labelsize=4) +
+  scale_color_manual(name="dates",
+                     values=rainbow(n = 4))+
+  ggtitle("")+
+  theme(legend.position="top",
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+
+
+# 4 
+# plot only Bacteroidetes A and Prevotella, all (no enzymes labels)
+test2 <- gt_diamond_sub %>% 
+  filter(genus=="Prevotella"|genus=="Bacteroides_A") %>%
+  dplyr::select(genus,enzymeID) %>%
+  distinct()
+test4 <- inner_join(test,test2, by="enzymeID")
+NROW(test4)
+test4$sample=paste0(".",test4$genus,"__",test4$sample)
+df3 <- test4 %>% dplyr::select(sample,enzymeID,tot) %>% 
+  pivot_wider(id_cols = sample, names_from = enzymeID, 
+              values_from=tot, values_fill = list(tot = 0))
+x <- as.data.frame(df3)
+rownames(x) <- x$sample
+x$sample <- NULL
+# order left to right in descending order 
+x <- x[,names(sort(colSums(x), decreasing = TRUE))]
+#############
+# PCA
+mtcars.pca2 <- prcomp(x, center = TRUE,scale. = TRUE)   # [,1:100]
+genus <- as.character(qdapRegex::ex_between(rownames(x),".", "__"))
+dates <- as.character(qdapRegex::ex_between(rownames(x), "__", "_"))
+p4 <- fviz_pca_ind(mtcars.pca2, 
+                   geom.ind="point",
+                   #fill.ind = dates, 
+                   #col.ind = rainbow(n = 11),
+                   pointsize = 2, 
+                   habillage = genus, 
+                   pointshape=21,
+                   #geom.ind = "point", # show points only (nbut not "text") 
+                   col.ind = genus, # color by groups
+                   #palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+                   addEllipses = FALSE, # Concentration ellipses
+                   title="")+
+  scale_color_manual(name="genus", 
+                     values=rainbow(n = 4))+
+  theme(legend.position="top")+
+  guides(color = guide_legend(nrow = 1))
+
+
+p1 <- ggarrange(p1)
+p234 <- ggarrange(p2,p3,p4, common.legend=TRUE)
+tosave <- ggarrange(p1,p234)
+
+
+pdf("dbcan_specificity_genera.pdf")
+tosave
+dev.off()
 
 
 
