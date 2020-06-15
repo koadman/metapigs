@@ -21,7 +21,7 @@ basedir = "~/Desktop/metapigs_dry/"
 ########################
 
 # load dbcan_diamond data (output of mapping our-bins-AAs against CAZy db)
-diamond <- read_table2("diamond.out", col_names = FALSE)
+hmmer <- read_table2("hmmer.out", col_names = FALSE)
 
 ########################
 
@@ -58,90 +58,115 @@ checkm_all_nearly <- read_delim(paste0(basedir,"checkm/checkm_all_nearly"),
 
 # PART 1
 
+head(hmmer)
+colnames(hmmer)
 
+# hmmer data cleaning 
 
-# DIAMOND data cleaning 
+# remove .hmm from enzyme ID
+hmmer <- cSplit(hmmer,"X1",".")
 
-# get the enzyme ID clean
-diamond <- cSplit(diamond,"X2","|")
-diamond <- cSplit(diamond,"X2_2","_")
-diamond <- cSplit(diamond,"X2_2_1"," ")
+# separate by _
+hmmer <- cSplit(hmmer,"X1_1","_")
+
+# copy enzyme ID into new column 
+hmmer$enzymeID <- hmmer$X1_1_1
+
+# extra enzyme ID - suffixes together 
+hmmer <- hmmer  %>%
+  mutate_at(c('X1_1_2', 'X1_1_3','X1_1_4','X1_1_5'), ~str_replace_na(., "")) %>%
+  mutate(combo_var = paste0(X1_1_2,".", X1_1_3,".",X1_1_4,".",X1_1_5))
+
+unique(hmmer$enzymeID)
 
 # subject/bin/contig
-diamond <- cSplit(diamond,"X1","_")
+hmmer <- cSplit(hmmer,"X3","_")
 
-diamond <- diamond %>%
-  dplyr::select(X1_1,X1_2,X1_3,
-                X2_1,X2_2_1_1,
-                X3,X4,X5,X6,X7,X8,X9,X10,X11,X12)
+# columns selection
+hmmer <- hmmer %>%
+  dplyr::select(enzymeID,combo_var,
+                X3_1,X3_2, X3_3, # pig, bin, contig number 
+                X2,X4, # length enzyme, length subject protein
+                X5,X6,X7,X8,X9,X10) # evalue, start query, end query, start sample, end sample, coverage  
 
-# save column with full enzyme ID 
-diamond$enzyme <- diamond$X2_2_1_1
-
-# split the enzyme ID from the enzyme number 
-diamond <- diamond %>%
-  separate(X2_2_1_1, 
+# get enzyme class
+hmmer$getclass <- hmmer$enzymeID
+hmmer <- hmmer %>%
+  separate(getclass, 
            into = c("text", "num"), 
-           sep = "(?<=[A-Za-z])(?=[0-9])")
+           sep = "(?<=[A-Za-z])(?=[0-9])"
+  )
+
+hmmer$num <- NULL
 
 # cols renaming
-colnames(diamond) <- c("pig","bin","contig","CAZ_accession","enzymeNAME","enzymeDIGIT",
-                       "perc_identity","align_length","mismatches","gap_openings",
-                       "start_query","end_query","start_sample","end_sample",
-                       "evalue","bitscore","enzymeID")
-diamond$bin <- gsub(".fa","", diamond$bin)
+colnames(hmmer) <- c("enzymeID","enzymeID_suffixes",
+                     "pig","bin","contig",
+                     "HMM_length","query_lenght",
+                     "evalue",
+                     "start HMM","end HMM",
+                     "start sample","end sample",
+                     "coverage", "enzymeNAME")
+                     
+hmmer$bin <- gsub(".fa","", hmmer$bin)
 
-head(diamond)
+head(hmmer)
 
 ########################################################################
 
-# QUALITY of diamond data : 
+# QUALITY of hmmer data : 
 # how well our predicted proteins - matched against the CAZy database 
 
 # our evalues 
-summary(diamond$evalue)
+summary(hmmer$evalue)
 
 # our percentages of identity 
-summary(diamond$perc_identity)
+summary(hmmer$coverage)
 
 # re-rder enzymes to follow the same aesthetics as Stewart et al 2019
-diamond$enzymeNAME  = factor(
-  diamond$enzymeNAME, levels=c("AA",
+unique(hmmer$enzymeNAME)
+levels(hmmer$enzymeNAME)
+
+hmmer$enzymeNAME <- as.character(hmmer$enzymeNAME)
+hmmer$enzymeNAME  = factor(
+  hmmer$enzymeNAME, levels=c("AA",
                                "CE",
+                               "SLH",
                                "GH",
                                "GT",
                                "CBM",
+                               "cohesin",
                                "PL"))
 
-diamond$enzymeNAME <- as.character(diamond$enzymeNAME)
+# display.brewer.pal(8, "Spectral")
+
+summary(hmmer$coverage)
 
 # PLOT 
-diamond_perc_identity_plot <- diamond %>%
+hmmer_perc_identity_plot <- hmmer %>%
   group_by(enzymeNAME) %>%
-  ggplot(.,aes(enzymeNAME,perc_identity,fill=enzymeNAME))+
+  ggplot(.,aes(enzymeNAME,coverage*100,fill=enzymeNAME))+
   ylab("Percentage identity")+
-  geom_boxplot()+
+  geom_boxplot(outlier.size = 0.1)+
   ylim(0,100)+
   scale_fill_brewer(palette="Spectral")+
   theme_bw()+
   theme(axis.title.x=element_blank(),
         legend.position="none",
         plot.title = element_text(hjust = 0.5))+
-  ggtitle("Percentage identity against CAZy")
+  ggtitle("Percentage identity against CAZy (HMMER)")
 
-enzymes_proportion <- diamond %>% 
+enzymes_proportion <- hmmer %>% 
   group_by(enzymeNAME) %>% 
   tally() %>%
   mutate(perc = paste0(round(n/sum(n)*100,2),"%"))
 
-#RColorBrewer::display.brewer.all(n=6)
-
-diamond_perc_identity_plot <- diamond_perc_identity_plot + 
+hmmer_perc_identity_plot <- hmmer_perc_identity_plot + 
   geom_text(data = enzymes_proportion,
             aes(enzymeNAME, 0, label = perc), vjust="inward",size=3)
 
-pdf("dbcan_perc_identity.pdf")
-diamond_perc_identity_plot
+pdf("dbcan_hmmer_perc_identity.pdf")
+hmmer_perc_identity_plot
 dev.off()
 
 ########################################################################
@@ -176,30 +201,30 @@ checkm_clean$phylum <- gsub("p__","", checkm_clean$phylum)
 
 
 NROW(checkm_clean)
-NROW(diamond)
+NROW(hmmer)
 
-cm_diamond <- inner_join(checkm_clean,diamond)
-NROW(cm_diamond)
+cm_hmmer <- inner_join(checkm_clean,hmmer)
+NROW(cm_hmmer)
 
 
-cm_diamond_taxa <- cm_diamond %>%
+cm_hmmer_taxa <- cm_hmmer %>%
   group_by(phylum,enzymeNAME) %>%
   tally() %>%
   mutate(Proportion = n) 
 
-cm_diamond_prop <- cm_diamond %>%
+cm_hmmer_prop <- cm_hmmer %>%
   group_by(phylum) %>%
   tally() %>%
   mutate(proportion=n/sum(n)*100)
 
-a <- ggplot(cm_diamond_prop, aes(y=proportion, x=phylum)) + 
+a <- ggplot(cm_hmmer_prop, aes(y=proportion, x=phylum)) + 
   geom_bar(position="dodge", stat="identity",colour="black",fill="snow3")+ #lightskyblue happier
   theme(axis.text.x=element_text(angle=90))+
   theme_pubr()+
   ylab("Proportion of CAZymes (%)")+
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank())
-b <- ggplot(cm_diamond_taxa, aes(fill=enzymeNAME, y=Proportion, x=phylum)) + 
+b <- ggplot(cm_hmmer_taxa, aes(fill=enzymeNAME, y=Proportion, x=phylum)) + 
   geom_bar(position="fill", stat="identity",colour="black")+
   theme(axis.text.x=element_text(angle=90))+
   scale_fill_brewer(palette="Spectral")+
@@ -209,9 +234,9 @@ b <- ggplot(cm_diamond_taxa, aes(fill=enzymeNAME, y=Proportion, x=phylum)) +
         legend.position="right",
         legend.title = element_blank())
 
-# RColorBrewer::display.brewer.all(n=6)
+# RColorBrewer::display.brewer.all(n=8,select = "Spectral")
 
-CAZ_CMphyla_plot <- plot_grid(
+CAZ_HMMER_CMphyla_plot <- plot_grid(
   plot_grid(
     a + theme(legend.position = "none"),
     b + theme(legend.position = "none"),
@@ -224,8 +249,8 @@ CAZ_CMphyla_plot <- plot_grid(
   rel_widths = c(8,2)
 )
 
-pdf("dbcan_CAZ_CMphyla.pdf")
-CAZ_CMphyla_plot
+pdf("dbcan_HMMER_CAZ_CMphyla.pdf")
+CAZ_HMMER_CMphyla_plot
 dev.off()
 
 
@@ -235,31 +260,31 @@ dev.off()
 
 
 NROW(gtdbtk_bins)
-NROW(diamond)
+NROW(hmmer)
 
-gt_diamond <- inner_join(gtdbtk_bins,diamond)
-NROW(gt_diamond)
+gt_hmmer <- inner_join(gtdbtk_bins,hmmer)
+NROW(gt_hmmer)
 
-gt_diamond$phylum[is.na(gt_diamond$phylum)] <- "Unknown"
+gt_hmmer$phylum[is.na(gt_hmmer$phylum)] <- "Unknown"
 
-gt_diamond_taxa <- gt_diamond %>%
+gt_hmmer_taxa <- gt_hmmer %>%
   group_by(phylum,enzymeNAME) %>%
   tally() %>%
   mutate(Proportion = n) 
 
-gt_diamond_prop <- gt_diamond %>%
+gt_hmmer_prop <- gt_hmmer %>%
   group_by(phylum) %>%
   tally() %>%
   mutate(proportion=n/sum(n)*100)
 
-a_gt <- ggplot(gt_diamond_prop, aes(y=proportion, x=phylum)) + 
+a_gt <- ggplot(gt_hmmer_prop, aes(y=proportion, x=phylum)) + 
   geom_bar(position="dodge", stat="identity",colour="black",fill="snow3")+ #lightskyblue happier
   theme(axis.text.x=element_text(angle=90))+
   theme_pubr()+
   ylab("Proportion of CAZymes (%)")+
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank())
-b_gt <- ggplot(gt_diamond_taxa, aes(fill=enzymeNAME, y=Proportion, x=phylum)) + 
+b_gt <- ggplot(gt_hmmer_taxa, aes(fill=enzymeNAME, y=Proportion, x=phylum)) + 
   geom_bar(position="fill", stat="identity",colour="black")+
   theme(axis.text.x=element_text(angle=90))+
   scale_fill_brewer(palette="Spectral")+
@@ -270,7 +295,7 @@ b_gt <- ggplot(gt_diamond_taxa, aes(fill=enzymeNAME, y=Proportion, x=phylum)) +
         legend.title = element_blank())
 
 
-CAZ_GTphyla_plot <- plot_grid(
+CAZ_HMMER_GTphyla_plot <- plot_grid(
   plot_grid(
     a_gt + theme(legend.position = "none"),
     b_gt + theme(legend.position = "none"),
@@ -284,8 +309,8 @@ CAZ_GTphyla_plot <- plot_grid(
   rel_widths = c(8,2)
 )
 
-pdf("dbcan_CAZ_GTphyla.pdf")
-CAZ_GTphyla_plot
+pdf("dbcan_HMMER_CAZ_GTphyla.pdf")
+CAZ_HMMER_GTphyla_plot
 dev.off()
 
 
@@ -296,19 +321,19 @@ dev.off()
 # PART 2
 
 
-gt_diamond <- as.data.frame(gt_diamond)
+gt_hmmer <- as.data.frame(gt_hmmer)
 
 # normalize by lib size: 
 no_reps_all_norm <- no_reps_all %>%
   group_by(cohort,pig,date) %>%
   mutate(norm_value=value/sum(value))
 
-diamond_count <- diamond %>%
+hmmer_count <- hmmer %>%
   group_by(pig,bin,enzymeID,enzymeNAME)%>%
   dplyr::summarise(enz_count=n())
 
 
-df <- left_join(no_reps_all_norm,diamond_count) 
+df <- left_join(no_reps_all_norm,hmmer_count) 
 
 
 df1 <- df %>%
@@ -388,7 +413,7 @@ for (single_DF in multiple_DFs) {
 NROW(all_pvalues)
 
 write.csv(all_pvalues,
-          "dbcan_pvalues", 
+          "dbcan_HMMER_pvalues", 
           row.names = FALSE)
 
 significant <- all_pvalues %>%
@@ -437,15 +462,28 @@ moms_with_enzyme <- df_part %>%
 df_part <- as.data.frame(inner_join(df_part,piglets_with_enzyme))
 df_part <- as.data.frame(inner_join(df_part,moms_with_enzyme))
 
+df_part$enzymeNAME  = factor(
+  df_part$enzymeNAME, levels=c("AA",
+                               "CE",
+                               "SLH",
+                               "GH",
+                               "GT",
+                               "CBM",
+                               "cohesin",
+                               "PL"))
+
 # set defined colors (releveling )
-scale_fill_gaio <- function(...){
+scale_fill_gaio8 <- function(...){
   ggplot2:::manual_scale(
     'fill', 
-    values = setNames(c('#C72A3F', '#EC7746', '#FADA78', '#E0F686','#8ACE81','#2872AF'), 
-                      c("AA","CE","GH","GT","CBM","PL")), 
+    values = setNames(c("#D53E4F","#F46D43","#FDAE61","#FEE08B","#E6F598","#ABDDA4","#66C2A5","#3288BD"), 
+                      c("AA","CE","SLH","GH","GT","CBM","cohesin","PL")), 
     ...
   )
 }
+
+# levels(df_part$enzymeNAME)
+# brewer.pal(8, name="Spectral")
 
 # put df rows in order of list (list is ordered by p-value (descending))
 require(gdata)
@@ -456,7 +494,7 @@ df_part <- df_part %>%
 # that means that the first pages will be most interesting
 
 
-pdf("dbcan_CAZ_time_boxplots.pdf")
+pdf("dbcan_HMMER_CAZ_time_boxplots.pdf")
 for (i in seq(1, length(mylist), 12)) {    # can also use: length(unique(df_part$enzymeID))
   
   print(ggplot(df_part[df_part$enzymeID %in% mylist[i:(i+11)], ], 
@@ -464,7 +502,7 @@ for (i in seq(1, length(mylist), 12)) {    # can also use: length(unique(df_part
           geom_boxplot(outlier.size = 1) +
           facet_wrap(~ enzymeID, scales = "free_y") +
           theme_bw()+
-          scale_fill_gaio()+
+          scale_fill_gaio8()+
           theme(legend.position="none",
                 axis.text.y=element_text(size = 4),
                 axis.ticks.length.y = unit(.05, "cm"),
@@ -479,7 +517,7 @@ dev.off()
 
 # use list of enzymes that turned out to be significant
 # to retrieve taxonomic info of those enzymes
-gt_diamond_sub <- subset(gt_diamond, (enzymeID %in% mylist)) 
+gt_hmmer_sub <- subset(gt_hmmer, (enzymeID %in% mylist)) 
 # plotting treemaps representing bins (species level) that carry a specific enzyme
 
 
@@ -549,17 +587,21 @@ list_PL <- unique(df_part_PL$enzymeID)
 
 # GT
 df_part_GT <- subset(df_part, (enzymeNAME %in% "GT"))
-list_GT_1 <- unique(df_part_GT$enzymeID)[1:20]
-list_GT_2 <- unique(df_part_GT$enzymeID)[21:39]
+NROW(unique(df_part_GT$enzymeID))
+list_GT_1 <- unique(df_part_GT$enzymeID)[1:15]
+list_GT_2 <- unique(df_part_GT$enzymeID)[16:30]
+list_GT_3 <- unique(df_part_GT$enzymeID)[31:45]
 df_part1_GT <- subset(df_part_GT, (enzymeID %in% list_GT_1))
 df_part2_GT <- subset(df_part_GT, (enzymeID %in% list_GT_2))
+df_part3_GT <- subset(df_part_GT, (enzymeID %in% list_GT_3))
 
 # GH
 df_part_GH <- subset(df_part, (enzymeNAME %in% "GH"))
+NROW(unique(df_part_GH$enzymeID))
 list_GH_1 <- unique(df_part_GH$enzymeID)[1:25]
 list_GH_2 <- unique(df_part_GH$enzymeID)[26:50]
 list_GH_3 <- unique(df_part_GH$enzymeID)[51:75]
-list_GH_4 <- unique(df_part_GH$enzymeID)[76:102]
+list_GH_4 <- unique(df_part_GH$enzymeID)[76:106]
 df_part1_GH <- subset(df_part_GH, (enzymeID %in% list_GH_1))
 df_part2_GH <- subset(df_part_GH, (enzymeID %in% list_GH_2))
 df_part3_GH <- subset(df_part_GH, (enzymeID %in% list_GH_3))
@@ -567,17 +609,28 @@ df_part4_GH <- subset(df_part_GH, (enzymeID %in% list_GH_4))
 
 # CBM
 df_part_CBM <- subset(df_part, (enzymeNAME %in% "CBM"))
-list_CBM_1 <- unique(df_part_CBM$enzymeID)[1:22]
-list_CBM_2 <- unique(df_part_CBM$enzymeID)[23:44]
+NROW(unique(df_part_CBM$enzymeID))
+list_CBM_1 <- unique(df_part_CBM$enzymeID)[1:20]
+list_CBM_2 <- unique(df_part_CBM$enzymeID)[21:40]
 df_part1_CBM <- subset(df_part_CBM, (enzymeID %in% list_CBM_1))
 df_part2_CBM <- subset(df_part_CBM, (enzymeID %in% list_CBM_2))
 
+# SLH
+df_part_SLH <- subset(df_part, (enzymeNAME %in% "SLH"))
+NROW(unique(df_part_SLH$enzymeID))
+list_SLH <- unique(df_part_SLH$enzymeID)
+df_part_SLH <- subset(df_part_SLH, (enzymeID %in% list_SLH))
 
+# cohesin
+df_part_cohesin <- subset(df_part, (enzymeNAME %in% "cohesin"))
+NROW(unique(df_part_cohesin$enzymeID))
+list_cohesin <- unique(df_part_cohesin$enzymeID)
+df_part_cohesin <- subset(df_part_cohesin, (enzymeID %in% list_cohesin))
 
 ######
 # get species count for each enzymeID and make subsets of the data 
 
-t <- gt_diamond %>%
+t <- gt_hmmer %>%
   dplyr::select(pig,enzymeID,enzymeNAME,species,family) %>%   # dplyr::select(pig,contig,enzymeID,enzymeNAME,species,family) %>%
   distinct() %>%
   group_by(pig,enzymeID,species) %>%
@@ -589,10 +642,10 @@ t <- gt_diamond %>%
 s <- as.data.frame(t)
 
 # ###
-# # it makes sense: little test: 
-# test4 <- gt_diamond %>% 
+# # it makes sense: little test:
+# test4 <- gt_hmmer %>%
 #   filter(enzymeID=="AA1") %>%
-#   group_by(pig,enzymeID,species) %>% 
+#   group_by(pig,enzymeID,species) %>%
 #   tally() %>%
 #   group_by(enzymeID,species) %>%
 #   dplyr::summarise(allpiggies=sum(n)) %>%
@@ -607,10 +660,13 @@ s_part3_GH <- subset(s, (enzymeID %in% list_GH_3))
 s_part4_GH <- subset(s, (enzymeID %in% list_GH_4))
 s_part1_GT <- subset(s, (enzymeID %in% list_GT_1))
 s_part2_GT <- subset(s, (enzymeID %in% list_GT_2))
+s_part3_GT <- subset(s, (enzymeID %in% list_GT_3))
 s_part1_CBM <- subset(s, (enzymeID %in% list_CBM_1))
 s_part2_CBM <- subset(s, (enzymeID %in% list_CBM_2))
 s_part_AA_CE <- subset(s, (enzymeID %in% list_AA_CE))
 s_part_PL <- subset(s, (enzymeID %in% list_PL))
+s_part_SLH <- subset(s, (enzymeID %in% list_SLH))
+s_part_cohesin <- subset(s, (enzymeID %in% list_cohesin))
 ######
 
 ##########################################################
@@ -631,6 +687,7 @@ make_enzyme_heatmap <- function(x) {
     ungroup() %>% 
     ggplot(aes(x = factor(pig), y = reorder(enzymeID, tot, FUN = mean), fill = tot)) +
     geom_tile() +
+    #scale_fill_gaio8()+
     scale_fill_distiller(type = "div", palette = "Spectral") +
     facet_grid(~date, scales = "free") +
     labs(x = "date", y = "enzymeID", fill = "normalized abundance")+
@@ -663,6 +720,7 @@ make_species_heatmap <- function(species_df,CAZ_heatmap) {
   
   p <- ggplot(g, aes(x = reorder(enzymeID, n_sum_species, FUN = mean), y = species, fill = n_sum_species)) +
     geom_tile(size = 0.5, color = "black") +
+    #scale_fill_gaio8()+
     scale_fill_distiller(palette = "Spectral",na.value = "black") +
     labs(x = "date", y = "enzymeID", fill = "normalized abundance")+
     theme_bw()+
@@ -686,6 +744,7 @@ make_species_CAZ_plots <- function(x) {
     drop.levels() %>% 
     ggplot(aes(x = reorder(enzymeID, perc_species, FUN = mean), y = reorder(species, perc_species, FUN = mean), fill = perc_species)) +
     geom_tile() +
+    #scale_fill_gaio8()+
     scale_fill_distiller(type = "div", palette = "Spectral") +
     geom_text(aes(y=species,label=round(perc_species)), size=2)+
     facet_wrap(~enzymeID, scales = "free",ncol = 3)+
@@ -723,7 +782,7 @@ make_enzyme_boxplots <- function(x) {
     drop.levels() %>%
     ggplot(., aes(x = date, y = tot, fill = enzymeNAME)) +
     geom_boxplot(lwd=0.1, outlier.size = 0.2)+
-    scale_fill_gaio()+
+    scale_fill_gaio8()+
     #scale_fill_distiller(type = "div", palette = "Spectral") + # this was for the heatmap 
     facet_wrap(~enzymeID, scales = "free_y", ncol = 3) +
     labs(x = "date", y = "enzymeID", fill = "avg. abundance (log)")+
@@ -745,38 +804,43 @@ a_AA_CE <- make_enzyme_boxplots(df_part_AA_CE)
 a_PL <- make_enzyme_boxplots(df_part_PL)
 a_GT_1 <- make_enzyme_boxplots(df_part1_GT)
 a_GT_2 <- make_enzyme_boxplots(df_part2_GT)
+a_GT_3 <- make_enzyme_boxplots(df_part3_GT)
 a_GH_1 <- make_enzyme_boxplots(df_part1_GH)
 a_GH_2 <- make_enzyme_boxplots(df_part2_GH)
 a_GH_3 <- make_enzyme_boxplots(df_part3_GH)
 a_GH_4 <- make_enzyme_boxplots(df_part4_GH)
 a_CBM_1 <- make_enzyme_boxplots(df_part1_CBM)
 a_CBM_2 <- make_enzyme_boxplots(df_part2_CBM)
+a_SLH <- make_enzyme_boxplots(df_part_SLH)
+a_cohesin <- make_enzyme_boxplots(df_part_cohesin)
 
 b_AA_CE <- make_species_CAZ_plots(s_part_AA_CE)
 b_PL <- make_species_CAZ_plots(s_part_PL)
 b_GT_1 <- make_species_CAZ_plots(s_part1_GT)
 b_GT_2 <- make_species_CAZ_plots(s_part2_GT)
+b_GT_3 <- make_species_CAZ_plots(s_part3_GT)
 b_GH_1 <- make_species_CAZ_plots(s_part1_GH)
 b_GH_2 <- make_species_CAZ_plots(s_part2_GH)
 b_GH_3 <- make_species_CAZ_plots(s_part3_GH)
 b_GH_4 <- make_species_CAZ_plots(s_part4_GH)
 b_CBM_1 <- make_species_CAZ_plots(s_part1_CBM)
 b_CBM_2 <- make_species_CAZ_plots(s_part2_CBM)
+b_SLH <- make_species_CAZ_plots(s_part_SLH)
+b_cohesin <- make_species_CAZ_plots(s_part_cohesin)
 
 h_a_AA_CE <- make_enzyme_heatmap(df_part_AA_CE)
 h_a_PL <- make_enzyme_heatmap(df_part_PL)
 h_a_GT_1 <- make_enzyme_heatmap(df_part1_GT)
 h_a_GT_2 <- make_enzyme_heatmap(df_part2_GT)
+h_a_GT_3 <- make_enzyme_heatmap(df_part3_GT)
 h_a_GH_1 <- make_enzyme_heatmap(df_part1_GH)
 h_a_GH_2 <- make_enzyme_heatmap(df_part2_GH)
 h_a_GH_3 <- make_enzyme_heatmap(df_part3_GH)
 h_a_GH_4 <- make_enzyme_heatmap(df_part4_GH)
 h_a_CBM_1 <- make_enzyme_heatmap(df_part1_CBM)
 h_a_CBM_2 <- make_enzyme_heatmap(df_part2_CBM)
-
-
-
-
+h_a_SLH <- make_enzyme_heatmap(df_part_SLH)
+h_a_cohesin <- make_enzyme_heatmap(df_part_cohesin)
 
 
 
@@ -791,11 +855,16 @@ CBM2 <- plot_grid(a_CBM_2,b_CBM_2,ncol=2)
 
 GT1 <- plot_grid(a_GT_1,b_GT_1,ncol=2)
 GT2 <- plot_grid(a_GT_2,b_GT_2,ncol=2)
+GT3 <- plot_grid(a_GT_3,b_GT_3,ncol=2)
 
 GH1 <- plot_grid(a_GH_1,b_GH_1,ncol=2)
 GH2 <- plot_grid(a_GH_2,b_GH_2,ncol=2)
 GH3 <- plot_grid(a_GH_3,b_GH_3,ncol=2)
 GH4 <- plot_grid(a_GH_4,b_GH_4,ncol=2)
+
+SLH <- plot_grid(a_SLH,b_SLH,ncol=2)
+
+cohesin <- plot_grid(a_cohesin,b_cohesin,ncol=2)
 ####
 
 
@@ -814,35 +883,47 @@ H3 <- plot_grid(h_a_GT_1,sh_GT1,ncol=2)
 sh_GT2 <- make_species_heatmap(s_part2_GT,h_a_GT_2)
 H4 <- plot_grid(h_a_GT_2,sh_GT2,ncol=2)
 
+sh_GT3 <- make_species_heatmap(s_part3_GT,h_a_GT_3)
+H5 <- plot_grid(h_a_GT_3,sh_GT3,ncol=2)
+
 sh_GH1 <- make_species_heatmap(s_part1_GH,h_a_GH_1)
-H5 <- plot_grid(h_a_GH_1,sh_GH1,ncol=2)
+H6 <- plot_grid(h_a_GH_1,sh_GH1,ncol=2)
 
 sh_GH2 <- make_species_heatmap(s_part2_GH,h_a_GH_2)
-H6 <- plot_grid(h_a_GH_2,sh_GH2,ncol=2)
+H7 <- plot_grid(h_a_GH_2,sh_GH2,ncol=2)
 
 sh_GH3 <- make_species_heatmap(s_part3_GH,h_a_GH_3)
-H7 <- plot_grid(h_a_GH_3,sh_GH3,ncol=2)
+H8 <- plot_grid(h_a_GH_3,sh_GH3,ncol=2)
 
 sh_CBM1 <- make_species_heatmap(s_part1_CBM,h_a_CBM_1)
-H8 <- plot_grid(h_a_CBM_1,sh_CBM1,ncol=2)
+H9 <- plot_grid(h_a_CBM_1,sh_CBM1,ncol=2)
 
 sh_CBM2 <- make_species_heatmap(s_part2_CBM,h_a_CBM_2)
-H9 <- plot_grid(h_a_CBM_2,sh_CBM2,ncol=2)
+H10 <- plot_grid(h_a_CBM_2,sh_CBM2,ncol=2)
+
+sh_SLH <- make_species_heatmap(s_part_SLH,h_a_SLH)
+H11 <- plot_grid(h_a_SLH,sh_SLH,ncol=2)
+
+sh_cohesin <- make_species_heatmap(s_part_cohesin,h_a_cohesin)
+H12 <- plot_grid(h_a_cohesin,sh_cohesin,ncol=2)
 ####
 
 
 
 
-pdf("dbcan_CAZ_time_heatmaps.pdf")
+pdf("dbcan_HMMER_CAZ_time_heatmaps.pdf")
 h_a_AA_CE 
 h_a_PL 
 h_a_GT_1 
 h_a_GT_2 
+h_a_GT_3 
 h_a_GH_1 
 h_a_GH_2 
 h_a_GH_3 
 h_a_CBM_1 
 h_a_CBM_2 
+h_a_SLH
+h_a_cohesin
 dev.off()
 
 pdf("dbcan_CAZ_ALL_heatmaps.pdf")
@@ -855,19 +936,25 @@ H6
 H7
 H8
 H9
+H10
+H11
+H12
 dev.off()
 
-pdf("dbcan_CAZ_time_species.pdf")
+pdf("dbcan_HMMER_CAZ_time_species.pdf")
 AA_CE
 PL
 CBM1
 CBM2
 GT1
 GT2
+GT3
 GH1
 GH2
 GH3
 GH4
+SLH
+cohesin
 dev.off()
 
 
@@ -876,7 +963,7 @@ dev.off()
 # with popularity (y) and "singularity" (x) meaning how uniquely an enzyme is expressed by one (right) or multiple (left) taxa
 
 
-df <- gt_diamond %>%
+df <- gt_hmmer %>%
   dplyr::select(pig,enzymeID,enzymeNAME,species,family) %>%
   distinct() %>%
   group_by(pig,enzymeID,species) %>%
@@ -897,15 +984,17 @@ df2 <- subset(df2, (enzymeID %in% df_part$enzymeID))
 # to get the species showing in the labels 
 df2$species <- gsub(" ","\n", df2$species)
 
-df2$enzymeNAME  = factor(
-  df2$enzymeNAME, levels=c("AA",
-                            "CE",
-                            "GH",
-                            "GT",
-                            "CBM",
-                            "PL"))
+# df2$enzymeNAME  = factor(
+#   df2$enzymeNAME, levels=c("AA",
+#                              "CBM",
+#                              "SLH",
+#                              "CE",
+#                              "GH",
+#                              "GT",
+#                              "cohesin",
+#                              "PL"))
 
-pdf("dbcan_all_CAZ_plot.pdf")
+pdf("dbcan_HMMER_all_CAZ_plot.pdf")
 ggplot(df2) +
   geom_point(aes(perc_species, n_sum_species, fill = factor(enzymeNAME))) +
   #ylim(0,10000)+
@@ -915,8 +1004,9 @@ ggplot(df2) +
   labs(x="percentage of top species per enzymeID",
        y="number of subjects carrying the enzyme",
        fill="enzyme class")+
-  scale_fill_manual(values = setNames(c('#C72A3F', '#EC7746', '#FADA78', '#E0F686','#8ACE81','#2872AF'), 
-                                      c("AA","CE","GH","GT","CBM","PL")))+
+  scale_fill_gaio8()+
+  #scale_fill_manual(values = setNames(c('#C72A3F', '#EC7746', '#FADA78', '#E0F686','#8ACE81','#2872AF'), 
+  #                                    c("AA","CE","GH","GT","CBM","PL")))+
   theme_bw(base_size = 10)+
   ggrepel::geom_label_repel(data = subset(df2, perc_species >= 50),
                             aes(
@@ -941,7 +1031,7 @@ dev.off()
 
 # CE
 
-sink(file = "enzymes_popularity and species-uniqueness",append = FALSE)
+sink(file = "HMMER_enzymes_popularity and species-uniqueness",append = FALSE)
 
 paste0(" ##############################  CE  ############################## ")
 paste0("number of all enzymeIDs within this class")
@@ -1029,18 +1119,18 @@ test <- subset(df_part, (enzymeID %in% mylist))
 
 
 
-gt_diamond_sub <- gt_diamond_sub %>% 
+gt_hmmer_sub <- gt_hmmer_sub %>% 
   filter(genus=="Prevotella"|genus=="Bacteroides_A"|genus=="Bacteroides"|genus=="Bacteroides_B") 
 
 # reorder  
-gt_diamond_sub$genus  = factor(gt_diamond_sub$genus, levels=c("Bacteroides_A",
+gt_hmmer_sub$genus  = factor(gt_hmmer_sub$genus, levels=c("Bacteroides_A",
                                                               "Bacteroides_B", 
                                                               "Bacteroides",
                                                               "Prevotella"))
 
 
 # all Bact. and Prev
-test2 <- gt_diamond_sub %>% 
+test2 <- gt_hmmer_sub %>% 
   filter(genus=="Prevotella"|genus=="Bacteroides_A"|genus=="Bacteroides"|genus=="Bacteroides_B") %>%
   dplyr::select(genus,enzymeID) %>%
   distinct()
@@ -1082,7 +1172,7 @@ p1 <- p1 + theme(legend.position="none")
 
 
 # only Bact.A and Prev
-test2 <- gt_diamond_sub %>% 
+test2 <- gt_hmmer_sub %>% 
   filter(genus=="Prevotella"|genus=="Bacteroides_A") %>%
   dplyr::select(genus,enzymeID) %>%
   distinct()
@@ -1144,6 +1234,6 @@ p23 <- ggarrange(p2,p3,
 tosave <- ggarrange(p1,p23, widths = c(1,3))
 tosave <- ggarrange(myleg,tosave,heights=c(1,9),nrow=2)
 
-pdf("dbcan_specificity_genera.pdf")
+pdf("dbcan_HMMER_specificity_genera.pdf")
 tosave
 dev.off()
