@@ -77,7 +77,7 @@ treemap(phylum_counts_most_ab, #Your data frame object
         index=c("label"),  #A list of your categorical variables
         vSize = "perc",  #This is your quantitative variable
         type="index", #Type sets the organization and color scheme of your treemap
-        title="Phyla distribution from all MAGs (gtdbtk) - most common", #Customize your title
+        title="Phyla distribution from all MAGs (GTDB) - most common", #Customize your title
         fontsize.title = 15 #Change the font size of the title
         #fontsize.labels = 8
 )
@@ -86,7 +86,7 @@ treemap(phylum_counts_least_ab, #Your data frame object
         index=c("label"),  #A list of your categorical variables
         vSize = "perc",  #This is your quantitative variable
         type="index", #Type sets the organization and color scheme of your treemap
-        title="Phyla distribution from all MAGs (gtdbtk) - least common", #Customize your title
+        title="Phyla distribution from all MAGs (GTDB) - least common", #Customize your title
         fontsize.title = 15 #Change the font size of the title
         #fontsize.labels = 8
 )
@@ -123,7 +123,7 @@ treemap(species_counts_most_ab, #Your data frame object
         index=c("family","label"),  #A list of your categorical variables
         vSize = "Freq",  #This is your quantitative variable
         type="index", #Type sets the organization and color scheme of your treemap
-        title="Species distribution from all MAGs (gtdbtk) - 50 most common", #Customize your title
+        title="Species distribution from all MAGs (GTDB) - 50 most common", #Customize your title
         fontsize.title = 15, #Change the font size of the title
         overlap.labels=0,
         fontsize.labels=c(13,10),                # size of labels. Give the size per level of aggregation: size for group, size for subgroup, sub-subgroups...
@@ -167,7 +167,7 @@ treemap(genus_counts_most_ab, #Your data frame object
         index=c("order","label"),  #A list of your categorical variables
         vSize = "Freq",  #This is your quantitative variable
         type="index", #Type sets the organization and color scheme of your treemap
-        title="Genus distribution from all MAGs (gtdbtk) - 50 most common", #Customize your title
+        title="Genus distribution from all MAGs (GTDB) - 50 most common", #Customize your title
         fontsize.title = 15, #Change the font size of the title
         overlap.labels=0,
         fontsize.labels=c(13,10),                # size of labels. Give the size per level of aggregation: size for group, size for subgroup, sub-subgroups...
@@ -321,7 +321,7 @@ this_mat_samples$sample_1  = factor(this_mat_samples$sample_1, levels=c("t0",
                                                                         "t10"))
 
 gt_PC12 <- ggbiplot(df6.pca,
-                    labels=this_mat_samples$sample,
+                    labels=this_mat_samples$sample_2,
                     groups=this_mat_samples$sample_1,
                     ellipse=TRUE,
                     var.axes = FALSE,
@@ -329,24 +329,24 @@ gt_PC12 <- ggbiplot(df6.pca,
                     choices = (1:2)) +
   theme_bw() +
   xlim(c(-2,1)) +
-  guides(color = guide_legend(nrow = 1))
+  scale_colour_discrete(name="timepoint")+
+  guides(color = guide_legend(ncol = 1))
 gt_PC34 <- ggbiplot(df6.pca,
-                    labels=this_mat_samples$sample,
+                    labels=this_mat_samples$sample_2,
                     groups=this_mat_samples$sample_1,
                     ellipse=TRUE,
                     var.axes = FALSE,
                     labels.size = 2,
                     choices = (3:4)) +
   theme_bw() +
-  guides(color = guide_legend(nrow = 1))
+  scale_colour_discrete(name="timepoint")+
+  guides(color = guide_legend(ncol = 1))
 
 
 gt_PCA <- ggarrange(gt_PC12,gt_PC34,
-                    ncol=2,
+                    ncol=2,legend = "right",
                     common.legend=TRUE)
 
-pdf("gt_PCA.pdf")
-annotate_figure(gt_PCA,
-                top = text_grob("PCA from piglets' MAGs (GTDB) (n=47569) ",
-                                size = 13))
+pdf("gt_PCA.pdf", width=7,height=4)
+gt_PCA
 dev.off()

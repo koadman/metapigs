@@ -344,6 +344,26 @@ colnames(feat)==rownames(meta)
 
 # create function to compare time points 
 
+# prepare empty df to be filled
+empty_df <- data.frame(
+  fc = numeric(),
+  p.val = numeric(),
+  auc = character(),
+  auc.ci.l = character(),
+  auc.ci.l = character(),
+  pr.shift = character(),
+  pr.n = character(),
+  pr.p = character(),
+  bcol = character(),
+  p.adj = numeric(),
+  comparison = character(),
+  species = character(),
+  stringsAsFactors = FALSE
+)
+
+fwrite(x=empty_df, file="gt_siamcat_stats.csv", sep = ",",
+       append = FALSE)
+
 comparetimepoints_full <- function(t1,t2) { # where c is the cohort of interest, t0 is the start time point, t1 is the next time point)
   
   label.normalized <- create.label(meta=meta,
@@ -365,6 +385,16 @@ comparetimepoints_full <- function(t1,t2) { # where c is the cohort of interest,
     plot.type = "quantile.box",
     panels = c("fc", "prevalence", "auroc"))
   
+  
+  # save the data (significantly associated hits)
+  
+  mydata <- associations(siamcat,verbose=1)
+  mydata$comparison <- paste0(t1,"_",t2)
+  mydata$species <- rownames(mydata)
+  rownames(mydata) <- NULL
+  
+  fwrite(x=mydata, file="gt_siamcat_TimepointsCompared.csv", sep = ",",
+         append = TRUE)
   
   # Model building
   
@@ -416,6 +446,22 @@ comparetimepoints_full("t0","t4")
 comparetimepoints_full("t4","t8")
 # 4 weeks interval:
 comparetimepoints_full("t0","t8")
+
+#####
+
+# retrieve the significance data we just created 
+TimeAssociations <- read_csv("gt_siamcat_TimepointsCompared.csv")
+
+significant_with_time <- TimeAssociations %>%
+  filter(p.adj<0.05) %>%
+  group_by(comparison) %>%
+  tally() %>%
+  mutate(perc=n/sum(n)*100)
+
+sink(file = "gt_siamcat_significant_with_time.txt", 
+     append = FALSE, type = c("output"))
+significant_with_time
+sink()
 
 
 ############################################################################################################################################

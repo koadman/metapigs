@@ -619,6 +619,7 @@ plot_pred_genes <- ggplot(data= toplot, aes(x=`# predicted genes`, fill=type)) +
 
 
 plots <- ggarrange(plot_scaffolds,plot_pred_genes,cm_Compl_vs_Contam,nrow=1,
+                   labels=c("A","B","C"),
                    common.legend=TRUE)
 
 pdf("cm_Compl_vs_Contam_scaffolds_genes.pdf")
@@ -1345,7 +1346,7 @@ this_mat_samples$sample_1  = factor(this_mat_samples$sample_1, levels=c("t0",
                                     "t10"))
 
 cm_PC12 <- ggbiplot(df6.pca,
-         labels=this_mat_samples$sample,
+         labels=this_mat_samples$sample_2,
          groups=this_mat_samples$sample_1,
          ellipse=TRUE,
          var.axes = FALSE,
@@ -1353,28 +1354,25 @@ cm_PC12 <- ggbiplot(df6.pca,
          choices = (1:2)) +
   theme_bw() +
   xlim(c(-2,1)) +
-  guides(color = guide_legend(nrow = 1))
+  theme(legend.position="none")
 cm_PC34 <- ggbiplot(df6.pca,
-         labels=this_mat_samples$sample,
+         labels=this_mat_samples$sample_2,
          groups=this_mat_samples$sample_1,
          ellipse=TRUE,
          var.axes = FALSE,
          labels.size = 2,
          choices = (3:4)) +
   theme_bw() +
-  guides(color = guide_legend(nrow = 1)) 
+  theme(legend.position="none")
 
 
 cm_PCA <- ggarrange(cm_PC12,cm_PC34,
-                    ncol=2,
-                    common.legend=TRUE)
+                    ncol=2)
 
 
 
-pdf("cm_PCA.pdf")
-annotate_figure(cm_PCA,
-                top = text_grob("PCA from piglets' nearly complete MAGs (CheckM) (n=12486) ",
-                                size = 13))
+pdf("cm_PCA.pdf", width=7,height=4)
+cm_PCA
 dev.off()
 
 

@@ -495,6 +495,44 @@ plot_heatmap(physeq1, method = "MDS", distance="unifrac",weighted=TRUE,
 dev.off()
 
 
+##########
+
+
+# LARGE HEATMAP
+
+# NORMALIZATION BY RAREFACTION
+carbom <- phyloseq(gOTU,TAX,samples)
+# SUBSETTING phyloseq obejct
+carbom <- subset_samples(carbom, (date %in% c("t0","t2","t4","t6","t8","t10")))
+# RAREFY
+carbom = rarefy_even_depth(carbom,
+                           replace=TRUE, 
+                           rngseed = 42)
+# keep gOTUs present in at least 1/6 of all the samples 
+carbom_abund <- filter_taxa(carbom, 
+                            function(x) 
+                              sum(x > 1) > (NROW(sample_data(carbom))/6), 
+                            TRUE)
+
+random_tree = rtree(ntaxa(carbom_abund), rooted=TRUE, tip.label=taxa_names(carbom_abund))
+physeq1 = merge_phyloseq(carbom_abund,random_tree)
+
+# HEATMAP time - genus, family, order, etc ...
+pdf("gt_phylo_heatmap_large.pdf")
+plot_heatmap(physeq1, 
+             taxa.label = "species", 
+             sample.order = "date") +
+  facet_grid(~ date, switch = "x", scales = "free_x", space = "free_x")+
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(label = paste0("Microbe Species Diversity in the piglet population \n(log transformed data) \n (n=",
+                         NROW(tax_table(carbom_abund)),
+                         " GTDB species)"))
+dev.off()
+
+
+
+##########
+
 
 # same here but without t10 (facets mode keeps not recognizing t10 as 10!)
 # so re-done the same as above, but without t10 
@@ -665,7 +703,7 @@ carbom = rarefy_even_depth(carbom,
                            replace=TRUE, 
                            rngseed = 42)
 
-gt_diversity_samples <- plot_richness(carbom, measures=c("Shannon", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"), 
+gt_diversity_samples <- plot_richness(carbom, measures=c("Chao1","Shannon", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"), 
                                       color="date", x="date") +
   guides(colour = guide_legend(nrow = 1))+
   theme(legend.position="top")
@@ -683,25 +721,25 @@ dev.off()
 my_comparisons <- data.frame(my_comparisons=c("t0_t2", "t2_t4", "t4_t6", "t6_t8", "t8_t10"))
 
 
-Cha01_data <- gt_diversity_samples$data %>%
+Chao1_data <- gt_diversity_samples$data %>%
   filter(date=="t0"|date=="t2"|date=="t4"|date=="t6"|date=="t8"|date=="t10") %>%
-  filter(variable=="Shannon")
-Cha01_data_test <- as.data.frame(compare_means(value ~ date,
+  filter(variable=="Chao1")
+Chao1_data_test <- as.data.frame(compare_means(value ~ date,
                                                p.adjust.method = "bonferroni", 
-                                               method='t.test', data = Cha01_data) %>%
+                                               method='t.test', data = Chao1_data) %>%
                                    mutate(my_comparisons=paste0(group1,"_",group2))) %>%
   inner_join(., my_comparisons) %>%
   mutate(y.position=c(300,320,340,360,380))
-Cha01_plot <- Cha01_data %>%
+Chao1_plot <- Chao1_data %>%
   ggplot(., aes(x=date, y=value, color=date)) + 
   geom_boxplot(outlier.shape = NA)+
   geom_jitter(size=1)+
   theme(legend.position="right")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(x = "time point",
-       y = "Shannon") +
+       y = "Chao1") +
   theme_minimal() +
-  stat_pvalue_manual(Cha01_data_test, label = "p.adj")
+  stat_pvalue_manual(Chao1_data_test, label = "p.adj")
 
 
 Shannon_data <- gt_diversity_samples$data %>%
@@ -1899,7 +1937,7 @@ dev.off()
 ############################################################################################################
 
 # save stats in workbook
-saveWorkbook(wb, paste0(basedir,"stats.xlsx"), overwrite=TRUE)
+saveWorkbook(wb, paste0(basedir,"gt_phylo_stats.xlsx"), overwrite=TRUE)
 
 ############################################################################################################
 ############################################################################################################

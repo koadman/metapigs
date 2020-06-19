@@ -567,24 +567,22 @@ dRep_PC12 <- ggbiplot(df6.pca,
                     choices = (1:2)) +
   theme_bw() +
   xlim(c(-2,1)) +
-  guides(color = guide_legend(nrow = 1))
+  theme_bw() +
+  theme(legend.position="none")
 dRep_PC34 <- ggbiplot(df6.pca,
-                    labels=this_mat_samples$sample,
+                    labels=this_mat_samples$sample_2,
                     groups=this_mat_samples$sample_1,
                     ellipse=TRUE,
                     var.axes = FALSE,
                     labels.size = 2,
                     choices = (3:4)) +
   theme_bw() +
-  guides(color = guide_legend(nrow = 1))
+  theme(legend.position="none")
 
 
-dRep_PCA <- ggarrange(dRep_PC12,dRep_PC34,ncol=2,
-                      common.legend=TRUE)
+dRep_PCA <- ggarrange(dRep_PC12,dRep_PC34,ncol=2)
 
-pdf("dRep_PCA.pdf")
-annotate_figure(dRep_PCA,
-                top = text_grob("PCA from piglets' cluster-assigned MAGs (dRep) (n=22403)",
-                                size = 13))
+pdf("dRep_PCA.pdf", width=7,height=4)
+dRep_PCA
 dev.off()
 
