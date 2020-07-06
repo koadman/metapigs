@@ -199,13 +199,14 @@ NROW(unique(paste0(df2$isolation_source,df2$date,df2$bin)))==NROW(df2)
 
 # MERGE MASH with no_reps
 
+unique(mash_out1$reference)
 
 # merge
 df3 <- merge(mash_out1,df2) 
 NROW(df3) # why 378 instead of 432? because we removed some rows in the mash output that had p_value 1  
 head(df3)
 
-
+unique(df3$reference)
 
 df3 <- df3 %>% 
   filter(!cohort=="Mothers") %>% 
@@ -214,12 +215,18 @@ df3 <- df3 %>%
            date=="t8")
 
 
-pdf("mash_uniq_cohorts.pdf")
-df3 %>% 
+gg <- df3 %>% 
   ggplot(., aes(x=date,y=norm_value,fill=reference))+
   geom_bar(position="dodge", stat="identity")+
   stat_n_text(size = 2, angle = 90, y.pos = 0.037) +
   facet_wrap(~cohort)
+
+# manually picking colours to match colors in the plot of the pos controls
+cols <- c("LD." = "#F25E5A", "LS." = "#B95EFF")
+gg2 <- gg + scale_fill_manual(values = cols)
+
+pdf("mash_uniq_cohorts.pdf")
+gg2
 dev.off()
 
 

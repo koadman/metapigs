@@ -350,7 +350,7 @@ empty_df <- data.frame(
   p.val = numeric(),
   auc = character(),
   auc.ci.l = character(),
-  auc.ci.l = character(),
+  auc.ci.h = character(),
   pr.shift = character(),
   pr.n = character(),
   pr.p = character(),
@@ -393,7 +393,7 @@ comparetimepoints_full <- function(t1,t2) { # where c is the cohort of interest,
   mydata$species <- rownames(mydata)
   rownames(mydata) <- NULL
   
-  fwrite(x=mydata, file="gt_siamcat_TimepointsCompared.csv", sep = ",",
+  fwrite(x=mydata, file="gt_siamcat_stats.csv", sep = ",",
          append = TRUE)
   
   # Model building
@@ -447,22 +447,6 @@ comparetimepoints_full("t4","t8")
 # 4 weeks interval:
 comparetimepoints_full("t0","t8")
 
-#####
-
-# retrieve the significance data we just created 
-TimeAssociations <- read_csv("gt_siamcat_TimepointsCompared.csv")
-
-significant_with_time <- TimeAssociations %>%
-  filter(p.adj<0.05) %>%
-  group_by(comparison) %>%
-  tally() %>%
-  mutate(perc=n/sum(n)*100)
-
-sink(file = "gt_siamcat_significant_with_time.txt", 
-     append = FALSE, type = c("output"))
-significant_with_time
-sink()
-
 
 ############################################################################################################################################
 ############################################################################################################################################
@@ -491,6 +475,13 @@ siamcat <- check.associations(
   prompt = FALSE,
   panels = c("fc", "prevalence", "auroc"))
 
+# save the data (significantly associated hits with bday - t0)
+mydata <- associations(siamcat,verbose=1)
+mydata$comparison <- paste0("breed_DxL_bday08vs11_t0")
+mydata$species <- rownames(mydata)
+rownames(mydata) <- NULL
+fwrite(x=mydata, file="gt_siamcat_stats.csv", sep = ",",
+       append = TRUE)
 
 # t2
 
@@ -513,9 +504,95 @@ siamcat <- check.associations(
   prompt = FALSE,
   panels = c("fc", "prevalence", "auroc"))
 
+# save the data (significantly associated hits with bday - t2)
+mydata <- associations(siamcat,verbose=1)
+mydata$comparison <- paste0("breed_DxL_bday08vs11_t2")
+mydata$species <- rownames(mydata)
+rownames(mydata) <- NULL
+fwrite(x=mydata, file="gt_siamcat_stats.csv", sep = ",",
+       append = TRUE)
 
+
+
+############################################################################################################################################
+############################################################################################################################################
+
+# comparing piglets from the same birth day (2017-01-08), two breeds (DxL vs DxLW)
+
+# t0
+
+label.normalized <- create.label(meta=meta,
+                                 label='group2', 
+                                 case= "t0_Duroc x Landrace_2017-01-08",
+                                 control= "t0_Duroc x Large white_2017-01-08")
+
+siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
+siamcat <- filter.features(siamcat, filter.method = 'abundance',cutoff = 0.001)
+
+# check for significant associations
+siamcat <- check.associations(
+  siamcat,
+  sort.by = 'fc',
+  fn.plot = paste0("gt_siamcatA_breed_","t0_bday08_DxL_vs_DxLW.pdf"),
+  alpha = 0.2,
+  mult.corr = "fdr",
+  detect.lim = 10 ^-30,
+  prompt = FALSE,
+  panels = c("fc", "prevalence", "auroc"))
+
+# save the data (significantly associated hits with bday - t0)
+mydata <- associations(siamcat,verbose=1)
+mydata$comparison <- paste0("t0_bday08_DxL_vs_DxLW")
+mydata$species <- rownames(mydata)
+rownames(mydata) <- NULL
+fwrite(x=mydata, file="gt_siamcat_stats.csv", sep = ",",
+       append = TRUE)
+
+# t2
+
+label.normalized <- create.label(meta=meta,
+                                 label='group2', 
+                                 case= "t2_Duroc x Landrace_2017-01-08",
+                                 control= "t2_Duroc x Large white_2017-01-08")
+
+siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
+siamcat <- filter.features(siamcat, filter.method = 'abundance',cutoff = 0.001)
+
+# check for significant associations
+siamcat <- check.associations(
+  siamcat,
+  sort.by = 'fc',
+  fn.plot = paste0("gt_siamcatA_breed_","t2_bday08_DxL_vs_DxLW.pdf"),
+  alpha = 0.2,
+  mult.corr = "fdr",
+  detect.lim = 10 ^-30,
+  prompt = FALSE,
+  panels = c("fc", "prevalence", "auroc"))
+
+# save the data (significantly associated hits with bday - t0)
+mydata <- associations(siamcat,verbose=1)
+mydata$comparison <- paste0("t2_bday08_DxL_vs_DxLW")
+mydata$species <- rownames(mydata)
+rownames(mydata) <- NULL
+fwrite(x=mydata, file="gt_siamcat_stats.csv", sep = ",",
+       append = TRUE)
 
 ######################################################################
+
+# retrieve the significance data we just created 
+TimeAssociations <- read_csv("gt_siamcat_stats.csv")
+
+significant_with_time <- TimeAssociations %>%
+  filter(p.adj<0.06) %>%
+  group_by(comparison) %>%
+  tally() %>%
+  mutate(perc=n/sum(n)*100)
+
+sink(file = "gt_siamcat_stats_SIGNIFICANT.txt", 
+     append = FALSE, type = c("output"))
+significant_with_time
+sink()
+
 ######################################################################
 
 

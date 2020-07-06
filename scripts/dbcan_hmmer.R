@@ -156,14 +156,20 @@ hmmer_perc_identity_plot <- hmmer %>%
   group_by(enzymeNAME) %>%
   ggplot(.,aes(enzymeNAME,coverage*100,fill=enzymeNAME))+
   ylab("Percentage identity")+
-  geom_boxplot(outlier.size = 0.1)+
+  geom_boxplot(coef=1e30, lwd=0.1)+ # high value cutoff to deact outliers; pdf becomes otherwise heavy to move around
   ylim(0,100)+
   scale_fill_brewer(palette="Spectral")+
   theme_bw()+
   theme(axis.title.x=element_blank(),
         legend.position="none",
         plot.title = element_text(hjust = 0.5))+
-  ggtitle("Percentage identity against CAZy (HMMER)")
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5,size=9),
+        axis.text.y=element_text(size=8),
+        axis.title.y = element_text(size=9),
+        axis.title.x=element_blank(),
+        legend.position="none",legend.text = element_text(size=8),
+        legend.title = element_blank(),title=element_text(size=9))+
+  ggtitle("Percentage identity against CAZy")
 
 enzymes_proportion <- hmmer %>% 
   group_by(enzymeNAME) %>% 
@@ -172,7 +178,7 @@ enzymes_proportion <- hmmer %>%
 
 hmmer_perc_identity_plot <- hmmer_perc_identity_plot + 
   geom_text(data = enzymes_proportion,
-            aes(enzymeNAME, 0, label = perc), vjust="inward",size=3)
+            aes(enzymeNAME, 0, label = perc), vjust="inward",size=2)
 
 pdf("dbcan_HMMER_perc_identity.pdf")
 hmmer_perc_identity_plot
@@ -180,88 +186,96 @@ dev.off()
 
 ########################################################################
 
-# clean checkM all nearly data:
-
-# filter >90 <5 bins 
-checkm_all_nearly <- dplyr::filter(checkm_all_nearly, !grepl("Completeness",Completeness))
-checkm_all_nearly <- subset(checkm_all_nearly, Completeness >= 90 & Contamination <= 5)
-# some formatting 
-checkm_all_nearly$Completeness <- as.numeric(checkm_all_nearly$Completeness)
-checkm_all_nearly$Contamination <- as.numeric(checkm_all_nearly$Contamination)
-# rename cols to matching colnames between dataframes to merge  
-colnames(checkm_all_nearly)[colnames(checkm_all_nearly)=="pigid"] <- "pig"
-colnames(checkm_all_nearly)[colnames(checkm_all_nearly)=="Bin Id"] <- "bin"
-colnames(checkm_all_nearly)[colnames(checkm_all_nearly)=="Taxonomy (contained)"] <- "taxa"
-
-checkm_clean <- checkm_all_nearly %>%
-  select(pig,bin,taxa)
-checkm_clean <- cSplit(checkm_clean, "taxa", sep=";")
-colnames(checkm_clean) <- c("pig","bin","kingdom","phylum","class","order","family","genus","species")
-head(checkm_clean)
-
-checkm_clean$phylum <- as.character(checkm_clean$phylum)
-checkm_clean$phylum[is.na(checkm_clean$phylum)] <- "Unknown"
-
-checkm_clean$phylum <- gsub("p__","", checkm_clean$phylum)
-
-########################################################################
-
-# merge diamond data with checkM- nearly complete bins - taxonomic assignments 
-
-
-NROW(checkm_clean)
-NROW(hmmer)
-
-cm_hmmer <- inner_join(checkm_clean,hmmer)
-NROW(cm_hmmer)
-
-
-cm_hmmer_taxa <- cm_hmmer %>%
-  group_by(phylum,enzymeNAME) %>%
-  tally() %>%
-  mutate(Proportion = n) 
-
-cm_hmmer_prop <- cm_hmmer %>%
-  group_by(phylum) %>%
-  tally() %>%
-  mutate(proportion=n/sum(n)*100)
-
-a <- ggplot(cm_hmmer_prop, aes(y=proportion, x=phylum)) + 
-  geom_bar(position="dodge", stat="identity",colour="black",fill="snow3")+ #lightskyblue happier
-  theme(axis.text.x=element_text(angle=90))+
-  theme_pubr()+
-  ylab("Proportion of CAZymes (%)")+
-  theme(axis.title.x = element_blank(),
-        axis.text.x = element_blank())
-b <- ggplot(cm_hmmer_taxa, aes(fill=enzymeNAME, y=Proportion, x=phylum)) + 
-  geom_bar(position="fill", stat="identity",colour="black")+
-  theme(axis.text.x=element_text(angle=90))+
-  scale_fill_brewer(palette="Spectral")+
-  theme_pubr()+
-  theme(axis.text.x=element_text(angle=45,hjust=1),
-        axis.title.x = element_blank(),
-        legend.position="right",
-        legend.title = element_blank())
-
-# RColorBrewer::display.brewer.all(n=8,select = "Spectral")
-
-CAZ_HMMER_CMphyla_plot <- plot_grid(
-  plot_grid(
-    a + theme(legend.position = "none"),
-    b + theme(legend.position = "none"),
-    ncol = 1,
-    align = "v"),
-  plot_grid(
-    get_legend(a),
-    get_legend(b),
-    ncol =1),
-  rel_widths = c(8,2)
-)
-
-pdf("dbcan_HMMER_CAZ_CMphyla.pdf")
-CAZ_HMMER_CMphyla_plot
-dev.off()
-
+# # clean checkM all nearly data:
+# 
+# # filter >90 <5 bins 
+# checkm_all_nearly <- dplyr::filter(checkm_all_nearly, !grepl("Completeness",Completeness))
+# checkm_all_nearly <- subset(checkm_all_nearly, Completeness >= 90 & Contamination <= 5)
+# # some formatting 
+# checkm_all_nearly$Completeness <- as.numeric(checkm_all_nearly$Completeness)
+# checkm_all_nearly$Contamination <- as.numeric(checkm_all_nearly$Contamination)
+# # rename cols to matching colnames between dataframes to merge  
+# colnames(checkm_all_nearly)[colnames(checkm_all_nearly)=="pigid"] <- "pig"
+# colnames(checkm_all_nearly)[colnames(checkm_all_nearly)=="Bin Id"] <- "bin"
+# colnames(checkm_all_nearly)[colnames(checkm_all_nearly)=="Taxonomy (contained)"] <- "taxa"
+# 
+# checkm_clean <- checkm_all_nearly %>%
+#   select(pig,bin,taxa)
+# checkm_clean <- cSplit(checkm_clean, "taxa", sep=";")
+# colnames(checkm_clean) <- c("pig","bin","kingdom","phylum","class","order","family","genus","species")
+# head(checkm_clean)
+# 
+# checkm_clean$phylum <- as.character(checkm_clean$phylum)
+# checkm_clean$phylum[is.na(checkm_clean$phylum)] <- "Unknown"
+# 
+# checkm_clean$phylum <- gsub("p__","", checkm_clean$phylum)
+# 
+# ########################################################################
+# 
+# # merge diamond data with checkM- nearly complete bins - taxonomic assignments 
+# 
+# NROW(checkm_clean)
+# NROW(hmmer)
+# 
+# cm_hmmer <- inner_join(checkm_clean,hmmer)
+# NROW(cm_hmmer)
+# 
+# 
+# cm_hmmer_taxa <- cm_hmmer %>%
+#   group_by(phylum,enzymeNAME) %>%
+#   tally() %>%
+#   mutate(Proportion = n) 
+# 
+# cm_hmmer_prop <- cm_hmmer %>%
+#   group_by(phylum) %>%
+#   tally() %>%
+#   mutate(proportion=n/sum(n)*100)
+# 
+# a <- ggplot(cm_hmmer_prop, aes(y=proportion, x=phylum)) + 
+#   geom_bar(position="dodge", lwd=0.1,stat="identity",colour="black",fill="snow3")+ #lightskyblue happier
+#   theme(axis.text.x=element_text(angle=90))+
+#   theme_pubr()+
+#   ylab("Proportion of CAZymes (%)")+
+#   theme(axis.title.x = element_blank(),
+#         axis.text.x = element_blank())
+# b <- ggplot(cm_hmmer_taxa, aes(fill=enzymeNAME, y=Proportion, x=phylum)) + 
+#   geom_bar(position="fill", lwd=0.1,stat="identity",colour="black")+
+#   theme(axis.text.x=element_text(angle=90))+
+#   scale_fill_brewer(palette="Spectral")+
+#   theme_pubr()+
+#   theme(axis.text.x=element_text(angle=45,hjust=1),
+#         axis.title.x = element_blank(),
+#         legend.position="right",
+#         legend.title = element_blank())
+# 
+# # RColorBrewer::display.brewer.all(n=8,select = "Spectral")
+# 
+# CAZ_HMMER_CMphyla_plot <- plot_grid(
+#   plot_grid(
+#     a + theme(legend.position = "none"),
+#     b + theme(legend.position = "none"),
+#     ncol = 1,
+#     align = "v"),
+#   plot_grid(
+#     get_legend(a),
+#     get_legend(b),
+#     ncol =1),
+#   rel_widths = c(8,2)
+# )
+# 
+# pdf("dbcan_HMMER_CAZ_CMphyla.pdf")
+# CAZ_HMMER_CMphyla_plot
+# dev.off()
+# 
+# 
+# # perc identity plot + phyla distr plot in one
+# pdf("dbcan_HMMER_CAZ_PercID_Phyla.pdf", width=7,height=5)
+# plot_grid(hmmer_perc_identity_plot,
+#           CAZ_HMMER_GTphyla_plot,
+#           nrow=1,ncol=2,
+#           rel_width=c(4,6),
+#           labels=c("A","B"))
+# dev.off()
 
 ########################################################################
 
@@ -292,15 +306,18 @@ a_gt <- ggplot(gt_hmmer_prop, aes(y=proportion, x=phylum)) +
   theme_pubr()+
   ylab("Proportion of CAZymes (%)")+
   theme(axis.title.x = element_blank(),
+        axis.title.y = element_text(size=8),
         axis.text.x = element_blank())
 b_gt <- ggplot(gt_hmmer_taxa, aes(fill=enzymeNAME, y=Proportion, x=phylum)) + 
   geom_bar(position="fill", stat="identity",colour="black")+
   theme(axis.text.x=element_text(angle=90))+
   scale_fill_brewer(palette="Spectral")+
   theme_pubr()+
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5),
-        axis.title.x = element_blank(),
-        legend.position="right",
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5,size=6),
+        axis.text.y=element_text(size=6),
+        axis.title.y = element_text(size=8),
+        axis.title.x=element_blank(),
+        legend.position="right",legend.text = element_text(size=8),
         legend.title = element_blank())
 
 
@@ -309,6 +326,7 @@ CAZ_HMMER_GTphyla_plot <- plot_grid(
     a_gt + theme(legend.position = "none"),
     b_gt + theme(legend.position = "none"),
     ncol = 1,
+    rel_heights=c(4,6),
     align = "v"),
   plot_grid(
     get_legend(a_gt),
@@ -428,10 +446,6 @@ significant <- all_pvalues %>%
   arrange(p_value)
 tail(significant)
 mylist <- unique(significant$enzID)
-head(mylist)
-head(significant)
-
-
 
 sink(file="dbcan_HMMER_numbers.txt", append=TRUE)
 paste0("number of unique enzymes that showed a significant change between timepoints")
@@ -504,65 +518,30 @@ df_part <- df_part %>%
   arrange(enzymeID)
 # now they are plotted in order of significance! 
 # that means that the first pages will be most interesting
-
-
-pdf("dbcan_HMMER_CAZ_time_boxplots.pdf")
-for (i in seq(1, length(mylist), 12)) {    # can also use: length(unique(df_part$enzymeID))
-  
-  print(ggplot(df_part[df_part$enzymeID %in% mylist[i:(i+11)], ], 
-               aes(date, log(tot),fill=enzymeNAME)) + 
-          geom_boxplot(outlier.size = 1) +
-          facet_wrap(~ enzymeID, scales = "free_y") +
-          theme_bw()+
-          scale_fill_gaio8()+
-          theme(legend.position="none",
-                axis.text.y=element_text(size = 4),
-                axis.ticks.length.y = unit(.05, "cm"),
-                axis.text.x=element_text(size=6))+
-          geom_text(aes(x="t1", y=max(log(tot)), label=paste0("n=(",n,")")),
-                    size=2,colour="black", inherit.aes=TRUE, parse=FALSE,check_overlap = TRUE)+
-          geom_text(aes(x="t10", y=max(log(tot)), label=paste0("n=(",n_moms,")")),
-                    size=2,colour="black", inherit.aes=TRUE, parse=FALSE,check_overlap = TRUE))
-}
-dev.off()
-
-
-# use list of enzymes that turned out to be significant
-# to retrieve taxonomic info of those enzymes
-gt_hmmer_sub <- subset(gt_hmmer, (enzymeID %in% mylist)) 
-# plotting treemaps representing bins (species level) that carry a specific enzyme
-
-
-# as this one takes long, uncomment when you want to plot again 
-
-# pdf("dbcan_CAZ_species_treemaps_new.pdf")
-# for (i in seq(1, length(mylist), by = 1)) {    # can also use: length(unique(df_part$enzymeID))
 # 
-#   this <- gt_diamond_sub[gt_diamond_sub$enzymeID %in% mylist[i], ] %>%
-#     dplyr::select(species,family) %>%
-#     distinct() %>%
-#     group_by(family) %>%
-#     add_tally() %>%
-#     mutate(perc=round(n/sum(n)*100,2)) %>%
-#     drop_na()
-# 
-#   ID <- paste0(mylist[i])
-#   this <- as.data.frame(this)
-# 
-#   print(ggplot(this, aes(area = perc, fill = family, label = species,
-#                          subgroup = family, subgroup2=species)) +
-#           geom_treemap() +
-#           geom_treemap_subgroup_border() +
-#           geom_treemap_subgroup2_border(colour="black",size=1) +
-#           # geom_treemap_subgroup_text(place = "top", grow = T, alpha = .9, colour =
-#           #                              "White", fontface = "italic", min.size = 0) +
-#           geom_treemap_subgroup2_text(place = "topleft", colour ="Black", fontface = "italic",
-#                                       min.size = 1,reflow=T,grow=T)+
-#           theme(legend.position="none")+
-#           ggtitle(ID))
+
+## commented this chunk out as redudant with the ones below, 
+## however this one is nicer (larger) 
+# pdf("dbcan_HMMER_CAZ_time_boxplots.pdf")
+# for (i in seq(1, length(mylist), 12)) {    # can also use: length(unique(df_part$enzymeID))
+#   
+#   print(ggplot(df_part[df_part$enzymeID %in% mylist[i:(i+11)], ], 
+#                aes(date, log(tot),fill=enzymeNAME)) + 
+#           geom_boxplot(outlier.size = 1) +
+#           facet_wrap(~ enzymeID, scales = "free_y") +
+#           theme_bw()+
+#           scale_fill_gaio8()+
+#           theme(legend.position="none",
+#                 axis.text.y=element_text(size = 4),
+#                 axis.ticks.length.y = unit(.05, "cm"),
+#                 axis.text.x=element_text(size=6))+
+#           geom_text(aes(x="t1", y=max(log(tot)), label=paste0("n=(",n,")")),
+#                     size=2,colour="black", inherit.aes=TRUE, parse=FALSE,check_overlap = TRUE)+
+#           geom_text(aes(x="t10", y=max(log(tot)), label=paste0("n=(",n_moms,")")),
+#                     size=2,colour="black", inherit.aes=TRUE, parse=FALSE,check_overlap = TRUE))
 # }
 # dev.off()
-
+# 
 
 ##########################################################
 
@@ -639,6 +618,7 @@ NROW(unique(df_part_cohesin$enzymeID))
 list_cohesin <- unique(df_part_cohesin$enzymeID)
 df_part_cohesin <- subset(df_part_cohesin, (enzymeID %in% list_cohesin))
 
+
 ######
 # get species count for each enzymeID and make subsets of the data 
 
@@ -664,17 +644,6 @@ t_genus <- gt_hmmer %>%
   drop_na()
 s_genus <- as.data.frame(t_genus)
 
-# ###
-# # it makes sense: little test:
-# test4 <- gt_hmmer %>%
-#   filter(enzymeID=="AA1") %>%
-#   group_by(pig,enzymeID,species) %>%
-#   tally() %>%
-#   group_by(enzymeID,species) %>%
-#   dplyr::summarise(allpiggies=sum(n)) %>%
-#   mutate(allpiggiesperc=allpiggies/sum(allpiggies))
-# head(test4)
-# ###
 
 # subsets (species)
 s_part1_GH <- subset(s, (enzymeID %in% list_GH_1))
@@ -715,63 +684,64 @@ s_genus_part_cohesin <- subset(s_genus, (enzymeID %in% list_cohesin))
 # PART 4
 
 
-# function for making enzyme heatmaps
-make_enzyme_heatmap <- function(x) {
-  p <- x %>% 
-    filter(date=="t0"|date=="t2"|date=="t4"|date=="t6"|date=="t8"|date=="t10"|date=="tM") %>%
-    group_by(pig, enzymeID, date) %>% 
-    dplyr::summarise(tot = mean(tot, na.rm = TRUE)) %>% 
-    group_by(enzymeID) %>%
-    mutate(tot = tot/max(tot)) %>%
-    ungroup() %>% 
-    ggplot(aes(x = factor(pig), y = reorder(enzymeID, tot, FUN = mean), fill = tot)) +
-    geom_tile() +
-    #scale_fill_gaio8()+
-    scale_fill_distiller(type = "div", palette = "Spectral") +
-    facet_grid(~date, scales = "free") +
-    labs(x = "date", y = "enzymeID", fill = "normalized abundance")+
-    theme(axis.text.x=element_blank(),
-          axis.title.x=element_blank(),
-          legend.position="top")
-  return(p)
-}
+# # function for making enzyme heatmaps (whole large heatmap)
+# make_enzyme_heatmap <- function(x) {
+#   p <- x %>%
+#     filter(date=="t0"|date=="t2"|date=="t4"|date=="t6"|date=="t8"|date=="t10"|date=="tM") %>%
+#     group_by(pig, enzymeID, date) %>%
+#     dplyr::summarise(tot = mean(tot, na.rm = TRUE)) %>%
+#     group_by(enzymeID) %>%
+#     mutate(tot = tot/max(tot)) %>%
+#     ungroup() %>%
+#     ggplot(aes(x = factor(pig), y = reorder(enzymeID, tot, FUN = mean), fill = tot)) +
+#     geom_tile() +
+#     #scale_fill_gaio8()+
+#     scale_fill_distiller(type = "div", palette = "Spectral") +
+#     facet_grid(~date, scales = "free") +
+#     labs(x = "date", y = "enzymeID", fill = "normalized abundance")+
+#     theme(axis.text.x=element_blank(),
+#           axis.title.x=element_blank(),
+#           legend.position="top")
+#   return(p)
+# }
 
-# function for making species heatmaps 
-make_species_heatmap <- function(species_df,CAZ_heatmap) {
-  
-  CAZ_order_vector <- CAZ_heatmap$data %>% group_by(enzymeID) %>% dplyr::summarise(mean=mean(tot)) %>% 
-    group_by(enzymeID) %>%
-    arrange(desc(mean))
-  
-  g <- species_df %>% 
-    group_by(enzymeID,species) %>% 
-    dplyr::summarise(n_sum_species = mean(n_sum_species, na.rm = TRUE)) %>% 
-    group_by(enzymeID) %>%
-    mutate(n_sum_species = n_sum_species/sum(n_sum_species)) %>%
-    top_n(n = 4, wt = n_sum_species) %>%
-    slice(1:4) %>%
-    pivot_wider(names_from = enzymeID,values_from=n_sum_species) %>% 
-    pivot_longer(cols=-species,names_to="enzymeID",values_to = "n_sum_species",values_drop_na = FALSE) %>%
-    ungroup() 
-  
-  #require(gdata)
-  g$enzymeID <- reorder.factor(g$enzymeID, new.order=CAZ_order_vector$enzymeID)
-  
-  p <- ggplot(g, aes(x = reorder(enzymeID, n_sum_species, FUN = mean), y = species, fill = n_sum_species)) +
-    geom_tile(size = 0.5, color = "black") +
-    #scale_fill_gaio8()+
-    scale_fill_distiller(palette = "Spectral",na.value = "black") +
-    labs(x = "date", y = "enzymeID", fill = "normalized abundance")+
-    theme_bw()+
-    theme(legend.position="top",
-          axis.text.x=element_text(angle=90,size=6),
-          axis.text.y=element_text(size=5),
-          axis.title.x=element_blank(),
-          axis.title.y=element_blank())
-  #scale_y_discrete(labels=function(x){sub("\\s", "\n", x)})
-  
-  return(p)
-}
+# # function for making species heatmaps 
+# make_species_heatmap <- function(species_df,CAZ_heatmap) {
+#   
+#   CAZ_order_vector <- CAZ_heatmap$data %>% group_by(enzymeID) %>% dplyr::summarise(mean=mean(tot)) %>% 
+#     group_by(enzymeID) %>%
+#     arrange(desc(mean))
+#   
+#   g <- species_df %>% 
+#     group_by(enzymeID,species) %>% 
+#     dplyr::summarise(n_sum_species = mean(n_sum_species, na.rm = TRUE)) %>% 
+#     group_by(enzymeID) %>%
+#     mutate(n_sum_species = n_sum_species/sum(n_sum_species)) %>%
+#     top_n(n = 4, wt = n_sum_species) %>%
+#     arrange(desc(n)) %>%
+#     slice(1:4) %>%
+#     pivot_wider(names_from = enzymeID,values_from=n_sum_species) %>% 
+#     pivot_longer(cols=-species,names_to="enzymeID",values_to = "n_sum_species",values_drop_na = FALSE) %>%
+#     ungroup() 
+#   
+#   #require(gdata)
+#   g$enzymeID <- reorder.factor(g$enzymeID, new.order=CAZ_order_vector$enzymeID)
+#   
+#   p <- ggplot(g, aes(x = reorder(enzymeID, n_sum_species, FUN = mean), y = species, fill = n_sum_species)) +
+#     geom_tile(size = 0.5, color = "black") +
+#     #scale_fill_gaio8()+
+#     scale_fill_distiller(palette = "Spectral",na.value = "black") +
+#     labs(x = "date", y = "enzymeID", fill = "normalized abundance")+
+#     theme_bw()+
+#     theme(legend.position="top",
+#           axis.text.x=element_text(angle=90,size=6),
+#           axis.text.y=element_text(size=5),
+#           axis.title.x=element_blank(),
+#           axis.title.y=element_blank())
+#   #scale_y_discrete(labels=function(x){sub("\\s", "\n", x)})
+#   
+#   return(p)
+# }
 
 # function for making top n species plots (per enzymeID) 
 make_species_CAZ_plots <- function(x) {
@@ -779,6 +749,7 @@ make_species_CAZ_plots <- function(x) {
   p <- x %>% 
     group_by(enzymeID) %>%
     top_n(n = 3, wt = perc_species) %>%
+    arrange(desc(perc_species)) %>%
     slice(1:3) %>%
     drop.levels() %>% 
     ggplot(aes(x = reorder(enzymeID, perc_species, FUN = mean), y = reorder(species, perc_species, FUN = mean), fill = perc_species)) +
@@ -814,6 +785,7 @@ make_genus_CAZ_plots <- function(x) {
   p <- x %>% 
     group_by(enzymeID) %>%
     top_n(n = 3, wt = perc_genus) %>%
+    arrange(desc(perc_genus)) %>%
     slice(1:3) %>%
     drop.levels() %>% 
     ggplot(aes(x = reorder(enzymeID, perc_genus, FUN = mean), y = reorder(genus, perc_genus, FUN = mean), fill = perc_genus)) +
@@ -887,6 +859,7 @@ a_CBM_1 <- make_enzyme_boxplots(df_part1_CBM)
 a_CBM_2 <- make_enzyme_boxplots(df_part2_CBM)
 a_SLH <- make_enzyme_boxplots(df_part_SLH)
 a_cohesin <- make_enzyme_boxplots(df_part_cohesin)
+a_SLH_cohesin <- make_enzyme_boxplots(rbind(df_part_SLH,df_part_cohesin))
 
 b_AA_CE <- make_species_CAZ_plots(s_part_AA_CE)
 b_PL <- make_species_CAZ_plots(s_part_PL)
@@ -901,6 +874,7 @@ b_CBM_1 <- make_species_CAZ_plots(s_part1_CBM)
 b_CBM_2 <- make_species_CAZ_plots(s_part2_CBM)
 b_SLH <- make_species_CAZ_plots(s_part_SLH)
 b_cohesin <- make_species_CAZ_plots(s_part_cohesin)
+b_SLH_cohesin <- make_species_CAZ_plots(rbind(s_part_SLH,s_part_cohesin))
 
 b2_AA_CE <- make_genus_CAZ_plots(s_genus_part_AA_CE)
 b2_PL <- make_genus_CAZ_plots(s_genus_part_PL)
@@ -915,20 +889,22 @@ b2_CBM_1 <- make_genus_CAZ_plots(s_genus_part1_CBM)
 b2_CBM_2 <- make_genus_CAZ_plots(s_genus_part2_CBM)
 b2_SLH <- make_genus_CAZ_plots(s_genus_part_SLH)
 b2_cohesin <- make_genus_CAZ_plots(s_genus_part_cohesin)
+b2_SLH_cohesin <- make_genus_CAZ_plots(rbind(s_genus_part_SLH,
+                                         s_genus_part_cohesin))
 
-h_a_AA_CE <- make_enzyme_heatmap(df_part_AA_CE)
-h_a_PL <- make_enzyme_heatmap(df_part_PL)
-h_a_GT_1 <- make_enzyme_heatmap(df_part1_GT)
-h_a_GT_2 <- make_enzyme_heatmap(df_part2_GT)
-h_a_GT_3 <- make_enzyme_heatmap(df_part3_GT)
-h_a_GH_1 <- make_enzyme_heatmap(df_part1_GH)
-h_a_GH_2 <- make_enzyme_heatmap(df_part2_GH)
-h_a_GH_3 <- make_enzyme_heatmap(df_part3_GH)
-h_a_GH_4 <- make_enzyme_heatmap(df_part4_GH)
-h_a_CBM_1 <- make_enzyme_heatmap(df_part1_CBM)
-h_a_CBM_2 <- make_enzyme_heatmap(df_part2_CBM)
-h_a_SLH <- make_enzyme_heatmap(df_part_SLH)
-h_a_cohesin <- make_enzyme_heatmap(df_part_cohesin)
+# h_a_AA_CE <- make_enzyme_heatmap(df_part_AA_CE)
+# h_a_PL <- make_enzyme_heatmap(df_part_PL)
+# h_a_GT_1 <- make_enzyme_heatmap(df_part1_GT)
+# h_a_GT_2 <- make_enzyme_heatmap(df_part2_GT)
+# h_a_GT_3 <- make_enzyme_heatmap(df_part3_GT)
+# h_a_GH_1 <- make_enzyme_heatmap(df_part1_GH)
+# h_a_GH_2 <- make_enzyme_heatmap(df_part2_GH)
+# h_a_GH_3 <- make_enzyme_heatmap(df_part3_GH)
+# h_a_GH_4 <- make_enzyme_heatmap(df_part4_GH)
+# h_a_CBM_1 <- make_enzyme_heatmap(df_part1_CBM)
+# h_a_CBM_2 <- make_enzyme_heatmap(df_part2_CBM)
+# h_a_SLH <- make_enzyme_heatmap(df_part_SLH)
+# h_a_cohesin <- make_enzyme_heatmap(df_part_cohesin)
 
 
 
@@ -953,6 +929,10 @@ GH4 <- plot_grid(a_GH_4,b_GH_4,ncol=2)
 SLH <- plot_grid(a_SLH,b_SLH,ncol=2)
 
 cohesin <- plot_grid(a_cohesin,b_cohesin,ncol=2)
+
+SLH_cohesin <- plot_grid(a_SLH_cohesin,
+                         b_SLH_cohesin,
+                         ncol=2)
 ####
 
 ####
@@ -976,80 +956,84 @@ g_GH4 <- plot_grid(a_GH_4,b2_GH_4,ncol=2)
 g_SLH <- plot_grid(a_SLH,b2_SLH,ncol=2)
 
 g_cohesin <- plot_grid(a_cohesin,b2_cohesin,ncol=2)
+
+g_SLH_cohesin <- plot_grid(a_SLH_cohesin,
+                         b2_SLH_cohesin,
+                         ncol=2)
 ####
 
 
 ####
 # Two heatmaps per page: one for the CAZ time trend, one for the species corresponding to the bin where the CAZ was found 
-sh_AA_CE <- make_species_heatmap(s_part_AA_CE,h_a_AA_CE)
-H1 <- plot_grid(h_a_AA_CE,sh_AA_CE,ncol=2)
-
-sh_PL <- make_species_heatmap(s_part_PL,h_a_PL)
-H2 <- plot_grid(h_a_PL,sh_PL,ncol=2)
-
-sh_GT1 <- make_species_heatmap(s_part1_GT,h_a_GT_1)
-H3 <- plot_grid(h_a_GT_1,sh_GT1,ncol=2)
-
-sh_GT2 <- make_species_heatmap(s_part2_GT,h_a_GT_2)
-H4 <- plot_grid(h_a_GT_2,sh_GT2,ncol=2)
-
-sh_GT3 <- make_species_heatmap(s_part3_GT,h_a_GT_3)
-H5 <- plot_grid(h_a_GT_3,sh_GT3,ncol=2)
-
-sh_GH1 <- make_species_heatmap(s_part1_GH,h_a_GH_1)
-H6 <- plot_grid(h_a_GH_1,sh_GH1,ncol=2)
-
-sh_GH2 <- make_species_heatmap(s_part2_GH,h_a_GH_2)
-H7 <- plot_grid(h_a_GH_2,sh_GH2,ncol=2)
-
-sh_GH3 <- make_species_heatmap(s_part3_GH,h_a_GH_3)
-H8 <- plot_grid(h_a_GH_3,sh_GH3,ncol=2)
-
-sh_CBM1 <- make_species_heatmap(s_part1_CBM,h_a_CBM_1)
-H9 <- plot_grid(h_a_CBM_1,sh_CBM1,ncol=2)
-
-sh_CBM2 <- make_species_heatmap(s_part2_CBM,h_a_CBM_2)
-H10 <- plot_grid(h_a_CBM_2,sh_CBM2,ncol=2)
-
-sh_SLH <- make_species_heatmap(s_part_SLH,h_a_SLH)
-H11 <- plot_grid(h_a_SLH,sh_SLH,ncol=2)
-
-sh_cohesin <- make_species_heatmap(s_part_cohesin,h_a_cohesin)
-H12 <- plot_grid(h_a_cohesin,sh_cohesin,ncol=2)
+# sh_AA_CE <- make_species_heatmap(s_part_AA_CE,h_a_AA_CE)
+# H1 <- plot_grid(h_a_AA_CE,sh_AA_CE,ncol=2)
+# 
+# sh_PL <- make_species_heatmap(s_part_PL,h_a_PL)
+# H2 <- plot_grid(h_a_PL,sh_PL,ncol=2)
+# 
+# sh_GT1 <- make_species_heatmap(s_part1_GT,h_a_GT_1)
+# H3 <- plot_grid(h_a_GT_1,sh_GT1,ncol=2)
+# 
+# sh_GT2 <- make_species_heatmap(s_part2_GT,h_a_GT_2)
+# H4 <- plot_grid(h_a_GT_2,sh_GT2,ncol=2)
+# 
+# sh_GT3 <- make_species_heatmap(s_part3_GT,h_a_GT_3)
+# H5 <- plot_grid(h_a_GT_3,sh_GT3,ncol=2)
+# 
+# sh_GH1 <- make_species_heatmap(s_part1_GH,h_a_GH_1)
+# H6 <- plot_grid(h_a_GH_1,sh_GH1,ncol=2)
+# 
+# sh_GH2 <- make_species_heatmap(s_part2_GH,h_a_GH_2)
+# H7 <- plot_grid(h_a_GH_2,sh_GH2,ncol=2)
+# 
+# sh_GH3 <- make_species_heatmap(s_part3_GH,h_a_GH_3)
+# H8 <- plot_grid(h_a_GH_3,sh_GH3,ncol=2)
+# 
+# sh_CBM1 <- make_species_heatmap(s_part1_CBM,h_a_CBM_1)
+# H9 <- plot_grid(h_a_CBM_1,sh_CBM1,ncol=2)
+# 
+# sh_CBM2 <- make_species_heatmap(s_part2_CBM,h_a_CBM_2)
+# H10 <- plot_grid(h_a_CBM_2,sh_CBM2,ncol=2)
+# 
+# sh_SLH <- make_species_heatmap(s_part_SLH,h_a_SLH)
+# H11 <- plot_grid(h_a_SLH,sh_SLH,ncol=2)
+# 
+# sh_cohesin <- make_species_heatmap(s_part_cohesin,h_a_cohesin)
+# H12 <- plot_grid(h_a_cohesin,sh_cohesin,ncol=2)
 ####
 
 
 
 
-pdf("dbcan_HMMER_CAZ_time_heatmaps.pdf")
-h_a_AA_CE 
-h_a_PL 
-h_a_GT_1 
-h_a_GT_2 
-h_a_GT_3 
-h_a_GH_1 
-h_a_GH_2 
-h_a_GH_3 
-h_a_CBM_1 
-h_a_CBM_2 
-h_a_SLH
-h_a_cohesin
-dev.off()
-
-pdf("dbcan_CAZ_ALL_heatmaps.pdf")
-H1
-H2
-H3
-H4
-H5
-H6
-H7
-H8
-H9
-H10
-H11
-H12
-dev.off()
+# pdf("dbcan_HMMER_CAZ_time_heatmaps.pdf")
+# h_a_AA_CE 
+# h_a_PL 
+# h_a_GT_1 
+# h_a_GT_2 
+# h_a_GT_3 
+# h_a_GH_1 
+# h_a_GH_2 
+# h_a_GH_3 
+# h_a_CBM_1 
+# h_a_CBM_2 
+# h_a_SLH
+# h_a_cohesin
+# dev.off()
+# 
+# pdf("dbcan_CAZ_ALL_heatmaps.pdf")
+# H1
+# H2
+# H3
+# H4
+# H5
+# H6
+# H7
+# H8
+# H9
+# H10
+# H11
+# H12
+# dev.off()
 
 pdf("dbcan_HMMER_CAZ_time_species.pdf")
 AA_CE
@@ -1063,8 +1047,9 @@ GH1
 GH2
 GH3
 GH4
-SLH
-cohesin
+#SLH
+#cohesin
+SLH_cohesin
 dev.off()
 
 pdf("dbcan_HMMER_CAZ_time_genus.pdf")
@@ -1079,68 +1064,106 @@ g_GH1
 g_GH2
 g_GH3
 g_GH4
-g_SLH
-g_cohesin
+#g_SLH
+#g_cohesin
+g_SLH_cohesin
 dev.off()
+
+
+
+
+
 
 # PLOT showing all enzymes that significantly changed over time, 
 # with popularity (y) and "singularity" (x) meaning how uniquely an enzyme is expressed by one (right) or multiple (left) taxa
 
 
-df <- gt_hmmer %>%
+CAZy_species_representation <- gt_hmmer %>% 
   dplyr::select(pig,enzymeID,enzymeNAME,species,family) %>%
   distinct() %>%
   group_by(pig,enzymeID,species) %>%
   add_tally() %>%
   group_by(enzymeNAME,enzymeID,species) %>%
   dplyr::summarise(n_sum_species=sum(n)) %>%
-  mutate(perc_species=round(n_sum_species/sum(n_sum_species)*100,2)) %>% 
-  drop_na()
+  mutate(perc_species=round(n_sum_species/sum(n_sum_species)*100,4)) %>% 
+  drop_na() %>% arrange(desc(perc_species))
+head(CAZy_species_representation)
+tail(CAZy_species_representation)
 
-df2 <- as.data.frame(df)
-df2 <- df2 %>%
+CAZy_prevalence_in_population <- gt_hmmer %>% 
+  dplyr::select(pig,enzymeID,enzymeNAME) %>%
+  distinct() %>%
+  group_by(pig,enzymeID) %>%
+  add_tally() %>%
+  group_by(enzymeNAME,enzymeID) %>%
+  dplyr::summarise(n_sum_piggies=sum(n)) %>%
+  mutate(prevalence=round(n_sum_piggies/sum(n_sum_piggies)*100,2)) %>% 
+  drop_na() %>% arrange(desc(prevalence))
+head(CAZy_prevalence_in_population)
+tail(CAZy_prevalence_in_population)
+
+# keep only one species, the one representing the enzyme the most 
+CAZy_species_representation <- as.data.frame(CAZy_species_representation)
+CAZy_species_representation <- CAZy_species_representation %>%
   group_by(enzymeID) %>%
   top_n(n = 1, wt = perc_species) 
 
-# subsetting to contain only sigbificantly changing enzymes over time # not necessary for this plot
-#df2 <- subset(df2, (enzymeID %in% df_part$enzymeID))
-
 # to get the species showing in the labels 
-df2$species <- gsub(" ","\n", df2$species)
+CAZy_species_representation$species <- gsub(" ","\n", CAZy_species_representation$species)
 
-pdf("dbcan_HMMER_all_CAZ_plot2.pdf")
-ggplot(df2) +
-  geom_point(aes(perc_species, n_sum_species, fill = factor(enzymeNAME))) +
-  #ylim(0,10000)+
-  #xlim(-25,100)+
-  geom_point(aes(perc_species, n_sum_species, fill=enzymeNAME), 
+# join species representation with prevalence in pig populationinfo: 
+both <- inner_join(CAZy_species_representation,CAZy_prevalence_in_population)
+both <- as.data.frame(both)
+
+
+pdf("dbcan_HMMER_all_CAZ_plot.pdf")
+ggplot(both) +
+  geom_point(aes(n_sum_piggies, perc_species, fill=enzymeNAME), 
              colour="black",pch=21, size=4)+
-  labs(x="percentage of top species per enzymeID",
-       y="number of subjects carrying the enzyme",
+  labs(x="prevalence (number of subjects carrying the enzyme)",
+       y="percentage of top species per enzymeID",
        fill="enzyme class")+
   scale_fill_gaio8()+
-  ylim(0,170)+
   theme_bw(base_size = 10)+
-  ggrepel::geom_label_repel(data = subset(df2, perc_species > 50 & n_sum_species > 5),
+  ggrepel::geom_label_repel(data = subset(both, perc_species > 50 & n_sum_piggies > 10),
                             aes(
-                              x = perc_species,
-                              y = n_sum_species,
+                              x = n_sum_piggies,
+                              y = perc_species,
+                              fill = factor(enzymeNAME),
+                              label = paste0(enzymeID,"\n",species)
+                            ),
+                            box.padding   = 0.3,label.padding = 0.1,
+                            point.padding = 0.5,alpha=0.7,
+                            force         = 30,
+                            segment.size  = 0.2,
+                            segment.color = "grey50",
+                            direction     = "both",
+                            size=2.5,
+                            color="black"
+  ) +
+  ggrepel::geom_label_repel(data = subset(both, n_sum_piggies > 20),
+                            aes(
+                              x = n_sum_piggies,
+                              y = perc_species,
                               fill = factor(enzymeNAME),
                               label = paste0(enzymeID,"\n",species)
                             ),
                             #nudge_y       = 100 - subset(test, perc_species >= 55)$perc_species, #rep(c(4000,45000),7),
                             box.padding   = 0.3,label.padding = 0.1,
                             point.padding = 0.5,alpha=0.7,
-                            #force         = 70,
+                            force         = 40,
                             segment.size  = 0.2,
                             segment.color = "grey50",
-                            #direction     = "x",
+                            direction     = "both",
                             size=2.5,
                             color="black"
   ) 
 dev.off()
 
 
+
+
+# EDIT THIS BELOW WITH NEW DF ("BOTH")
 
 
 # CE
