@@ -38,8 +38,8 @@ class(feat.crc.zeller)
 class(meta.crc.zeller)
 
 # the sum of each column (1 column: 1 sample) always equals 1. 
-# this implies SIAMCAT needs ratios
-sum(feat.crc.zeller[,2])
+# this implies SIAMCAT uses the simplex (ratios)
+colSums(feat.crc.zeller)
 
 ######################################################################
 
@@ -51,7 +51,7 @@ no_reps_all <- read.csv(paste0(basedir,"no_reps_all.csv"),
                         header = TRUE)
 
 
-# remove .fa extension to match bins in checkm df 
+# remove .fa extension 
 no_reps_all$bin <- gsub(".fa","", no_reps_all$bin)
 head(no_reps_all)
 NROW(no_reps_all)
@@ -86,6 +86,10 @@ mdat$`*collection_date` <- as.character(mdat$`*collection_date`)
 mdat$Cohort <- gsub("Sows","Sows",mdat$Cohort)
 mdat$Cohort <- gsub("D-scour","D-Scour",mdat$Cohort)
 
+
+###
+# metadata mdat2 is used below for the cohousing effect
+
 mdat2 <- mdat %>%
   dplyr::filter(!Cohort=="Sows")  %>%
   dplyr::filter(!`*collection_date`=="2017-01-31"|
@@ -106,7 +110,7 @@ mdat2 <- na.omit(mdat2)
 
 # we need to keep only record of pigs that were not relocated. 
 mdat2 <- setDT(mdat2)[,if(.N ==1) .SD,by=pig]
-
+###
 
 ######################################################################
 
@@ -160,6 +164,7 @@ weights <- as.data.frame(weights)
 
 weights <- rbind(weights,weights_final)
 NROW(weights)
+head(weights)
 
 # merge bday info : 
 bday <- breed_bday %>%
@@ -239,55 +244,72 @@ NROW(df0)
 # CREATE COUNTS TABLE (like feat.crc.zeller)
 
 df1 <- df0
+head(df1)
+NROW(df1)
 
-# lib size normalization
-df2 <- df1 %>% 
-  group_by(pig,date) %>% 
-  mutate(norm_value = (value/sum(value))) %>% 
-  dplyr::select(-value)
-
-head(df2)
-
-colnames(df2)
-
-# sum all the norm values that fall within same pig,date,species:
-df2 <- df2 %>%  
-  group_by(pig,date,gOTU) %>%
-  dplyr::summarise(indiv_sum = sum(norm_value))
-head(df2)
-
-# take the mean of each species by date:
-df3 <- df2 %>%
+### minitest: 
+# filter a sample (pig,date)
+test <- df1 %>% filter(pig=="14159") %>% filter(date=="t2")
+sum(test$value)
+NROW(test)
+# for each sample (pig,date), sum up together the counts that fall within one species (same species assigned to distinct bins)
+test2 <- test %>%
   group_by(pig,gOTU,date) %>%
-  dplyr::summarize(mean = mean(indiv_sum, na.rm=TRUE)) %>%
-  mutate(perc=mean) %>%
-  dplyr::select(pig,gOTU,date,perc) 
+  dplyr::summarize(sum_value = sum(value)) 
+sum(test2$sum_value)
+NROW(test2)
+# normalize by library size 
+test3 <- test2 %>% 
+  group_by(pig,date) %>% 
+  mutate(norm_value = sum_value/sum(sum_value)) %>% 
+  dplyr::select(-sum_value)
+sum(test3$norm_value)
+NROW(test3)
+###
+
+
+# PROCEED to all: 
+
+# for each sample (pig,date), sum up the counts that fall within one species (same species assigned to distinct bins)
+df2 <- df1 %>%
+  group_by(pig,gOTU,date) %>%
+  dplyr::summarize(sum_value = sum(value)) 
 head(df2)
+sum(df2$sum_value)
+
+# normalize by library size 
+df3 <- df2 %>% 
+  group_by(pig,date) %>% 
+  dplyr::mutate(norm_value = sum_value/sum(sum_value)) %>% 
+  dplyr::select(-sum_value)
+head(df3)
+
+# if your total sum is equal to the total number of samples, 
+# it means that the sum within each sample (pig,date) is 1, and that's correct  
+NROW(unique(paste0(df3$pig,df3$date)))==sum(df3$norm_value)
+
 
 
 df3 <- as.data.frame(df3)
 df3$sample = paste0(df3$date,"_",df3$pig)
+head(df3)
 
 # pivot wider
 df3 <- df3 %>%
-  dplyr::select(sample,gOTU,perc) %>%
-  pivot_wider(names_from = sample, values_from = perc, values_fill = list(perc = 0))
+  dplyr::select(sample,gOTU,norm_value) %>%
+  pivot_wider(names_from = sample, values_from = norm_value, values_fill = list(norm_value = 0))
 
 feat <- as.data.frame(df3)
 which(is.na(feat[,1]))
 
-
 rownames(feat) <- feat[,1]
 feat[,1] <- NULL
-
 
 head(feat)
 dim(feat)
 
-
-
 # is the sum of each columns 1? 
-sum(feat[,4])==1
+colSums(feat)
 # yes 
 
 # ready! 
@@ -336,7 +358,6 @@ head(meta)
 head(meta.crc.zeller)
 
 colnames(feat)==rownames(meta)
-
 
 
 ######################################################################
@@ -579,384 +600,35 @@ fwrite(x=mydata, file="gt_siamcat_stats.csv", sep = ",",
 
 ######################################################################
 
-# retrieve the significance data we just created 
+# retrieve the significant hits from the data we just obtained 
 TimeAssociations <- read_csv("gt_siamcat_stats.csv")
 
 significant_with_time <- TimeAssociations %>%
-  filter(p.adj<0.06) %>%
+  filter(comparison=="t0_t2"|comparison=="t2_t4"|comparison=="t4_t6"|comparison=="t6_t8"|comparison=="t8_t10") %>%
+  filter(p.adj<=0.05) 
+
+fwrite(x=significant_with_time, file="gt_siamcat_time_sign.csv", sep = ",",
+       append = FALSE)
+
+
+# what species show signif associations more than once ? 
+often_found_associating_with_time <- significant_with_time %>%
+  group_by(species) %>%
+  tally() %>%
+  arrange(desc(n))
+fwrite(x=often_found_associating_with_time, file="gt_siamcat_time_species.csv", sep = ",",
+       append = FALSE)
+
+# how many associations found per each time intervals comparison
+sink(file = "gt_siamcat_time_sign.txt", 
+     append = FALSE, type = c("output"))
+TimeAssociations %>%
+  filter(comparison=="t0_t2"|comparison=="t2_t4"|comparison=="t4_t6"|comparison=="t6_t8"|comparison=="t8_t10") %>%
+  filter(p.adj<=0.05) %>%
   group_by(comparison) %>%
   tally() %>%
   mutate(perc=n/sum(n)*100)
-
-sink(file = "gt_siamcat_stats_SIGNIFICANT.txt", 
-     append = FALSE, type = c("output"))
-significant_with_time
 sink()
-
-######################################################################
-
-
-# comparing cohorts 
-
-######################################################################
-######################################################################
-
-# create function to compare cohorts: 
-
-# prepare empty df to be filled
-dfz <- data.frame(
-  fc = numeric(),
-  p.adj = numeric(),
-  gOTU = character(),
-  comparison = character(),
-  stringsAsFactors = FALSE
-)
-
-# function to compare cohorts: 
-comparebetween <- function(t,c2,c1) { 
-  
-  label.normalized <- create.label(meta=meta,
-                                   label='group', 
-                                   case= paste0(t,"_",c2),
-                                   control= paste0(t,"_",c1))
-  
-  siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
-  siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.0001)
-  
-  # check for significant associations
-  siamcat <- check.associations(
-    siamcat,
-    sort.by = 'fc',
-    alpha = 0.05,
-    mult.corr = "fdr",
-    detect.lim = 10 ^-6,
-    prompt = FALSE,
-    panels = c("fc", "prevalence", "auroc"))
-  
-  yy <- SIAMCAT::associations(siamcat)
-  yy$gOTU <- rownames(yy)
-  yy <- yy %>% filter(p.adj<0.05)
-  
-  
-  if (NROW(yy)>0) {
-    yy$comparison=paste0(t,"_",c2,"_",c1)
-    yy$feat <- rownames(yy)
-    yy <- yy %>%
-      dplyr::select(comparison,gOTU,fc,p.adj)
-    dfz <- rbind(dfz,yy)
-  } else {
-    print ("No significant associations found. No plot will be produced.")
-  }
-
-  return(dfz)
-}
-
-
-NROW(last)
-
-# run the association tests and catch all the df outputs into one single df
-last <- rbind(comparebetween("t0","DScour","Control"),
-              comparebetween("t2","DScour","Control"),
-              comparebetween("t4","DScour","Control"),
-              comparebetween("t6","DScour","Control"),
-              comparebetween("t8","DScour","Control"),
-              comparebetween("t10","DScour","Control"),
-              comparebetween("t0","ColiGuard","Control"),
-              comparebetween("t2","ColiGuard","Control"),
-              comparebetween("t4","ColiGuard","Control"),
-              comparebetween("t6","ColiGuard","Control"),
-              comparebetween("t8","ColiGuard","Control"),
-              comparebetween("t10","ColiGuard","Control"),
-              comparebetween("t0","Neomycin","Control"),
-              comparebetween("t2","Neomycin","Control"),
-              comparebetween("t4","Neomycin","Control"),
-              comparebetween("t6","Neomycin","Control"),
-              comparebetween("t8","Neomycin","Control"),
-              comparebetween("t10","Neomycin","Control"),
-              comparebetween("t0","NeoD","Neomycin"),
-              comparebetween("t2","NeoD","Neomycin"),
-              comparebetween("t4","NeoD","Neomycin"),
-              comparebetween("t6","NeoD","Neomycin"),
-              comparebetween("t8","NeoD","Neomycin"),
-              comparebetween("t10","NeoD","Neomycin"),
-              comparebetween("t0","NeoC","Neomycin"),
-              comparebetween("t2","NeoC","Neomycin"),
-              comparebetween("t4","NeoC","Neomycin"),
-              comparebetween("t6","NeoC","Neomycin"),
-              comparebetween("t8","NeoC","Neomycin"),
-              comparebetween("t10","NeoC","Neomycin"))
-
-
-last$p.adj <- NULL
-
-
-sink(file = "gt_siamcat_cohortsbetween.txt", 
-     append = FALSE, type = c("output"))
-last
-sink()
-
-
-######################################################################
-######################################################################
-
-# Function to plot the significant changes per cohort for each time interval : 
-
-comparewithin_plots <- function(c,t1,t2) { # where c is the cohort of interest, t0 is the start time point, t1 is the next time point)
-  
-  label.normalized <- create.label(meta=meta,
-                                   label='group', 
-                                   case= paste0(t2,"_",c),
-                                   control= paste0(t1,"_",c))
-  
-  siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
-  siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.0001)
-  
-  
-  # check for significant associations
-  siamcat <- check.associations(
-    siamcat,
-    fn.plot = paste0("gt_siamcatA_",c,"_",t1,"_",t2,".pdf"),
-    sort.by = 'fc',
-    alpha = 0.05, 
-    mult.corr = "fdr",
-    detect.lim = 10 ^-6,
-    plot.type = "quantile.box",
-    panels = c("fc", "prevalence", "auroc"))
-  
-  
-}
-
-
-# Plot : 
-
-comparewithin_plots("Control","t0","t2")
-comparewithin_plots("Control","t2","t4")
-comparewithin_plots("Control","t4","t6")
-comparewithin_plots("Control","t6","t8")
-comparewithin_plots("Control","t8","t10")
-comparewithin_plots("Control","t4","t8")
-comparewithin_plots("Control","t4","t10")
-comparewithin_plots("Control","t2","t8")
-#
-comparewithin_plots("DScour","t0","t2")
-comparewithin_plots("DScour","t2","t4")
-comparewithin_plots("DScour","t4","t6")
-comparewithin_plots("DScour","t6","t8")
-comparewithin_plots("DScour","t8","t10")
-comparewithin_plots("DScour","t4","t8")
-comparewithin_plots("DScour","t4","t10")
-comparewithin_plots("DScour","t2","t8")
-#
-comparewithin_plots("ColiGuard","t0","t2")
-comparewithin_plots("ColiGuard","t2","t4")
-comparewithin_plots("ColiGuard","t4","t6")
-comparewithin_plots("ColiGuard","t6","t8")
-comparewithin_plots("ColiGuard","t8","t10")
-comparewithin_plots("ColiGuard","t4","t8")
-comparewithin_plots("ColiGuard","t4","t10")
-comparewithin_plots("ColiGuard","t2","t8")
-#
-comparewithin_plots("Neomycin","t0","t2")
-comparewithin_plots("Neomycin","t2","t4")
-comparewithin_plots("Neomycin","t4","t6")
-comparewithin_plots("Neomycin","t6","t8")
-comparewithin_plots("Neomycin","t8","t10")
-comparewithin_plots("Neomycin","t4","t8")
-comparewithin_plots("Neomycin","t4","t10")
-comparewithin_plots("Neomycin","t2","t8")
-#
-comparewithin_plots("NeoD","t0","t2")
-comparewithin_plots("NeoD","t2","t4")
-comparewithin_plots("NeoD","t4","t6")
-comparewithin_plots("NeoD","t6","t8")
-comparewithin_plots("NeoD","t8","t10")
-comparewithin_plots("NeoD","t4","t8")
-comparewithin_plots("NeoD","t4","t10")
-comparewithin_plots("NeoD","t2","t8")
-#
-comparewithin_plots("NeoC","t0","t2")
-comparewithin_plots("NeoC","t2","t4")
-comparewithin_plots("NeoC","t4","t6")
-comparewithin_plots("NeoC","t6","t8")
-comparewithin_plots("NeoC","t8","t10")
-comparewithin_plots("NeoC","t4","t8")
-comparewithin_plots("NeoC","t4","t10")
-comparewithin_plots("NeoC","t2","t8")
-
-
-######################################################################
-
-# Function to obtain the (data only) significant changes per cohort for each time interval : 
-
-dfz <- data.frame(
-  fc = numeric(),
-  p.adj = numeric(),
-  gOTU = character(),
-  comparison = character(),
-  stringsAsFactors = FALSE
-)
-
-comparewithin <- function(c,t1,t2) { # where c is the cohort of interest, t0 is the start time point, t1 is the next time point)
-  
-  label.normalized <- create.label(meta=meta,
-                                   label='group', 
-                                   case= paste0(t2,"_",c),
-                                   control= paste0(t1,"_",c))
-  
-  siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
-  siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.0001)
-  
-  # check for significant associations
-  siamcat <- check.associations(
-    siamcat,
-    sort.by = 'fc',
-    alpha = 0.05,
-    mult.corr = "fdr",
-    detect.lim = 10 ^-6,
-    prompt = FALSE,
-    panels = c("fc", "prevalence", "auroc"))
-  
-  yy <- SIAMCAT::associations(siamcat)
-  yy$gOTU <- rownames(yy)
-  yy <- yy %>% filter(p.adj<0.05)
-  
-  
-  if (NROW(yy)>0) {
-    yy$comparison=paste0(c,"_",t1,"_",t2)
-    yy$feat <- rownames(yy)
-    yy <- yy %>%
-      dplyr::select(comparison,gOTU,fc,p.adj)
-    dfz <- rbind(dfz,yy)
-  } else {
-    print ("No significant associations found. No plot will be produced.")
-  }
-  
-  return(dfz)
-}
-
-
-
-last <- rbind(comparewithin("Control","t0","t2"),
-              comparewithin("Control","t2","t4"),
-              comparewithin("Control","t4","t6"),
-              comparewithin("Control","t6","t8"),
-              comparewithin("Control","t8","t10"),
-              comparewithin("Control","t4","t8"),
-              comparewithin("Control","t4","t10"),
-              comparewithin("Control","t2","t8"),
-              #
-              comparewithin("DScour","t0","t2"),
-              comparewithin("DScour","t2","t4"),
-              comparewithin("DScour","t4","t6"),
-              comparewithin("DScour","t6","t8"),
-              comparewithin("DScour","t8","t10"),
-              comparewithin("DScour","t4","t8"),
-              comparewithin("DScour","t4","t10"),
-              comparewithin("DScour","t2","t8"),
-              #
-              comparewithin("ColiGuard","t0","t2"),
-              comparewithin("ColiGuard","t2","t4"),
-              comparewithin("ColiGuard","t4","t6"),
-              comparewithin("ColiGuard","t6","t8"),
-              comparewithin("ColiGuard","t8","t10"),
-              comparewithin("ColiGuard","t4","t8"),
-              comparewithin("ColiGuard","t4","t10"),
-              comparewithin("ColiGuard","t2","t8"),
-              #
-              comparewithin("Neomycin","t0","t2"),
-              comparewithin("Neomycin","t2","t4"),
-              comparewithin("Neomycin","t4","t6"),
-              comparewithin("Neomycin","t6","t8"),
-              comparewithin("Neomycin","t8","t10"),
-              comparewithin("Neomycin","t4","t8"),
-              comparewithin("Neomycin","t4","t10"),
-              comparewithin("Neomycin","t2","t8"),
-              #
-              comparewithin("NeoD","t0","t2"),
-              comparewithin("NeoD","t2","t4"),
-              comparewithin("NeoD","t4","t6"),
-              comparewithin("NeoD","t6","t8"),
-              comparewithin("NeoD","t8","t10"),
-              comparewithin("NeoD","t4","t8"),
-              comparewithin("NeoD","t4","t10"),
-              comparewithin("NeoD","t2","t8"),
-              #
-              comparewithin("NeoC","t0","t2"),
-              comparewithin("NeoC","t2","t4"),
-              comparewithin("NeoC","t4","t6"),
-              comparewithin("NeoC","t6","t8"),
-              comparewithin("NeoC","t8","t10"),
-              comparewithin("NeoC","t4","t8"),
-              comparewithin("NeoC","t4","t10"),
-              comparewithin("NeoC","t2","t8"))
-
-last_to_use <- last 
-
-NROW(last_to_use)
-last_to_use$p.adj <- NULL
-
-toplot <- last_to_use %>%
-  dplyr::select(gOTU,comparison,fc)
-
-
-
-# save hits as text file 
-sink(file = "gt_siamcatA_cohortswithin.txt", 
-     append = TRUE, type = c("output"))
-last_to_use
-sink()
-
-
-
-toplot <- cSplit(toplot, "comparison", "_")
-toplot$interval <- paste0(toplot$comparison_2,"_",toplot$comparison_3)
-
-toplot <- toplot %>%
-  dplyr::select(gOTU,comparison_1,interval,fc)
-
-colnames(toplot) <- c("gOTU","cohort","interval","fc")
-
-
-# I am adding this here because the pdf below often doesn t get printed
-closeAllConnections()
-
-
-# split df by time interval 
-multiple_DFs <- split( toplot , f = toplot$interval )
-
-
-pdf("gt_siamcatA_cohortswithin.pdf")
-for (single_DF in multiple_DFs) {
-  
-  
-  DF <- as.data.frame(single_DF)
-  
-  interval <- DF$interval[1]
-  
-  DF_wide <- DF %>%
-    pivot_wider(names_from = cohort, values_from = fc, values_fill = list(fc = 0))
-  
-  if (NCOL(DF_wide) > 1 & NROW(DF_wide) >1 ) {
-    
-    DF_wide <- as.data.frame(DF_wide)
-    
-    rownames(DF_wide) <- DF_wide[,1]
-    DF_wide[,1] <- NULL
-    DF_wide$interval <- NULL
-    
-    m <- as.matrix(DF_wide)
-    
-    pheatmap(m, fontsize_row = 5, main = interval, display_numbers = TRUE, cluster_cols = FALSE)
-    
-  }
-  
-  
-}
-dev.off()
-
-
-
-
 
 ######################################################################
 ######################################################################
@@ -1001,6 +673,377 @@ comparetimepoints_mini("t4","t8")
 # 4 weeks interval:
 comparetimepoints_mini("t0","t8")
 
+
+######################################################################
+######################################################################
+######################################################################
+######################################################################
+
+
+# comparing cohorts 
+
+
+# first create empty dataframe (only colnames)
+names <- colnames(mydata)
+myempty <- data.frame()
+for (k in names) myempty[[k]] <- as.character()
+# done 
+
+# save it
+fwrite(x=myempty, file="gt_siamcat_cohortsbetween.csv", sep = ",",
+       append = FALSE)
+
+######################################################################
+
+# function to compare cohorts: 
+comparebetween <- function(t,c2,c1) { 
+  
+  label.normalized <- create.label(meta=meta,
+                                   label='group', 
+                                   case= paste0(t,"_",c2),
+                                   control= paste0(t,"_",c1))
+  
+  siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
+  siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.0001)
+  
+  # check for significant associations
+  siamcat <- check.associations(
+    siamcat,
+    sort.by = 'fc',
+    alpha = 0.05,
+    fn.plot = paste0("gt_siamcatA_",t,"_",c1,"_vs_",c2,".pdf"),
+    mult.corr = "fdr",
+    detect.lim = 10 ^-6)
+  
+  # save the data 
+  mydata_cohorts_between <- associations(siamcat,verbose=1)
+  mydata_cohorts_between$comparison <- paste0(t,"_",c1,"_vs_",c2)
+  mydata_cohorts_between$species <- rownames(mydata_cohorts_between)
+  rownames(mydata_cohorts_between) <- NULL
+  
+  fwrite(x=mydata_cohorts_between, file="gt_siamcat_cohortsbetween.csv", sep = ",",
+         append = TRUE)
+  
+}
+
+
+# run the association tests and plot the output
+comparebetween("t0","DScour","Control")
+comparebetween("t2","DScour","Control")
+comparebetween("t4","DScour","Control")
+comparebetween("t6","DScour","Control")
+comparebetween("t8","DScour","Control")
+comparebetween("t10","DScour","Control")
+comparebetween("t0","ColiGuard","Control")
+comparebetween("t2","ColiGuard","Control")
+comparebetween("t4","ColiGuard","Control")
+comparebetween("t6","ColiGuard","Control")
+comparebetween("t8","ColiGuard","Control")
+comparebetween("t10","ColiGuard","Control")
+comparebetween("t0","Neomycin","Control")
+comparebetween("t2","Neomycin","Control")
+comparebetween("t4","Neomycin","Control")
+comparebetween("t6","Neomycin","Control")
+comparebetween("t8","Neomycin","Control")
+comparebetween("t10","Neomycin","Control")
+comparebetween("t0","NeoD","Neomycin")
+comparebetween("t2","NeoD","Neomycin")
+comparebetween("t4","NeoD","Neomycin")
+comparebetween("t6","NeoD","Neomycin")
+comparebetween("t8","NeoD","Neomycin")
+comparebetween("t10","NeoD","Neomycin")
+comparebetween("t0","NeoC","Neomycin")
+comparebetween("t2","NeoC","Neomycin")
+comparebetween("t4","NeoC","Neomycin")
+comparebetween("t6","NeoC","Neomycin")
+comparebetween("t8","NeoC","Neomycin")
+comparebetween("t10","NeoC","Neomycin")
+
+
+######################################################################
+
+# retrieve the significant hits from the data we just obtained 
+CohortsAssociations <- read_csv("gt_siamcat_cohortsbetween.csv")
+
+significant_between_cohorts <- CohortsAssociations %>%
+  filter(p.adj<=0.05) 
+fwrite(x=significant_between_cohorts, file="gt_siamcat_betw_cohorts_sign.csv", sep = ",",
+       append = FALSE)
+
+# how many associations found per each time intervals comparison
+sink(file = "gt_siamcat_betw_cohorts_sign.txt", 
+     append = FALSE, type = c("output"))
+significant_between_cohorts %>%
+  filter(p.adj<=0.05) %>%
+  group_by(comparison) %>%
+  tally() %>%
+  mutate(perc=n/sum(n)*100)
+sink()
+
+######################################################################
+######################################################################
+# 
+# # Function to plot the significant changes per cohort for each time interval : 
+# 
+# comparewithin_plots <- function(c,t1,t2) { # where c is the cohort of interest, t0 is the start time point, t1 is the next time point)
+#   
+#   label.normalized <- create.label(meta=meta,
+#                                    label='group', 
+#                                    case= paste0(t2,"_",c),
+#                                    control= paste0(t1,"_",c))
+#   
+#   siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
+#   siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.0001)
+#   
+#   
+#   # check for significant associations
+#   siamcat <- check.associations(
+#     siamcat,
+#     fn.plot = paste0("gt_siamcatA_",c,"_",t1,"_",t2,".pdf"),
+#     sort.by = 'fc',
+#     alpha = 0.05, 
+#     mult.corr = "fdr",
+#     detect.lim = 10 ^-6,
+#     plot.type = "quantile.box",
+#     panels = c("fc", "prevalence", "auroc"))
+#   
+#   
+# }
+# 
+# 
+# # Plot : 
+# 
+# comparewithin_plots("Control","t0","t2")
+# comparewithin_plots("Control","t2","t4")
+# comparewithin_plots("Control","t4","t6")
+# comparewithin_plots("Control","t6","t8")
+# comparewithin_plots("Control","t8","t10")
+# comparewithin_plots("Control","t4","t8")
+# comparewithin_plots("Control","t4","t10")
+# comparewithin_plots("Control","t2","t8")
+# #
+# comparewithin_plots("DScour","t0","t2")
+# comparewithin_plots("DScour","t2","t4")
+# comparewithin_plots("DScour","t4","t6")
+# comparewithin_plots("DScour","t6","t8")
+# comparewithin_plots("DScour","t8","t10")
+# comparewithin_plots("DScour","t4","t8")
+# comparewithin_plots("DScour","t4","t10")
+# comparewithin_plots("DScour","t2","t8")
+# #
+# comparewithin_plots("ColiGuard","t0","t2")
+# comparewithin_plots("ColiGuard","t2","t4")
+# comparewithin_plots("ColiGuard","t4","t6")
+# comparewithin_plots("ColiGuard","t6","t8")
+# comparewithin_plots("ColiGuard","t8","t10")
+# comparewithin_plots("ColiGuard","t4","t8")
+# comparewithin_plots("ColiGuard","t4","t10")
+# comparewithin_plots("ColiGuard","t2","t8")
+# #
+# comparewithin_plots("Neomycin","t0","t2")
+# comparewithin_plots("Neomycin","t2","t4")
+# comparewithin_plots("Neomycin","t4","t6")
+# comparewithin_plots("Neomycin","t6","t8")
+# comparewithin_plots("Neomycin","t8","t10")
+# comparewithin_plots("Neomycin","t4","t8")
+# comparewithin_plots("Neomycin","t4","t10")
+# comparewithin_plots("Neomycin","t2","t8")
+# #
+# comparewithin_plots("NeoD","t0","t2")
+# comparewithin_plots("NeoD","t2","t4")
+# comparewithin_plots("NeoD","t4","t6")
+# comparewithin_plots("NeoD","t6","t8")
+# comparewithin_plots("NeoD","t8","t10")
+# comparewithin_plots("NeoD","t4","t8")
+# comparewithin_plots("NeoD","t4","t10")
+# comparewithin_plots("NeoD","t2","t8")
+# #
+# comparewithin_plots("NeoC","t0","t2")
+# comparewithin_plots("NeoC","t2","t4")
+# comparewithin_plots("NeoC","t4","t6")
+# comparewithin_plots("NeoC","t6","t8")
+# comparewithin_plots("NeoC","t8","t10")
+# comparewithin_plots("NeoC","t4","t8")
+# comparewithin_plots("NeoC","t4","t10")
+# comparewithin_plots("NeoC","t2","t8")
+
+
+######################################################################
+# 
+# # Function to obtain the (data only) significant changes per cohort for each time interval : 
+# 
+# dfz <- data.frame(
+#   fc = numeric(),
+#   p.adj = numeric(),
+#   gOTU = character(),
+#   comparison = character(),
+#   stringsAsFactors = FALSE
+# )
+# 
+# comparewithin <- function(c,t1,t2) { # where c is the cohort of interest, t0 is the start time point, t1 is the next time point)
+#   
+#   label.normalized <- create.label(meta=meta,
+#                                    label='group', 
+#                                    case= paste0(t2,"_",c),
+#                                    control= paste0(t1,"_",c))
+#   
+#   siamcat <- siamcat(feat=feat,label=label.normalized,meta=meta)
+#   siamcat <- filter.features(siamcat,filter.method = 'abundance',cutoff = 0.0001)
+#   
+#   # check for significant associations
+#   siamcat <- check.associations(
+#     siamcat,
+#     sort.by = 'fc',
+#     alpha = 0.05,
+#     mult.corr = "fdr",
+#     detect.lim = 10 ^-6,
+#     prompt = FALSE,
+#     panels = c("fc", "prevalence", "auroc"))
+#   
+#   yy <- SIAMCAT::associations(siamcat)
+#   yy$gOTU <- rownames(yy)
+#   yy <- yy %>% filter(p.adj<0.05)
+#   
+#   
+#   if (NROW(yy)>0) {
+#     yy$comparison=paste0(c,"_",t1,"_",t2)
+#     yy$feat <- rownames(yy)
+#     yy <- yy %>%
+#       dplyr::select(comparison,gOTU,fc,p.adj)
+#     dfz <- rbind(dfz,yy)
+#   } else {
+#     print ("No significant associations found. No plot will be produced.")
+#   }
+#   
+#   return(dfz)
+# }
+# 
+# 
+# 
+# last <- rbind(comparewithin("Control","t0","t2"),
+#               comparewithin("Control","t2","t4"),
+#               comparewithin("Control","t4","t6"),
+#               comparewithin("Control","t6","t8"),
+#               comparewithin("Control","t8","t10"),
+#               comparewithin("Control","t4","t8"),
+#               comparewithin("Control","t4","t10"),
+#               comparewithin("Control","t2","t8"),
+#               #
+#               comparewithin("DScour","t0","t2"),
+#               comparewithin("DScour","t2","t4"),
+#               comparewithin("DScour","t4","t6"),
+#               comparewithin("DScour","t6","t8"),
+#               comparewithin("DScour","t8","t10"),
+#               comparewithin("DScour","t4","t8"),
+#               comparewithin("DScour","t4","t10"),
+#               comparewithin("DScour","t2","t8"),
+#               #
+#               comparewithin("ColiGuard","t0","t2"),
+#               comparewithin("ColiGuard","t2","t4"),
+#               comparewithin("ColiGuard","t4","t6"),
+#               comparewithin("ColiGuard","t6","t8"),
+#               comparewithin("ColiGuard","t8","t10"),
+#               comparewithin("ColiGuard","t4","t8"),
+#               comparewithin("ColiGuard","t4","t10"),
+#               comparewithin("ColiGuard","t2","t8"),
+#               #
+#               comparewithin("Neomycin","t0","t2"),
+#               comparewithin("Neomycin","t2","t4"),
+#               comparewithin("Neomycin","t4","t6"),
+#               comparewithin("Neomycin","t6","t8"),
+#               comparewithin("Neomycin","t8","t10"),
+#               comparewithin("Neomycin","t4","t8"),
+#               comparewithin("Neomycin","t4","t10"),
+#               comparewithin("Neomycin","t2","t8"),
+#               #
+#               comparewithin("NeoD","t0","t2"),
+#               comparewithin("NeoD","t2","t4"),
+#               comparewithin("NeoD","t4","t6"),
+#               comparewithin("NeoD","t6","t8"),
+#               comparewithin("NeoD","t8","t10"),
+#               comparewithin("NeoD","t4","t8"),
+#               comparewithin("NeoD","t4","t10"),
+#               comparewithin("NeoD","t2","t8"),
+#               #
+#               comparewithin("NeoC","t0","t2"),
+#               comparewithin("NeoC","t2","t4"),
+#               comparewithin("NeoC","t4","t6"),
+#               comparewithin("NeoC","t6","t8"),
+#               comparewithin("NeoC","t8","t10"),
+#               comparewithin("NeoC","t4","t8"),
+#               comparewithin("NeoC","t4","t10"),
+#               comparewithin("NeoC","t2","t8"))
+# 
+# last_to_use <- last 
+# 
+# NROW(last_to_use)
+# last_to_use$p.adj <- NULL
+# 
+# toplot <- last_to_use %>%
+#   dplyr::select(gOTU,comparison,fc)
+# 
+# 
+# 
+# # save hits as text file 
+# sink(file = "gt_siamcatA_cohortswithin.txt", 
+#      append = TRUE, type = c("output"))
+# last_to_use
+# sink()
+# 
+# 
+# 
+# toplot <- cSplit(toplot, "comparison", "_")
+# toplot$interval <- paste0(toplot$comparison_2,"_",toplot$comparison_3)
+# 
+# toplot <- toplot %>%
+#   dplyr::select(gOTU,comparison_1,interval,fc)
+# 
+# colnames(toplot) <- c("gOTU","cohort","interval","fc")
+# 
+# 
+# # I am adding this here because the pdf below often doesn t get printed
+# closeAllConnections()
+# 
+# 
+# # split df by time interval 
+# multiple_DFs <- split( toplot , f = toplot$interval )
+# 
+# 
+# pdf("gt_siamcatA_cohortswithin.pdf")
+# for (single_DF in multiple_DFs) {
+#   
+#   
+#   DF <- as.data.frame(single_DF)
+#   
+#   interval <- DF$interval[1]
+#   
+#   DF_wide <- DF %>%
+#     pivot_wider(names_from = cohort, values_from = fc, values_fill = list(fc = 0))
+#   
+#   if (NCOL(DF_wide) > 1 & NROW(DF_wide) >1 ) {
+#     
+#     DF_wide <- as.data.frame(DF_wide)
+#     
+#     rownames(DF_wide) <- DF_wide[,1]
+#     DF_wide[,1] <- NULL
+#     DF_wide$interval <- NULL
+#     
+#     m <- as.matrix(DF_wide)
+#     
+#     pheatmap(m, fontsize_row = 5, main = interval, display_numbers = TRUE, cluster_cols = FALSE)
+#     
+#   }
+#   
+#   
+# }
+# dev.off()
+# 
+
+
+
+
+######################################################################
+######################################################################
 
 
 
