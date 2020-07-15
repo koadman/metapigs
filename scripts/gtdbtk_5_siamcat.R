@@ -12,6 +12,8 @@ library(matrixStats)
 library(data.table)
 library(pheatmap)
 library(readxl)
+library(ggpubr)
+library(forcats)
 
 setwd("~/Desktop/metapigs_dry/gtdbtk")
 basedir = "~/Desktop/metapigs_dry/"
@@ -1048,4 +1050,147 @@ sink()
 
 
 
+###### majorly shifting species 
+
+gt_siamcat_time_sign <- read_csv("gt_siamcat_time_sign.csv")
+
+# some filtering and parse
+gt_siamcat_time_sign$comparison <- as.factor(gt_siamcat_time_sign$comparison)
+
+z <- gt_siamcat_time_sign %>% 
+  filter(p.adj < 0.05)
+
+# split to get the node number 
+z <- cSplit(z, "species", "__", drop = FALSE)
+
+
+
+# function to plot groups
+plot_genera_groups <- function(df) {
+    print(ggplot(df,aes(y=fct_reorder(species, species_2),x=fc,color=comparison))+
+            geom_point(alpha=0.8) +
+            geom_vline(xintercept = 0, linetype="dashed", 
+                       color = "black", size=0.5)+
+            scale_color_discrete(drop=FALSE) +
+            labs(color="interval")+
+            theme(axis.title.x=element_blank(),
+                  axis.text.y=element_text(size=6), 
+                  axis.title.y=element_blank()))
+}
+
+# function to plot all sign species
+plot_all <- function(df) {
+  print(ggplot(df,aes(y=fct_reorder(species, species_2),x=fc,color=comparison))+
+          geom_point(alpha=0.8, size=1) +
+          geom_vline(xintercept = 0, linetype="dashed", 
+                     color = "black", size=0.5)+
+          scale_color_discrete(drop=FALSE) +
+          labs(color="interval")+
+          theme(axis.title.x=element_blank(),
+                axis.text.y=element_text(size=3), 
+                axis.title.y=element_blank()))
+}
+
+
+CAG_plots <- plot_genera_groups(subset(z, grepl("^CAG", z$species))) # CAG : co-abundance genomes (Lesker et al, 2020)
+UBA_plots <- plot_genera_groups(subset(z, grepl("^UBA", z$species))) # UBA : uncultured bacteria and archaea 
+Prevo_plots <- plot_genera_groups(subset(z, grepl("^Prev", z$species)))
+Agath_plots <- plot_genera_groups(subset(z, grepl("^Agath", z$species)))
+all_species_plots <- plot_all(z)
+
+all <- ggarrange(CAG_plots,
+                 UBA_plots,
+                 Prevo_plots,labels=c("A","B","C","D"),align="hv",
+                 Agat_plots, common.legend=TRUE)
+
+pdf("gt_siamcat_time_sign_major.pdf")
+# all
+all_species_plots
+dev.off()
+
+#######
+
+##########
+##########
+# getting some numbers : how many of the species shifting at t0_t2 were positive fold changes : 
+z %>%
+  filter(fc>0) %>%
+  group_by(comparison) %>%
+  tally()
+z %>%
+  group_by(comparison) %>%
+  tally()
+124*100/146
+##########
+##########
+# getting some numbers : how many of the species increasing at t0_t2 also go up at t2_t4 : 
+sel1 <- z %>%
+  filter(fc>0) %>%
+  filter(comparison=="t0_t2") %>%
+  dplyr::select(species)
+sel2 <- z %>%
+  filter(fc>0) %>%
+  filter(comparison=="t2_t4") %>%
+  dplyr::select(species)
+NROW(sel1)
+NROW(sel2)
+NROW(inner_join(sel1,sel2))
+45*100/124
+##########
+##########
+# getting some numbers : how many of the species shifting at t4_t6, go up : 
+z %>%
+  filter(fc>0) %>%
+  group_by(comparison) %>%
+  tally()
+z %>%
+  group_by(comparison) %>%
+  tally()
+42*100/51
+##########
+##########
+# getting some numbers : how many of the species shifting at t8_t10, go down : 
+z %>%
+  filter(fc<0) %>%
+  group_by(comparison) %>%
+  tally()
+z %>%
+  group_by(comparison) %>%
+  tally()
+20*100/28
+z %>%
+  filter(fc<0) %>%
+  filter(comparison=="t8_t10") %>%
+  dplyr::select(species)
+##########
+
+
+
+z %>%
+  group_by(comparison) %>%
+  filter(fc<0) %>%
+  tally()
+
+
+library(data.table)
+setDT(z)    
+z <- z[, ":="(positive = sum(fc > 0), negative = sum(fc < 0)), by = comparison]
+
+
+pdf("gt_siamcat_time_pos_vs_neg.pdf")
+z %>%
+  dplyr::select(comparison,positive,negative) %>%
+  distinct() %>%
+  pivot_longer(., cols=c("positive","negative")) %>%
+  group_by(comparison) %>%
+  mutate(prop=paste0(round(value/sum(value)*100),"%")) %>%
+  ggplot(., aes(x=comparison,y=value,fill=name))+
+  geom_bar(stat="identity", position="dodge")+
+  theme_minimal()+
+  labs(fill="fold change",
+       y="significant abundance shifts (counts)",
+       x="time interval") +
+  theme(legend.position = c(0.8, 0.9))+
+  geom_text(aes(label=prop), position=position_dodge(width=0.9), vjust=-0.25, size=3)
+dev.off()
 

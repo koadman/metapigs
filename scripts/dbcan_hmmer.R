@@ -452,14 +452,15 @@ paste0("number of unique enzymes that showed a significant change between timepo
 NROW(unique(significant$enzID))
 sink()
 
-
+NROW(unique(hmmer$enzymeID)) # tot enzymes
+NROW(unique(significant$enzID)) # tot enzymes with significant diffs when comparing any time point
 ##########################################################
 ##########################################################
 
 
 # PART 3
 
-# now I will use these IDs to immediately plot interesting stuff
+# now I will use these IDs to plot interesting stuff
 df_part <- subset(df2, (enzymeID %in% mylist))
 
 # renaming this column 
@@ -1077,89 +1078,62 @@ dev.off()
 # PLOT showing all enzymes that significantly changed over time, 
 # with popularity (y) and "singularity" (x) meaning how uniquely an enzyme is expressed by one (right) or multiple (left) taxa
 
-
 CAZy_species_representation <- gt_hmmer %>% 
-  dplyr::select(pig,enzymeID,enzymeNAME,species,family) %>%
-  distinct() %>%
-  group_by(pig,enzymeID,species) %>%
-  add_tally() %>%
-  group_by(enzymeNAME,enzymeID,species) %>%
-  dplyr::summarise(n_sum_species=sum(n)) %>%
-  mutate(perc_species=round(n_sum_species/sum(n_sum_species)*100,4)) %>% 
-  drop_na() %>% arrange(desc(perc_species))
+  group_by(enzymeID,species) %>%
+  tally() %>%
+  group_by(enzymeID) %>%
+  dplyr::mutate(perc_spec=round(n/sum(n)*100,2)) %>%
+  drop_na() %>%
+  group_by(enzymeID) %>%
+  top_n(n=1,wt=perc_spec) %>%
+  arrange(enzymeID) %>%
+  dplyr::mutate(top_species = perc_spec) %>%
+  dplyr::select(enzymeID, species, top_species)
+
 head(CAZy_species_representation)
 tail(CAZy_species_representation)
 
-CAZy_prevalence_in_population <- gt_hmmer %>% 
-  dplyr::select(pig,enzymeID,enzymeNAME) %>%
+CAZy_prevalence_in_population <- gt_hmmer %>%
+  filter(!pig=="Protexin"&!pig=="ColiGuard"&!pig=="MockCommunity"&!pig=="NegativeControl") %>%
+  dplyr::select(pig,enzymeID, enzymeNAME) %>%
   distinct() %>%
-  group_by(pig,enzymeID) %>%
-  add_tally() %>%
-  group_by(enzymeNAME,enzymeID) %>%
-  dplyr::summarise(n_sum_piggies=sum(n)) %>%
-  mutate(prevalence=round(n_sum_piggies/sum(n_sum_piggies)*100,2)) %>% 
-  drop_na() %>% arrange(desc(prevalence))
+  group_by(enzymeID, enzymeNAME) %>%
+  tally() %>%
+  dplyr::mutate(popularity = n) %>%
+  dplyr::select(enzymeID, enzymeNAME, popularity)
+
 head(CAZy_prevalence_in_population)
 tail(CAZy_prevalence_in_population)
 
-# keep only one species, the one representing the enzyme the most 
-CAZy_species_representation <- as.data.frame(CAZy_species_representation)
-CAZy_species_representation <- CAZy_species_representation %>%
-  group_by(enzymeID) %>%
-  top_n(n = 1, wt = perc_species) 
-
-# to get the species showing in the labels 
-CAZy_species_representation$species <- gsub(" ","\n", CAZy_species_representation$species)
-
-# join species representation with prevalence in pig populationinfo: 
-both <- inner_join(CAZy_species_representation,CAZy_prevalence_in_population)
-both <- as.data.frame(both)
-
+df <- full_join(CAZy_species_representation, CAZy_prevalence_in_population) %>% distinct()
 
 pdf("dbcan_HMMER_all_CAZ_plot.pdf")
-ggplot(both) +
-  geom_point(aes(n_sum_piggies, perc_species, fill=enzymeNAME), 
+ggplot(df) +
+  geom_point(aes(top_species, popularity, fill=enzymeNAME), 
              colour="black",pch=21, size=4)+
-  labs(x="prevalence (number of subjects carrying the enzyme)",
-       y="percentage of top species per enzymeID",
+  labs(x="percentage of top species",
+       y="prevalence in the pig population",
        fill="enzyme class")+
   scale_fill_gaio8()+
-  theme_bw(base_size = 10)+
-  ggrepel::geom_label_repel(data = subset(both, perc_species > 50 & n_sum_piggies > 10),
+  theme_bw(base_size = 10) +
+  xlim(0,130) +
+  ggrepel::geom_label_repel(data = subset(df, top_species > 55 & popularity > 5),
                             aes(
-                              x = n_sum_piggies,
-                              y = perc_species,
+                              x = top_species,
+                              y = popularity,
                               fill = factor(enzymeNAME),
                               label = paste0(enzymeID,"\n",species)
                             ),
                             box.padding   = 0.3,label.padding = 0.1,
                             point.padding = 0.5,alpha=0.7,
-                            force         = 30,
+                            force         = 10,
                             segment.size  = 0.2,
-                            segment.color = "grey50",
-                            direction     = "both",
-                            size=2.5,
-                            color="black"
-  ) +
-  ggrepel::geom_label_repel(data = subset(both, n_sum_piggies > 20),
-                            aes(
-                              x = n_sum_piggies,
-                              y = perc_species,
-                              fill = factor(enzymeNAME),
-                              label = paste0(enzymeID,"\n",species)
-                            ),
-                            #nudge_y       = 100 - subset(test, perc_species >= 55)$perc_species, #rep(c(4000,45000),7),
-                            box.padding   = 0.3,label.padding = 0.1,
-                            point.padding = 0.5,alpha=0.7,
-                            force         = 40,
-                            segment.size  = 0.2,
-                            segment.color = "grey50",
-                            direction     = "both",
+                            segment.color = "grey50", nudge_x = 30,
+                            direction     = "y", nudge_y = 10,
                             size=2.5,
                             color="black"
   ) 
 dev.off()
-
 
 
 
@@ -1172,85 +1146,87 @@ sink(file = "dbcan_HMMER_numbers.text",append = TRUE)
 
 paste0(" ##############################  CE  ############################## ")
 paste0("number of all enzymeIDs within this class")
-NROW(subset(df2, enzymeNAME == "CE")) 
+NROW(subset(df, enzymeNAME == "CE")) 
 paste0("number of all enzymeIDs within this class, that are present in multiple species")
-NROW(subset(df2, enzymeNAME == "CE" & perc_species<25)) 
-CE_df2 <- df2 %>%
+NROW(subset(df, enzymeNAME == "CE" & top_species<25)) 
+CE_df <- df %>%
   filter(enzymeNAME=="CE") %>%
-  filter(perc_species<25) 
-summary(CE_df2)
+  filter(top_species<25) 
+summary(CE_df)
 
 paste0(" ##############################  PL  ############################## ")
 paste0("number of all enzymeIDs within this class")
-NROW(subset(df2, enzymeNAME == "PL")) 
+NROW(subset(df, enzymeNAME == "PL")) 
 paste0("number of all enzymeIDs within this class, that are present in multiple species")
-NROW(subset(df2, enzymeNAME == "PL" & perc_species<25)) 
-PL_df2 <- df2 %>%
+NROW(subset(df, enzymeNAME == "PL" & top_species<25)) 
+PL_df <- df %>%
   filter(enzymeNAME=="PL") %>%
-  filter(perc_species<25) 
-summary(PL_df2)
+  filter(top_species<25) 
+summary(PL_df)
 
 paste0(" ##############################  GT  ############################## ")
 paste0("number of all enzymeIDs within this class")
-NROW(subset(df2, enzymeNAME == "GT")) 
+NROW(subset(df, enzymeNAME == "GT")) 
 paste0("number of all enzymeIDs within this class, that are present in multiple species")
-NROW(subset(df2, enzymeNAME == "GT" & perc_species<25)) 
-GT_df2 <- df2 %>%
+NROW(subset(df, enzymeNAME == "GT" & top_species<25 & popularity >50)) 
+34*100/68
+GT_df <- df %>%
   filter(enzymeNAME=="GT") %>%
-  filter(perc_species<25) 
-summary(GT_df2)
+  filter(top_species<25) 
+summary(GT_df)
 
 paste0(" ##############################  GH  ############################## ")
 paste0("number of all enzymeIDs within this class")
-NROW(subset(df2, enzymeNAME == "GH")) 
+NROW(subset(df, enzymeNAME == "GH")) 
 paste0("number of all enzymeIDs within this class, that are present in multiple species")
-NROW(subset(df2, enzymeNAME == "GH" & perc_species<25)) 
-GH_df2 <- df2 %>%
+NROW(subset(df, enzymeNAME == "GH" & top_species<25 & popularity >50)) 
+94*100/128
+GH_df <- df %>%
   filter(enzymeNAME=="GH") %>%
-  filter(perc_species<25) 
-summary(GH_df2)
+  filter(top_species<25) 
+summary(GH_df)
 
 paste0(" ##############################  CBM  ############################## ")
 paste0("number of all enzymeIDs within this class")
-NROW(subset(df2, enzymeNAME == "CBM")) 
-CBM_df2 <- df2 %>%
+NROW(subset(df, enzymeNAME == "CBM")) 
+CBM_df <- df %>%
   filter(enzymeNAME=="CBM") 
-summary(CBM_df2)
-
-paste0(" ##############################  SLH  ############################## ")
-paste0("number of all enzymeIDs within this class")
-NROW(subset(df2, enzymeNAME == "SLH")) 
-SLH_df2 <- df2 %>%
-  filter(enzymeNAME=="SLH") 
-SLH_df2
-
-paste0(" ##############################  cohesin  ############################## ")
-paste0("number of all enzymeIDs within this class")
-NROW(subset(df2, enzymeNAME == "cohesin")) 
-cohesin_df2 <- df2 %>%
-  filter(enzymeNAME=="cohesin") 
-cohesin_df2
+summary(CBM_df)
 
 paste0(" ##############################  AA  ############################## ")
 paste0("number of all enzymeIDs within this class")
-NROW(subset(df2, enzymeNAME == "AA")) 
-AA_df2 <- df2 %>%
+NROW(subset(df, enzymeNAME == "AA")) 
+AA_df <- df %>%
   filter(enzymeNAME=="AA") 
-AA_df2
-summary(AA_df2)
+AA_df
+summary(AA_df)
+
+paste0(" ##############################  cohesin  ############################## ")
+paste0("number of all enzymeIDs within this class")
+NROW(subset(df, enzymeNAME == "cohesin")) 
+cohesin_df <- df %>%
+  filter(enzymeNAME=="cohesin") 
+cohesin_df
+
+
+
+paste0(" ##############################  SLH  ############################## ")
+paste0("number of all enzymeIDs within this class")
+NROW(subset(df, enzymeNAME == "SLH")) 
+SLH_df <- df %>%
+  filter(enzymeNAME=="SLH") 
+SLH_df
+
 
 paste0(" ##############################  enzymes present majorly in one species ############################## ")
-rightmost <- df2 %>%
-  filter(perc_species>50) %>%
-  filter(n_sum_species>5) %>%
-  arrange(desc(perc_species))
+rightmost <- df %>%
+  filter(top_species>70) %>%
+  filter(popularity>15) %>%
+  arrange(desc(top_species))
 NROW(rightmost)
-rightmost
-
+rightmost$species
+rightmost$enzymeID
 sink()
-
-
-
 
 
 

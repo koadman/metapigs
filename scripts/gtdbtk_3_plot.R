@@ -218,56 +218,58 @@ df <- df0 %>%
 
 
 #################################
-# STEP 1.
 
-# normalization for library size 
-df2 <- df %>%
-  dplyr::group_by(pig,date) %>%
-  dplyr::mutate(norm_value=value/sum(value)) 
-NROW(df2)
+# CREATE COUNTS TABLE 
+
+df1 <- df
+head(df1)
+NROW(df1)
+
+# PROCEED to all: 
+
+# for each sample (pig,date), sum up the counts that fall within one species (same species assigned to distinct bins)
+df2 <- df1 %>%
+  group_by(pig,gOTU,date) %>%
+  dplyr::summarize(sum_value = sum(value)) 
 head(df2)
+sum(df2$sum_value)
 
-# # test:
-# test <- df2 %>%
-#   filter(pig=="14159") %>%
-#   filter(date=="t0") %>%
-#   dplyr::mutate(norm_value=value/sum(value))
-# head(test)
-# sum(test$norm_value)
-
-#################################
-
-# get a quick cohorts to pig table to use later for labelling
-cohorts <- df0 %>% dplyr::select(cohort,pig) %>% distinct()
-
-df2 
-# ready to use
-
-######################################################################################################
-######################################################################################################
-
-
-# SPECIES
-
-# STEP 2.
-
-# sum all the norm values that fall within same pig,date,taxa_2
-df3 <- df2 %>%
-  dplyr::group_by(pig,date,species) %>%
-  dplyr::summarise(indiv_sum = sum(norm_value))
+# normalize by library size 
+df3 <- df2 %>% 
+  group_by(pig,date) %>% 
+  dplyr::mutate(norm_value = sum_value/sum(sum_value)) %>% 
+  dplyr::select(-sum_value)
 head(df3)
 
-df3$sample =paste0(df3$date,"_",df3$pig)
-df3$date <- NULL
-df3$pig <- NULL
-
-# long to wide format
-df4 <- df3 %>%
-  pivot_wider(names_from = species, values_from = indiv_sum, values_fill = list(indiv_sum = 0)) 
-head(df4)
+# if your total sum is equal to the total number of samples, 
+# it means that the sum within each sample (pig,date) is 1, and that's correct  
+NROW(unique(paste0(df3$pig,df3$date)))==sum(df3$norm_value)
 
 
-#################################
+df3 <- as.data.frame(df3)
+df3$sample = paste0(df3$date,"_",df3$pig)
+head(df3)
+
+# pivot wider
+df3 <- df3 %>%
+  dplyr::select(sample,gOTU,norm_value) %>%
+  pivot_wider(names_from = gOTU, values_from = norm_value, values_fill = list(norm_value = 0))
+
+feat <- as.data.frame(df3)
+which(is.na(feat[,1]))
+
+# rownames(feat) <- feat[,1]
+# feat[,1] <- NULL
+# 
+# head(feat)
+# dim(feat)
+# 
+# # is the sum of each columns 1? 
+# colSums(feat)
+# # yes 
+
+# ready! 
+
 
 
 
@@ -277,7 +279,7 @@ cohorts$sample <- paste0(cohorts$date,"_",cohorts$pig)
 cohorts <- as.data.frame(cohorts)
 
 
-df5 <- inner_join(cohorts,df4) 
+df5 <- inner_join(cohorts,feat) 
 df5$sample <- paste0(df5$date,"_",df5$cohort)
 
 df5$pig <- NULL
