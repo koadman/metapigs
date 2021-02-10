@@ -1,3 +1,10 @@
+# versions: 
+#bbmap                     38.22
+#bwa                       0.7.17
+#megahit                   1.1.3
+#metabat2                  2.12.1
+#samtools                  1.9
+
 /**
  * Runtime Variables:
  *
